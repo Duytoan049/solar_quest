@@ -3,10 +3,9 @@ import { OrbitControls } from "@react-three/drei";
 
 export default function GameScene() {
   return (
-    <Canvas>
-      <ambientLight intensity={0.5} />
-      <OrbitControls />
-      {/* Thêm Planet, PlayerShip… ở đây */}
-    </Canvas>
+    <div className="game text-white">
+      <p>Đây là thế giới 3D của bạn</p>
+      {/* sau này bạn thêm code Three.js vào đây */}
+    </div>
   );
 }
