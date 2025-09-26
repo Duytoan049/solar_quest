@@ -4,7 +4,6 @@ import Galaxy from "../../ui/Galaxy";
 import TextType from "../../ui/TextType";
 import { useGameManager } from "@/core/engine/GameManager";
 import { motion } from "framer-motion";
-
 // Import the Scene type from the engine module to ensure compatibility
 import type { Scene } from "@/core/engine/GameManager";
 
@@ -49,6 +48,7 @@ export default function MainMenu() {
         >
           SOLAR QUEST
         </h1>
+
         <TextType
           text={[
             "Welcome, astronaut, to your journey of conquering the universe!",
@@ -74,7 +74,7 @@ export default function MainMenu() {
           </Button>
           <Button
             style={{ fontFamily: "Sebino-Regular" }}
-            onClick={() => handleStart("warp")}
+            onClick={() => handleStart("game")}
           >
             Setting
           </Button>
