@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type Scene = 'menu' | 'warp' | 'game';
+type Scene = 'menu' | 'warp' | 'game' | '3dlook' | 'planetdetail';
 
 export const useGameManager = create<{
     scene: Scene;

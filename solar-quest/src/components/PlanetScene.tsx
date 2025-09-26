@@ -3,11 +3,11 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
 import Planet from "./Planet";
 import Saturn from "./Saturn";
-import planets from "../data/planets";
+import planets from "./planets";
 import PlanetMenu from "./PlanetMenu";
 import CameraFlyTo from "../core/engine/CameraFlyTo";
-import Marker from "../features/planet-info/PlanetMarkers";
-import { marsMarkers } from "../features/planet-info/planetMarkers";
+import Marker from "../features/planet-info/PlanetMarkers.tsx";
+import { marsMarkers } from "../features/planet-info/planetMarkers.ts";
 
 export default function PlanetScene() {
   const [focus, setFocus] = useState<[number, number, number] | null>(null);

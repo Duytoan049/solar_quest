@@ -1,4 +1,3 @@
-import React from "react";
 import { Html } from "@react-three/drei";
 
 interface MarkerProps {
@@ -8,7 +7,7 @@ interface MarkerProps {
   onSelect: (pos: [number, number, number]) => void;
 }
 
-export default function Marker({ id, label, position, onSelect }: MarkerProps) {
+export default function Marker({ id, position, onSelect }: MarkerProps) {
   return (
     <group>
       {/* Hình cầu nhỏ để click */}

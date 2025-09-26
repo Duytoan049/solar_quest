@@ -4,7 +4,7 @@ import TargetCursor from "./TargetCursor";
 export default function Button({ children, ...props }: Props) {
   return (
     <>
-      <TargetCursor spinDuration={5} hideDefaultCursor={true} />
+      <TargetCursor spinDuration={5} hideDefaultCursor={false} />
       <GlareHover
         glareColor="#ffffff"
         glareOpacity={0.3}

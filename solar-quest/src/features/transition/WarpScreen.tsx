@@ -21,7 +21,7 @@ function WarpTunnel({ speed = 50 }) {
     return pos;
   }, []);
   useEffect(() => {
-    const timer = setTimeout(() => setScene("game"), 7000);
+    const timer = setTimeout(() => setScene("planetdetail"), 7000);
     return () => clearTimeout(timer);
   }, []);
 

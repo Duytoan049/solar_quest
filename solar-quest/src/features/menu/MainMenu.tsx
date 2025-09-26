@@ -70,11 +70,11 @@ export default function MainMenu() {
             style={{ fontFamily: "Sebino-Regular" }}
             onClick={() => handleStart("warp")}
           >
-            Start Game
+            Start Explore
           </Button>
           <Button
             style={{ fontFamily: "Sebino-Regular" }}
-            onClick={() => handleStart("game")}
+            onClick={() => handleStart("3dlook")}
           >
             Setting
           </Button>
