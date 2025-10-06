@@ -4,7 +4,7 @@ import WarpScreen from "@/features/transition/WarpScreen";
 import GameScene from "@/core/engine/GameScene";
 import PlanetScene from "@/components/PlanetScene1";
 
-import PlanetDetail from "@/components/PlanetScene";
+import PlanetDetail from "@/features/planet-info/PlanetDetail";
 export default function App() {
   const { scene } = useGameManager();
 

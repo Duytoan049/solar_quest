@@ -81,7 +81,7 @@ export default function MainMenu() {
 
           <Button
             style={{ fontFamily: "Sebino-Regular" }}
-            onClick={() => handleStart("warp")}
+            onClick={() => handleStart("game")}
           >
             About Us
           </Button>

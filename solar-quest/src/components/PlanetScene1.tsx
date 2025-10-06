@@ -7,6 +7,7 @@ import Saturn from "./Saturn";
 import planets from "./planets";
 import PlanetMenu from "./PlanetMenu";
 import CameraController from "./CameraController";
+import Galaxy from "../ui/Galaxy";
 
 function RotatingPlanet({
   textureUrl,
@@ -37,12 +38,12 @@ function RotatingPlanet({
     <mesh
       ref={ref}
       onClick={onSelect}
-      onPointerOver={(e) =>
-        (e.stopPropagation(), (document.body.style.cursor = "pointer"))
-      }
-      onPointerOut={(e) =>
-        (e.stopPropagation(), (document.body.style.cursor = "auto"))
-      }
+      onPointerOver={(e) => (
+        e.stopPropagation(), (document.body.style.cursor = "pointer")
+      )}
+      onPointerOut={(e) => (
+        e.stopPropagation(), (document.body.style.cursor = "auto")
+      )}
     >
       <sphereGeometry args={[size, 32, 32]} />
       <meshStandardMaterial map={new THREE.TextureLoader().load(textureUrl)} />
@@ -51,21 +52,39 @@ function RotatingPlanet({
 }
 
 export default function PlanetScene() {
-  const { setScene, setSelectedPlanet } = useGameManager();
+  const { setScene } = useGameManager();
   const [targetPosition, setTargetPosition] = useState<
     [number, number, number] | null
   >(null);
 
-  const handlePlanetSelect = (planetName: string) => {
-    setSelectedPlanet(planetName);
+  const handlePlanetSelect = () => {
     setScene("game");
   };
 
   return (
     <div className="w-full h-screen bg-black relative">
+      <div className="absolute inset-0 z-0">
+        {/* <Galaxy
+          mouseRepulsion={false}
+          mouseInteraction={false}
+          density={0.4}
+          glowIntensity={0.1}
+          saturation={0.3}
+          hueShift={140}
+          starSpeed={0.1}
+          twinkleIntensity={0.1}
+          rotationSpeed={0}
+          repulsionStrength={2}
+          autoCenterRepulsion={0}
+          speed={0.1}
+        /> */}
+      </div>
       <PlanetMenu onSelectPlanet={setTargetPosition} />
 
-      <Canvas camera={{ position: [0, 0, 20], fov: 60 }}>
+      <Canvas
+        camera={{ position: [0, 0, 20], fov: 60 }}
+        className="relative z-10"
+      >
         <CameraController targetPosition={targetPosition} />
 
         <ambientLight intensity={0.5} />
@@ -75,8 +94,9 @@ export default function PlanetScene() {
           depth={50}
           count={3000}
           factor={4}
-          saturation={0}
+          saturation={0.5} // Increase saturation for more vibrant stars
           fade
+          speed={1} // Add subtle movement to stars
         />
 
         {planets.map((planet, index) =>
@@ -92,7 +112,7 @@ export default function PlanetScene() {
               position={planet.position as [number, number, number]}
               size={planet.size || 1}
               speed={planet.speed}
-              onSelect={() => handlePlanetSelect(planet.name)}
+              onSelect={() => handlePlanetSelect()}
             />
           )
         )}
