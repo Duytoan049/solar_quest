@@ -1,22 +1,19 @@
 import React from "react";
-import planets from "./planets";
+import planets from "@/components/planets";
 
 interface PlanetMenuProps {
-  onSelectPlanet: (position: [number, number, number]) => void;
+  onSelectPlanet: (planetName: string) => void;
 }
 
 export default function PlanetMenu({ onSelectPlanet }: PlanetMenuProps) {
   return (
-    <div className="absolute top-4 left-4 bg-white/10 backdrop-blur-md p-4 rounded shadow text-white space-y-2 max-h-[90vh] overflow-y-auto">
-      <h2 className="text-lg font-semibold mb-2">Solar system</h2>
-      {planets.map((planet, index) => (
+    <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md p-4 rounded-lg shadow-lg text-white space-y-2 max-h-[90vh] overflow-y-auto z-20">
+      <h2 className="text-lg font-semibold mb-2 text-cyan-300">Hệ Mặt Trời</h2>
+      {planets.map((planet) => (
         <button
-          key={index}
-          onClick={() => {
-            const [x, y, z] = planet.position as [number, number, number];
-            onSelectPlanet([x, y, z + 5]); // thêm khoảng cách từ phía trước hành tinh
-          }}
-          className="block w-full text-left px-2 py-1 hover:bg-white/20 rounded transition"
+          key={planet.name}
+          onClick={() => onSelectPlanet(planet.name)}
+          className="block w-full text-left px-3 py-2 hover:bg-white/10 rounded-md transition-colors"
         >
           {planet.name}
         </button>

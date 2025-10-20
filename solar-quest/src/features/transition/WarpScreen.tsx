@@ -1,14 +1,23 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Points, PointMaterial } from "@react-three/drei";
 import * as THREE from "three";
-import { useMemo, useRef, useEffect } from "react";
+// Thêm Suspense
+import { useMemo, useRef, useEffect, useState, Suspense } from "react";
 import "../../styles/warp.css";
 import ShinyText from "../../ui/ShinyText";
 import { useGameManager } from "@/core/engine/GameManager";
-function WarpTunnel({ speed = 50 }) {
+// Import component PreloadManager mới
+import PreloadManager from "@/core/engine/PreloadManager";
+
+function WarpTunnel({
+  onAnimationComplete,
+}: {
+  onAnimationComplete: () => void;
+}) {
   const pointsRef = useRef<THREE.Points>(null!);
   const { camera } = useThree();
-  const { setScene } = useGameManager();
+  const speed = 50;
+
   // Tạo vị trí ngẫu nhiên cho các ngôi sao
   const positions = useMemo(() => {
     const starCount = 800;
@@ -20,10 +29,16 @@ function WarpTunnel({ speed = 50 }) {
     }
     return pos;
   }, []);
+
   useEffect(() => {
-    const timer = setTimeout(() => setScene("planetdetail"), 7000);
-    return () => clearTimeout(timer);
-  }, []);
+    // Đặt một bộ đếm thời gian tối thiểu cho hiệu ứng (ví dụ: 5 giây)
+    // để đảm bảo hiệu ứng không kết thúc quá nhanh ngay cả khi tải xong sớm.
+    const minAnimationTimer = setTimeout(() => {
+      onAnimationComplete();
+    }, 5000); // 5 giây
+
+    return () => clearTimeout(minAnimationTimer);
+  }, [onAnimationComplete]);
 
   useFrame((_, delta) => {
     // Camera lao về phía trước
@@ -50,10 +65,33 @@ function WarpTunnel({ speed = 50 }) {
 }
 
 export default function WarpScreen() {
+  const { setScene, isPlanetSceneReady, setPlanetSceneReady } =
+    useGameManager();
+  const [isAnimationDone, setIsAnimationDone] = useState(false);
+
+  // Reset trạng thái sẵn sàng khi vào màn warp
+  useEffect(() => {
+    setPlanetSceneReady(false);
+  }, [setPlanetSceneReady]);
+
+  // Logic chuyển cảnh không đổi
+  useEffect(() => {
+    if (isPlanetSceneReady && isAnimationDone) {
+      setScene("planetdetail");
+    }
+  }, [isPlanetSceneReady, isAnimationDone, setScene]);
+
   return (
     <div className="warp-container">
       <Canvas camera={{ position: [0, 0, 0], fov: 75 }}>
-        <WarpTunnel />
+        <WarpTunnel onAnimationComplete={() => setIsAnimationDone(true)} />
+        {/* 
+          Sử dụng Suspense để render PreloadManager.
+          Nó sẽ "treo" ở đây cho đến khi tất cả texture được tải xong.
+        */}
+        <Suspense fallback={null}>
+          <PreloadManager />
+        </Suspense>
       </Canvas>
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <div className="text-center text-white/90 drop-shadow-lg">
@@ -61,7 +99,9 @@ export default function WarpScreen() {
             Entering hyperspace
           </h2>
           <ShinyText
-            text="LOADING SCENE"
+            text={
+              isPlanetSceneReady ? "ARRIVAL IMMINENT" : "CALCULATING JUMP..."
+            }
             disabled={false}
             speed={5}
             className="text-2xl font-bold mt-4"

@@ -1,17 +1,24 @@
-import { useGameManager } from "@/core/engine/GameManager";
-import MainMenu from "@/features/menu/MainMenu";
-import WarpScreen from "@/features/transition/WarpScreen";
-import GameScene from "@/core/engine/GameScene";
-import PlanetScene from "@/components/PlanetScene1";
+import { useGameManager } from "../core/engine/GameManager";
+import MainMenu from "../features/menu/MainMenu";
+import PlanetScene from "../components/PlanetScene1";
+import WarpScreen from "../features/transition/WarpScreen";
+import GameScene from "../core/engine/GameScene";
 
-import PlanetDetail from "@/features/planet-info/PlanetDetail";
 export default function App() {
   const { scene } = useGameManager();
 
-  if (scene === "menu") return <MainMenu />;
-  if (scene === "warp") return <WarpScreen />;
-  if (scene === "game") return <GameScene />;
-  if (scene === "3dlook") return <PlanetScene />;
-  if (scene === "planetdetail") return <PlanetDetail />;
-  return null;
+  switch (scene) {
+    case "menu":
+      return <MainMenu />;
+    case "warp":
+      // Khi ở màn hình warp, chúng ta render WarpScreen
+      // WarpScreen sẽ tự xử lý việc chuyển cảnh khi tải xong
+      return <WarpScreen />;
+    case "planetdetail":
+      return <PlanetScene />;
+    case "game":
+      return <GameScene />;
+    default:
+      return <MainMenu />;
+  }
 }

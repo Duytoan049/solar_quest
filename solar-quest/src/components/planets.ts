@@ -1,78 +1,123 @@
+// FIX: Import các file texture trực tiếp để Vite có thể xử lý chúng
+import sunTexture from '../assets/textures/sun.jpg';
+import mercuryTexture from '../assets/textures/mercury.jpg';
+import venusTexture from '../assets/textures/venus.jpg';
+import earthTexture from '../assets/textures/Albedo.jpeg';
+import moonTexture from '../assets/textures/moon.jpg';
+import marsTexture from '../assets/textures/mars.jpg';
+import jupiterTexture from '../assets/textures/jupiter.png';
+import uranusTexture from '../assets/textures/Uranus.jpeg';
+import neptuneTexture from '../assets/textures/neptune.jpg';
+
+// Import các texture HD của Sao Thổ
+import saturnSurfaceHd from '../assets/textures/Uv1_saturn1_diff.png';
+import saturnRingColorHd from '../assets/textures/Uv1_saturn2_diff.png';
+import saturnRingAlphaHd from '../assets/textures/Uv2_saturn2_bump.png';
+
+
 export const planets = [
     {
         name: 'Sun',
-        texture: 'src/assets/textures/sun.jpg',
+        texture: sunTexture,
         description: 'Ngôi sao trung tâm của hệ mặt trời, cung cấp ánh sáng và năng lượng.',
-        position: [-10, 0, 0],
+        radius: 4,
+        distance: 0,
+        speed: 0,
         isLightSource: true,
-        size: 4,
-        speed: 0 // Sun does not orbit
+        hasAtmosphere: false,
     },
     {
         name: 'Mercury',
-        texture: 'src/assets/textures/mercury.jpg',
+        texture: mercuryTexture,
         description: 'Hành tinh gần Mặt Trời nhất, nhỏ nhất trong hệ mặt trời.',
-        position: [0, 0, 0],
-        size: 0.3,
-        speed: 0.4
+        radius: 0.38,
+        distance: 15,
+        speed: 0.04,
+        hasAtmosphere: false,
     },
     {
         name: 'Venus',
-        texture: 'src/assets/textures/venus.jpg',
+        texture: venusTexture,
         description: 'Hành tinh giống Trái Đất nhưng có khí hậu cực kỳ khắc nghiệt.',
-        position: [5, 0, 0],
-        size: 0.9,
-        speed: 0.3
+        radius: 0.95,
+        distance: 20,
+        speed: 0.035,
+        hasAtmosphere: true,
+        atmosphereColor: "#ffc46e",
     },
     {
         name: 'Earth',
-        texture: 'src/assets/textures/Albedo.jpeg',
+        texture: earthTexture,
         description: 'Hành tinh xanh - nơi con người đang sinh sống.',
-        position: [10, 0, 0],
-        size: 1,
-        speed: 0.2
+        radius: 1,
+        distance: 28,
+        speed: 0.03,
+        hasAtmosphere: true,
+        atmosphereColor: "#87ceeb",
     },
     {
         name: 'Moon',
-        texture: 'src/assets/textures/moon.jpg',
+        texture: moonTexture,
         description: 'Vệ tinh tự nhiên duy nhất của Trái Đất.',
-        position: [11.5, 0.5, 0.5],
+        radius: 0.27,
+        distance: 2.5,
+        speed: 0.8,
         isMoon: true,
-        size: 0.27,
-        speed: 0.5
+        hasAtmosphere: false,
     },
     {
         name: 'Mars',
-        texture: 'src/assets/textures/mars.jpg',
+        texture: marsTexture,
         description: 'Hành tinh đỏ, có thể là tương lai của nhân loại.',
-        position: [15, 0, 0],
-        size: 0.53,
-        speed: 0.15
+        radius: 0.53,
+        distance: 38,
+        speed: 0.024,
+        hasAtmosphere: true,
+        atmosphereColor: "#c1440e",
     },
     {
         name: 'Jupiter',
-        texture: 'src/assets/textures/jupiter.png',
+        texture: jupiterTexture,
         description: 'Hành tinh khí khổng lồ với cơn bão Great Red Spot.',
-        position: [20, 0, 0],
-        size: 2.5,
-        speed: 0.1
+        radius: 11.2,
+        distance: 60,
+        speed: 0.013,
+        hasAtmosphere: true,
+        atmosphereColor: "#bcaea1",
+    },
+    {
+        name: "Saturn",
+        // FIX: Sử dụng các biến đã import thay vì chuỗi ký tự
+        texture: saturnSurfaceHd,
+        ringTexture: saturnRingColorHd,
+        ringAlphaMap: saturnRingAlphaHd,
+        description: 'Hành tinh với hệ thống vành đai nổi bật nhất.',
+        radius: 9.45,
+        distance: 100,
+        speed: 0.009,
+        hasAtmosphere: true,
+        atmosphereColor: "#f0e68c",
     },
     {
         name: 'Uranus',
-        texture: 'src/assets/textures/Uranus.jpeg',
+        texture: uranusTexture,
         description: 'Hành tinh nghiêng 98 độ, có màu xanh lam đặc trưng.',
-        position: [30, 0, 0],
-        size: 1.7,
-        speed: 0.07
+        radius: 4.0,
+        distance: 130,
+        speed: 0.006,
+        hasAtmosphere: true,
+        atmosphereColor: "#aee5d8",
     },
     {
         name: 'Neptune',
-        texture: 'src/assets/textures/neptune.jpg',
+        texture: neptuneTexture,
         description: 'Hành tinh xa nhất trong hệ mặt trời, với màu xanh đặc trưng.',
-        position: [35, 0, 0],
-        size: 1.5,
-        speed: 0.05
-    }
+        radius: 3.88,
+        distance: 160,
+        speed: 0.005,
+        hasAtmosphere: true,
+        atmosphereColor: "#5b5ddf",
+    },
 ];
 
 export default planets;
