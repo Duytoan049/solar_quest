@@ -1,7 +1,7 @@
 import { useLoader } from "@react-three/fiber";
 import * as THREE from "three";
 import { planets as planetData } from "../../components/planets";
-import { useGameManager } from "./GameManager";
+import { useGameManager } from "./GameContext";
 import { useRef } from "react";
 
 // Lấy tất cả các đường dẫn texture cần tải

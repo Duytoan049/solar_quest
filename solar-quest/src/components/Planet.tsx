@@ -1,9 +1,7 @@
-import React, { useRef, useMemo } from "react";
+import React, { useRef, useMemo, forwardRef } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
 import * as THREE from "three";
-import { Ring } from "@react-three/drei";
-// FIX 2: Import cả PlanetProps và PlanetData từ PlanetScene1
-import type { PlanetProps, PlanetData } from "./PlanetScene1";
+import type { PlanetProps } from "./PlanetScene1";
 
 // --- SHADER CODE FOR ATMOSPHERE ---
 const atmosphereVertexShader = `
@@ -16,152 +14,168 @@ const atmosphereVertexShader = `
 
 const atmosphereFragmentShader = `
   varying vec3 vNormal;
-  uniform vec3 glowColor; // <-- Sửa lại tên uniform cho khớp với code JS
+  uniform vec3 glowColor;
   void main() {
     float intensity = pow(0.6 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
     gl_FragColor = vec4(glowColor, 1.0) * intensity;
   }
 `;
-// --- END SHADER CODE ---
 
-const useConditionalLoader = <T,>(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  loader: new (...args: any[]) => THREE.Loader<T>,
-  path: string | undefined
-) => {
-  // Luôn gọi useLoader. Nếu path không tồn tại, truyền vào một mảng rỗng.
-  // useLoader sẽ trả về một mảng các đối tượng đã tải.
-  const loadedItems = useLoader(loader, path ? [path] : []);
+// --------------------------------------------------
+// ⚙️ Sửa lại loader để dùng cache từ GameManager
+// --------------------------------------------------
+function useCachedTexture(path?: string) {
+  // Luôn gọi useLoader, dù có path hay không
+  const loaded = useLoader(THREE.TextureLoader, path ? [path] : []);
 
-  // Trả về đối tượng đầu tiên trong mảng nếu nó tồn tại, ngược lại trả về null.
-  return loadedItems.length > 0 ? loadedItems[0] : null;
-};
+  // Texture nhận được (nếu path tồn tại)
+  const texture = path ? loaded[0] : null;
 
-export default function Planet({
-  planetData,
-  onSelect,
-  onHover,
-  isSelected,
-  isHovered,
-  earthPositionRef,
-  onPositionUpdate,
-}: PlanetProps) {
-  const meshRef = useRef<THREE.Group>(null!);
-  const texture = useConditionalLoader(THREE.TextureLoader, planetData.texture);
-  const ringTexture = useConditionalLoader(
-    THREE.TextureLoader,
-    planetData.ringTexture
-  );
-  const ringAlphaMap = useConditionalLoader(
-    THREE.TextureLoader,
-    planetData.ringAlphaMap
-  );
+  // Nếu preload đã thêm texture vào cache thì dùng luôn
+  const cached = path ? THREE.Cache.get(path) : null;
+  const finalTexture = cached || texture || null;
 
-  // FIX: Khai báo kiểu dữ liệu tường minh cho uniforms
-  const uniforms = useMemo(
-    () => ({
-      glowColor: {
-        value: new THREE.Color(planetData.atmosphereColor || "white"),
-      },
-    }),
-    [planetData.atmosphereColor]
-  );
+  // ⚡ Log để kiểm tra xem texture có được lấy từ cache không
+  if (path) {
+    console.log(
+      `🔍 Texture check: ${path} →`,
+      cached ? "✅ From cache" : "🆕 Loaded fresh"
+    );
+  }
 
-  const atmosphereMaterial = useMemo(
-    () =>
-      new THREE.ShaderMaterial({
-        vertexShader: atmosphereVertexShader,
-        fragmentShader: atmosphereFragmentShader,
-        uniforms: uniforms, // <-- Truyền đối tượng uniforms đã được định kiểu
-        side: THREE.BackSide,
-        blending: THREE.AdditiveBlending,
-        transparent: true,
+  // Nếu texture vừa được tải, lưu lại vào cache
+  if (path && texture && !cached) {
+    THREE.Cache.add(path, texture);
+  }
+
+  return finalTexture;
+}
+
+// --------------------------------------------------
+
+const Planet = forwardRef<THREE.Group, PlanetProps>(
+  (
+    { planetData, onSelect, onHover, isSelected, isHovered, earthPositionRef },
+    ref
+  ) => {
+    const planetRef = useRef<THREE.Group>(null!);
+
+    // ⚡ Dùng cache-aware loader cho toàn bộ texture
+    const texture = useCachedTexture(planetData.texture);
+    const ringTexture = useCachedTexture(planetData.ringTexture);
+    const ringAlphaMap = useCachedTexture(planetData.ringAlphaMap);
+
+    const uniforms = useMemo(
+      () => ({
+        glowColor: {
+          value: new THREE.Color(planetData.atmosphereColor || "white"),
+        },
       }),
-    [uniforms] // Phụ thuộc vào uniforms
-  );
+      [planetData.atmosphereColor]
+    );
 
-  // Animation loop
-  useFrame(({ clock }) => {
-    if (!meshRef.current) return; // Thêm kiểm tra an toàn
+    const atmosphereMaterial = useMemo(
+      () =>
+        new THREE.ShaderMaterial({
+          vertexShader: atmosphereVertexShader,
+          fragmentShader: atmosphereFragmentShader,
+          uniforms,
+          side: THREE.BackSide,
+          blending: THREE.AdditiveBlending,
+          transparent: true,
+        }),
+      [uniforms]
+    );
 
-    const elapsedTime = clock.getElapsedTime();
-    const speed = planetData.speed;
-    const orbitRadius = planetData.distance;
+    useFrame(({ clock }) => {
+      if (!planetRef.current) return;
+      const elapsed = clock.getElapsedTime();
+      const { speed, distance, isMoon } = planetData;
 
-    if (planetData.isMoon && earthPositionRef?.current) {
-      const moonOrbitRadius = planetData.distance;
-      const moonX = Math.cos(elapsedTime * speed) * moonOrbitRadius;
-      const moonZ = Math.sin(elapsedTime * speed) * moonOrbitRadius;
+      if (isMoon && earthPositionRef?.current) {
+        const moonX = Math.cos(elapsed * speed) * distance;
+        const moonZ = Math.sin(elapsed * speed) * distance;
+        planetRef.current.position.set(
+          earthPositionRef.current.x + moonX,
+          earthPositionRef.current.y,
+          earthPositionRef.current.z + moonZ
+        );
+      } else {
+        planetRef.current.position.x = Math.cos(elapsed * speed) * distance;
+        planetRef.current.position.z = Math.sin(elapsed * speed) * distance;
+      }
 
-      meshRef.current.position.set(
-        earthPositionRef.current.x + moonX,
-        earthPositionRef.current.y,
-        earthPositionRef.current.z + moonZ
-      );
-    } else {
-      meshRef.current.position.x = Math.cos(elapsedTime * speed) * orbitRadius;
-      meshRef.current.position.z = Math.sin(elapsedTime * speed) * orbitRadius;
-    }
+      if (planetData.name === "Earth" && earthPositionRef) {
+        earthPositionRef.current.copy(planetRef.current.position);
+      }
 
-    meshRef.current.rotation.y += 0.002;
+      planetRef.current.rotation.y += 0.002;
+    });
 
-    // FIX 4: Xóa bỏ optional chaining vì onPositionUpdate là bắt buộc
-    onPositionUpdate(meshRef.current.position);
-  });
-  if (!texture) return null;
-  return (
-    <group
-      ref={meshRef}
-      onClick={(e) => {
-        e.stopPropagation();
-        onSelect(planetData);
-      }}
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        onHover(planetData);
-      }}
-      onPointerOut={() => onHover(null)}
-    >
-      <mesh castShadow>
-        <sphereGeometry args={[planetData.radius, 64, 64]} />
-        <meshStandardMaterial
-          map={texture}
-          metalness={0.1}
-          roughness={0.9}
-          emissive={isHovered || isSelected ? "#ffddaa" : "black"}
-          emissiveIntensity={isHovered || isSelected ? 0.5 : 0}
-        />
-      </mesh>
+    if (!texture) return null;
 
-      {/* Add atmosphere if the planet has one */}
-      {planetData.hasAtmosphere && (
-        <mesh scale={[1.1, 1.1, 1.1]}>
-          <sphereGeometry args={[planetData.radius, 64, 64]} />
-          <primitive object={atmosphereMaterial} />
-        </mesh>
-      )}
-
-      {/* === NÂNG CẤP VÀNH ĐAI SAO THỔ === */}
-      {/* FIX: Loại bỏ điều kiện ringTexture && ringAlphaMap */}
-      {planetData.name === "Saturn" && (
-        <mesh rotation-x={Math.PI / 2.5} receiveShadow>
-          <ringGeometry args={[6, 10, 64]} />
+    return (
+      <group
+        ref={(node) => {
+          planetRef.current = node!;
+          if (typeof ref === "function") ref(node);
+          else if (ref) ref.current = node;
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect(planetData);
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          onHover(planetData);
+        }}
+        onPointerOut={() => onHover(null)}
+      >
+        {/* Planet */}
+        <mesh>
+          <sphereGeometry args={[planetData.radius, 32, 32]} />
           <meshStandardMaterial
-            map={ringTexture} // Truyền thẳng, kể cả khi là null ban đầu
-            alphaMap={ringAlphaMap} // Truyền thẳng, kể cả khi là null ban đầu
-            transparent={true}
-            side={THREE.DoubleSide}
-            opacity={0.9}
+            map={texture}
+            metalness={0.1}
+            roughness={0.9}
+            emissive={isHovered || isSelected ? "#ffddaa" : "black"}
+            emissiveIntensity={isHovered || isSelected ? 0.5 : 0}
           />
         </mesh>
-      )}
-      {/* === KẾT THÚC NÂNG CẤP VÀNH ĐAI === */}
 
-      {/* <FeedbackCircle
-        position={meshRef.current.position}
-        isSelected={isSelected}
-        isHovered={isHovered}
-      /> */}
-    </group>
-  );
-}
+        {/* Atmosphere */}
+        {planetData.hasAtmosphere && (
+          <mesh scale={[1.1, 1.1, 1.1]}>
+            <sphereGeometry args={[planetData.radius, 32, 32]} />
+            <primitive object={atmosphereMaterial} />
+          </mesh>
+        )}
+
+        {/* Saturn Rings */}
+        {planetData.name === "Saturn" && ringTexture && ringAlphaMap && (
+          <group rotation-x={Math.PI / 2.5}>
+            {[
+              [11, 16],
+              [17, 20],
+            ].map(([inner, outer], i) => (
+              <mesh key={i}>
+                <ringGeometry args={[inner, outer, 128]} />
+                <meshStandardMaterial
+                  map={ringTexture}
+                  alphaMap={ringAlphaMap}
+                  transparent
+                  side={THREE.DoubleSide}
+                  opacity={0.95}
+                  alphaTest={0.01}
+                  depthWrite={false}
+                />
+              </mesh>
+            ))}
+          </group>
+        )}
+      </group>
+    );
+  }
+);
+
+export default Planet;

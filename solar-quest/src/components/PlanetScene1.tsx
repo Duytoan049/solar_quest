@@ -1,7 +1,7 @@
 import React, { useState, Suspense, useRef, useEffect, useMemo } from "react"; // Thêm Suspense
 import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber"; // Thêm useLoader
 import * as THREE from "three";
-import { useGameManager } from "../core/engine/GameManager";
+import { useGameManager } from "../core/engine/GameContext";
 import { OrbitControls, Stars, Ring } from "@react-three/drei";
 import { planets as planetData } from "./planets";
 import PlanetMenu from "./PlanetMenu";
@@ -11,7 +11,6 @@ import AsteroidBelt from "./AsteroidBelt"; // <-- Import Vành đai Tiểu hành
 import PlanetInfoPanel from "./PlanetInfoPanel";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { SaturnModel } from "./SaturnModel"; // 1. Import component model mới
 
 // This type is now simpler as position is calculated dynamically
 export type PlanetData = (typeof planetData)[0];
@@ -36,8 +35,8 @@ interface SceneContentProps {
   handlePlanetSelect: (planet: PlanetData) => void;
   setHoveredPlanet: React.Dispatch<React.SetStateAction<PlanetData | null>>;
   hoveredPlanet: PlanetData | null;
-  planetPositions: Record<string, THREE.Vector3>; // Pass dynamic positions
-  handlePositionUpdate: (name: string, pos: THREE.Vector3) => void; // Pass updater function
+  // FIX 1: Dùng một ref để lưu trữ các ref của hành tinh, thay vì state
+  planetRefs: React.MutableRefObject<Record<string, THREE.Group>>;
 }
 
 function SceneContent({
@@ -49,30 +48,28 @@ function SceneContent({
   handlePlanetSelect,
   setHoveredPlanet,
   hoveredPlanet,
-  planetPositions,
-  handlePositionUpdate,
+  planetRefs, // <-- Nhận ref
 }: SceneContentProps) {
   useFrame((state) => {
-    // Camera follow logic
     if (!isManualCamera && selectedPlanet && controlsRef.current) {
       const controls = controlsRef.current;
       const camera = state.camera;
 
-      // FIX: Get the planet's current dynamic position from the state
-      const planetPosition = planetPositions[selectedPlanet.name];
-      if (!planetPosition) return; // Don't do anything if position is not yet available
+      // FIX 2: Lấy vị trí trực tiếp từ ref của đối tượng 3D
+      const planetObject = planetRefs.current[selectedPlanet.name];
+      if (!planetObject) return;
 
-      // FIX: Use 'radius' instead of 'size'
+      const planetPosition = new THREE.Vector3();
+      planetObject.getWorldPosition(planetPosition); // Lấy vị trí toàn cục
+
       const offsetDistance = (selectedPlanet.radius || 1) * 4 + 2;
       const targetCameraPosition = new THREE.Vector3()
         .copy(planetPosition)
         .add(new THREE.Vector3(0, 3, offsetDistance));
 
-      // Smoothly move camera and target
       camera.position.lerp(targetCameraPosition, 0.05);
       controls.target.lerp(planetPosition, 0.05);
 
-      // Switch to manual control once close enough
       const distance = camera.position.distanceTo(targetCameraPosition);
       if (distance < 0.1) {
         setIsManualCamera(true);
@@ -80,14 +77,7 @@ function SceneContent({
     }
   });
 
-  const sunPosition: [number, number, number] = [0, 0, 0];
   const sunRef = useRef<THREE.Mesh>(null!);
-
-  // 2. Lấy dữ liệu của Sao Thổ từ mảng
-  const saturnData = useMemo(
-    () => planetData.find((p) => p.name === "Saturn"),
-    []
-  );
 
   return (
     <>
@@ -96,7 +86,7 @@ function SceneContent({
       <directionalLight position={[10, 20, 10]} intensity={3} color="#ffffff" />
       <pointLight
         castShadow={false} // <-- TẮT ĐỔ BÓNG
-        position={new THREE.Vector3(...sunPosition)}
+        position={new THREE.Vector3(0, 0, 0)}
         intensity={3000} // Giảm intensity vì không còn đổ bóng
         distance={1500}
         decay={2}
@@ -106,7 +96,7 @@ function SceneContent({
       <Stars
         radius={300}
         depth={50}
-        count={2500}
+        count={1500}
         factor={6}
         saturation={1}
         fade
@@ -122,9 +112,9 @@ function SceneContent({
             <Ring
               key={`orbit_${planet.name}`}
               args={[
-                planet.distance - 0.1, // Bán kính trong (gần bằng bán kính ngoài)
-                planet.distance + 0.1, // Bán kính ngoài
-                256, // Tăng số đoạn để vòng tròn siêu mịn
+                planet.distance - 0.05, // Bán kính trong (gần bằng bán kính ngoài)
+                planet.distance + 0.05, // Bán kính ngoài
+                128, // Tăng số đoạn để vòng tròn siêu mịn
               ]}
               rotation-x={-Math.PI / 2}
             >
@@ -140,16 +130,22 @@ function SceneContent({
       {/* === KẾT THÚC PHẦN SỬA LỖI === */}
       <Suspense fallback={null}>
         {/* THÊM VÀNH ĐAI TIỂU HÀNH TINH */}
-        <AsteroidBelt />
+        {/* <AsteroidBelt /> */}
 
         {planetData.map((planet) => {
-          // Render component Sun đặc biệt cho Mặt Trời
           if (planet.name === "Sun") {
             return (
-              <Sun key={planet.name} planetData={planet} sunRef={sunRef} />
+              <Sun
+                key={planet.name}
+                planetData={planet}
+                sunRef={sunRef}
+                onSelect={handlePlanetSelect}
+                onHover={setHoveredPlanet}
+                isSelected={selectedPlanet?.name === planet.name}
+                isHovered={hoveredPlanet?.name === planet.name}
+              />
             );
           }
-          // Render các hành tinh khác như bình thường
           return (
             <Planet
               key={planet.name}
@@ -158,38 +154,21 @@ function SceneContent({
               onHover={setHoveredPlanet}
               isSelected={selectedPlanet?.name === planet.name}
               isHovered={hoveredPlanet?.name === planet.name}
-              earthPositionRef={planet.isMoon ? earthPosition : undefined}
-              onPositionUpdate={(pos: THREE.Vector3) => {
-                handlePositionUpdate(planet.name, pos);
-                if (planet.name === "Earth") {
-                  earthPosition.current.copy(pos);
-                }
+              // FIX: Truyền earthPosition ref cho cả Trái Đất và Mặt Trăng
+              earthPositionRef={
+                planet.name === "Earth" || planet.isMoon
+                  ? earthPosition
+                  : undefined
+              }
+              onPositionUpdate={(position) => {
+                console.log(`Position updated for ${planet.name}:`, position);
+              }}
+              ref={(el) => {
+                if (el) planetRefs.current[planet.name] = el;
               }}
             />
           );
         })}
-
-        {/* 4. Render model GLB của Sao Thổ */}
-        {saturnData && (
-          <Suspense fallback={null}>
-            <SaturnModel
-              {...{
-                scale: 0.1, // Điều chỉnh scale cho phù hợp với scene của bạn
-                speed: saturnData.speed,
-                distance: saturnData.distance,
-                onClick: (e: ThreeEvent<PointerEvent>) => {
-                  e.stopPropagation();
-                  handlePlanetSelect(saturnData);
-                },
-                onPointerOver: (e: ThreeEvent<PointerEvent>) => {
-                  e.stopPropagation();
-                  setHoveredPlanet(saturnData);
-                },
-                onPointerOut: () => setHoveredPlanet(null),
-              }}
-            />
-          </Suspense>
-        )}
       </Suspense>
       <OrbitControls
         ref={controlsRef}
@@ -206,11 +185,11 @@ function SceneContent({
         <EffectComposer>
           {/* HIỆU CHỈNH LẠI BLOOM ĐỂ CÓ HÀO QUANG */}
           <Bloom
-            intensity={1.5} // Tăng lại cường độ để vầng sáng rõ hơn
-            luminanceThreshold={0.65} // Giảm nhẹ ngưỡng để "bắt" được ánh sáng của Sun
-            luminanceSmoothing={0.5}
+            intensity={0.6} // Tăng lại cường độ để vầng sáng rõ hơn
+            luminanceThreshold={0.1} // Giảm nhẹ ngưỡng để "bắt" được ánh sáng của Sun
+            luminanceSmoothing={0.2}
             width={512}
-            height={512}
+            height={300}
           />
 
           {/* Vẫn vô hiệu hóa GodRays để đảm bảo hiệu suất */}
@@ -245,7 +224,7 @@ function SceneContent({
 
 // Component mới cho Bụi không gian
 function SpaceDust() {
-  const count = 10000;
+  const count = 5000;
   const positions = useMemo(() => {
     const positions = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
@@ -271,22 +250,16 @@ export default function PlanetScene() {
   const [selectedPlanet, setSelectedPlanet] = useState<PlanetData | null>(null);
   const [hoveredPlanet, setHoveredPlanet] = useState<PlanetData | null>(null);
   const [isManualCamera, setIsManualCamera] = useState(true);
-  // State to store the dynamic positions of all planets
-  const [planetPositions, setPlanetPositions] = useState<
-    Record<string, THREE.Vector3>
-  >({});
+
+  // FIX 4: Khởi tạo ref để chứa các ref của hành tinh
+  const planetRefs = useRef<Record<string, THREE.Group>>({});
 
   const earthPosition = React.useRef(new THREE.Vector3());
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
 
   const handlePlanetSelect = (planet: PlanetData) => {
     setSelectedPlanet(planet);
-    setIsManualCamera(false); // Trigger the camera fly-to animation
-  };
-
-  // Function to receive position updates from child Planet components
-  const handlePositionUpdate = (name: string, pos: THREE.Vector3) => {
-    setPlanetPositions((prev) => ({ ...prev, [name]: pos.clone() }));
+    setIsManualCamera(false);
   };
 
   const handleStartMission = () => {
@@ -332,7 +305,7 @@ export default function PlanetScene() {
       <Canvas
         camera={{ position: [0, 25, 80], fov: 60 }} // Adjusted initial camera
         className="relative"
-        shadows
+        // shadows
       >
         <SceneContent
           selectedPlanet={selectedPlanet}
@@ -343,8 +316,8 @@ export default function PlanetScene() {
           handlePlanetSelect={handlePlanetSelect}
           setHoveredPlanet={setHoveredPlanet}
           hoveredPlanet={hoveredPlanet}
-          planetPositions={planetPositions} // Pass positions down
-          handlePositionUpdate={handlePositionUpdate} // Pass updater down
+          // FIX 5: Truyền ref xuống
+          planetRefs={planetRefs}
         />
       </Canvas>
     </div>

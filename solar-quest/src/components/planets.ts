@@ -1,24 +1,10 @@
-// FIX: Import các file texture trực tiếp để Vite có thể xử lý chúng
-import sunTexture from '../assets/textures/sun.jpg';
-import mercuryTexture from '../assets/textures/mercury.jpg';
-import venusTexture from '../assets/textures/venus.jpg';
-import earthTexture from '../assets/textures/Albedo.jpeg';
-import moonTexture from '../assets/textures/moon.jpg';
-import marsTexture from '../assets/textures/mars.jpg';
-import jupiterTexture from '../assets/textures/jupiter.png';
-import uranusTexture from '../assets/textures/Uranus.jpeg';
-import neptuneTexture from '../assets/textures/neptune.jpg';
 
-// Import các texture HD của Sao Thổ
-import saturnSurfaceHd from '../assets/textures/Uv1_saturn1_diff.png';
-import saturnRingColorHd from '../assets/textures/Uv1_saturn2_diff.png';
-import saturnRingAlphaHd from '../assets/textures/Uv2_saturn2_bump.png';
 
 
 export const planets = [
     {
         name: 'Sun',
-        texture: sunTexture,
+        texture: '/texture/sun-min.webp',
         description: 'Ngôi sao trung tâm của hệ mặt trời, cung cấp ánh sáng và năng lượng.',
         radius: 4,
         distance: 0,
@@ -28,7 +14,7 @@ export const planets = [
     },
     {
         name: 'Mercury',
-        texture: mercuryTexture,
+        texture: '/texture/mercury-min.webp',
         description: 'Hành tinh gần Mặt Trời nhất, nhỏ nhất trong hệ mặt trời.',
         radius: 0.38,
         distance: 15,
@@ -37,7 +23,7 @@ export const planets = [
     },
     {
         name: 'Venus',
-        texture: venusTexture,
+        texture: '/texture/venus-min.webp',
         description: 'Hành tinh giống Trái Đất nhưng có khí hậu cực kỳ khắc nghiệt.',
         radius: 0.95,
         distance: 20,
@@ -47,7 +33,7 @@ export const planets = [
     },
     {
         name: 'Earth',
-        texture: earthTexture,
+        texture: '/texture/Albedo-min.webp',
         description: 'Hành tinh xanh - nơi con người đang sinh sống.',
         radius: 1,
         distance: 28,
@@ -57,7 +43,7 @@ export const planets = [
     },
     {
         name: 'Moon',
-        texture: moonTexture,
+        texture: '/texture/moon-min.webp',
         description: 'Vệ tinh tự nhiên duy nhất của Trái Đất.',
         radius: 0.27,
         distance: 2.5,
@@ -67,7 +53,7 @@ export const planets = [
     },
     {
         name: 'Mars',
-        texture: marsTexture,
+        texture: '/texture/mars-min.webp',
         description: 'Hành tinh đỏ, có thể là tương lai của nhân loại.',
         radius: 0.53,
         distance: 38,
@@ -77,7 +63,7 @@ export const planets = [
     },
     {
         name: 'Jupiter',
-        texture: jupiterTexture,
+        texture: '/texture/jupiter-min.webp',
         description: 'Hành tinh khí khổng lồ với cơn bão Great Red Spot.',
         radius: 11.2,
         distance: 60,
@@ -88,9 +74,9 @@ export const planets = [
     {
         name: "Saturn",
         // FIX: Sử dụng các biến đã import thay vì chuỗi ký tự
-        texture: saturnSurfaceHd,
-        ringTexture: saturnRingColorHd,
-        ringAlphaMap: saturnRingAlphaHd,
+        texture: '/texture/Saturno-min.webp',
+        ringTexture: '/texture/saturnringcolor-min.webp',
+        ringAlphaMap: '/texture/saturn_ring_alpha-min.webp',
         description: 'Hành tinh với hệ thống vành đai nổi bật nhất.',
         radius: 9.45,
         distance: 100,
@@ -100,7 +86,7 @@ export const planets = [
     },
     {
         name: 'Uranus',
-        texture: uranusTexture,
+        texture: '/texture/Uranus-min.webp',
         description: 'Hành tinh nghiêng 98 độ, có màu xanh lam đặc trưng.',
         radius: 4.0,
         distance: 130,
@@ -110,7 +96,7 @@ export const planets = [
     },
     {
         name: 'Neptune',
-        texture: neptuneTexture,
+        texture: '/texture/neptune-min.webp',
         description: 'Hành tinh xa nhất trong hệ mặt trời, với màu xanh đặc trưng.',
         radius: 3.88,
         distance: 160,

@@ -1,18 +1,28 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "../../ui/Button";
 import Galaxy from "../../ui/Galaxy";
 import TextType from "../../ui/TextType";
-import { useGameManager } from "@/core/engine/GameManager";
+// FIX 1: Import hook từ file GameContext.ts
+import { useGameManager } from "@/core/engine/GameContext";
 import { motion } from "framer-motion";
-// Import the Scene type from the engine module to ensure compatibility
-import type { Scene } from "@/core/engine/GameManager";
+// FIX 2: Import type từ file types.ts
+import type { SceneType } from "@/core/engine/types";
 
 export default function MainMenu() {
-  const { setScene } = useGameManager();
   const [exit, setExit] = useState(false);
-  const [nextScene, setNextScene] = useState<Scene | null>(null);
+  const [nextScene, setNextScene] = useState<SceneType | null>(null);
+  const { setScene, preloadSolarSystem, isSolarSystemLoaded } =
+    useGameManager();
+  useEffect(() => {
+    // ⚡ Bắt đầu tải sẵn hệ mặt trời khi menu vừa hiển thị
+    if (!isSolarSystemLoaded) {
+      preloadSolarSystem();
+    }
+  }, [isSolarSystemLoaded, preloadSolarSystem]);
+  const handleStart = (scene: SceneType) => {
+    // FIX: XÓA LỆNH GỌI PRELOAD Ở ĐÂY
+    // preloadSolarSystem(); // <--- Dòng này không còn cần thiết
 
-  const handleStart = (scene: Scene) => {
     setNextScene(scene);
     setExit(true);
   };

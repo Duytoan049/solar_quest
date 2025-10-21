@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import React, { useRef } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
 import * as THREE from "three";
 import type { PlanetData } from "./PlanetScene1";
@@ -48,9 +48,19 @@ const sunFragmentShader = `
 interface SunProps {
   planetData: PlanetData;
   sunRef: React.RefObject<THREE.Mesh>;
+  onSelect: (planet: PlanetData) => void;
+  onHover: (planet: PlanetData | null) => void;
+  isSelected: boolean;
+  isHovered: boolean;
 }
 
-export default function Sun({ planetData, sunRef }: SunProps) {
+export default function Sun({
+  planetData,
+  sunRef,
+  onSelect,
+  onHover,
+  isHovered, // Chúng ta có thể dùng isHovered để thay đổi con trỏ chuột
+}: SunProps) {
   const texture = useLoader(THREE.TextureLoader, planetData.texture);
 
   const material = useRef<THREE.ShaderMaterial>(null!);
@@ -61,8 +71,28 @@ export default function Sun({ planetData, sunRef }: SunProps) {
     }
   });
 
+  // Thay đổi con trỏ chuột khi hover
+  React.useEffect(() => {
+    document.body.style.cursor = isHovered ? "pointer" : "auto";
+  }, [isHovered]);
+
   return (
-    <mesh ref={sunRef} name={planetData.name}>
+    <mesh
+      ref={sunRef}
+      name={planetData.name}
+      // FIX: Thêm các hàm xử lý sự kiện
+      onClick={(e) => {
+        e.stopPropagation(); // Ngăn sự kiện click lan ra các đối tượng khác
+        onSelect(planetData);
+      }}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        onHover(planetData);
+      }}
+      onPointerOut={() => {
+        onHover(null);
+      }}
+    >
       <sphereGeometry args={[planetData.radius, 64, 64]} />
       <shaderMaterial
         ref={material}
