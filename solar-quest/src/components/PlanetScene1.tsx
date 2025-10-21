@@ -320,6 +320,16 @@ export default function PlanetScene() {
           </div>
         </div>
       )}
+      {!isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-40 fade-in-overlay">
+          <div className="text-center text-white animate-fadeText">
+            <h2 className="text-3xl md:text-5xl font-bold tracking-wider mb-2">
+              Warp Drive Complete
+            </h2>
+            <p className="text-lg md:text-2xl opacity-80">Solar System Ready</p>
+          </div>
+        </div>
+      )}
 
       <PlanetMenu
         onSelectPlanet={(planetName: string) => {

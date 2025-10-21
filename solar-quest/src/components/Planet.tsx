@@ -91,8 +91,8 @@ const Planet = forwardRef<THREE.Group, PlanetProps>(
     const { scale, opacity } = useSpring({
       from: { scale: 0.3, opacity: 0 },
       to: { scale: 1, opacity: 1 },
-      config: { tension: 120, friction: 14 },
-      delay: Math.random() * 500, // mỗi hành tinh hơi lệch thời gian cho tự nhiên
+      config: { tension: 120, friction: 18 },
+      delay: 800, // delay chút để đồng bộ với fade overlay
     });
 
     useFrame(({ clock }) => {
@@ -176,9 +176,11 @@ const Planet = forwardRef<THREE.Group, PlanetProps>(
                   map={ringTexture}
                   alphaMap={ringAlphaMap}
                   transparent
-                  opacity={opacity}
                   side={THREE.DoubleSide}
                   depthWrite={false}
+                  opacity={opacity.to((o) => Math.min(o, 1))}
+                  emissive={isHovered || isSelected ? "#ffddaa" : "black"}
+                  emissiveIntensity={isHovered || isSelected ? 0.5 : 0}
                 />
               </a.mesh>
             ))}
