@@ -1,4 +1,4 @@
-import React, { useState, Suspense, useRef, useEffect, useMemo } from "react"; // Thêm Suspense
+import React, { useState, useRef, useEffect, useMemo } from "react"; // Xóa Suspense khỏi import
 import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber"; // Thêm useLoader
 import * as THREE from "three";
 import { useGameManager } from "../core/engine/GameContext";
@@ -48,19 +48,56 @@ function SceneContent({
   handlePlanetSelect,
   setHoveredPlanet,
   hoveredPlanet,
-  planetRefs, // <-- Nhận ref
-}: SceneContentProps) {
+  planetRefs,
+  onLoadingComplete, // Thêm prop để báo khi load xong
+}: SceneContentProps & { onLoadingComplete: () => void }) {
+  const sunRef = useRef<THREE.Mesh>(null!);
+  const [visiblePlanets, setVisiblePlanets] = useState<PlanetData[]>([]);
+
+  // 💫 Lazy load từng hành tinh một — CHỈ CHẠY 1 LẦN DUY NHẤT
+  useEffect(() => {
+    let index = 0;
+    let cancelled = false; // ngăn chạy lại khi Strict Mode re-run
+
+    const loadNext = () => {
+      if (cancelled) return;
+      const planet = planetData[index];
+      if (!planet) {
+        // Nếu hết danh sách, báo hoàn tất
+        setTimeout(() => {
+          if (!cancelled) onLoadingComplete();
+        }, 1000);
+        return;
+      }
+
+      // Kiểm tra trùng trước khi thêm
+      setVisiblePlanets((prev) => {
+        const exists = prev.some((p) => p.name === planet.name);
+        if (exists) return prev;
+        return [...prev, planet];
+      });
+
+      index++;
+      setTimeout(loadNext, 250);
+    };
+
+    loadNext();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useFrame((state) => {
     if (!isManualCamera && selectedPlanet && controlsRef.current) {
       const controls = controlsRef.current;
       const camera = state.camera;
-
-      // FIX 2: Lấy vị trí trực tiếp từ ref của đối tượng 3D
       const planetObject = planetRefs.current[selectedPlanet.name];
       if (!planetObject) return;
 
       const planetPosition = new THREE.Vector3();
-      planetObject.getWorldPosition(planetPosition); // Lấy vị trí toàn cục
+      planetObject.getWorldPosition(planetPosition);
 
       const offsetDistance = (selectedPlanet.radius || 1) * 4 + 2;
       const targetCameraPosition = new THREE.Vector3()
@@ -71,28 +108,22 @@ function SceneContent({
       controls.target.lerp(planetPosition, 0.05);
 
       const distance = camera.position.distanceTo(targetCameraPosition);
-      if (distance < 0.1) {
-        setIsManualCamera(true);
-      }
+      if (distance < 0.1) setIsManualCamera(true);
     }
   });
-
-  const sunRef = useRef<THREE.Mesh>(null!);
 
   return (
     <>
       <ambientLight intensity={2.5} />
-      {/* TẮT ĐỔ BÓNG: castShadow là một trong những thứ nặng nhất */}
       <directionalLight position={[10, 20, 10]} intensity={3} color="#ffffff" />
       <pointLight
-        castShadow={false} // <-- TẮT ĐỔ BÓNG
+        castShadow={false}
         position={new THREE.Vector3(0, 0, 0)}
-        intensity={3000} // Giảm intensity vì không còn đổ bóng
+        intensity={3000}
         distance={1500}
         decay={2}
       />
-      {/* THÊM TINH VÂN MỚI
-      <NebulaSkybox /> */}
+
       <Stars
         radius={300}
         depth={50}
@@ -103,40 +134,34 @@ function SceneContent({
         speed={0.5}
       />
       <SpaceDust />
-      {/* === SỬA LỖI VÀ VẼ LẠI CÁC ĐƯỜNG QUỸ ĐẠO === */}
+
       {planetData.map(
         (planet) =>
           planet.distance > 0 &&
           !planet.isMoon && (
-            // Sử dụng <Ring> để tạo một đường kẻ mỏng
             <Ring
               key={`orbit_${planet.name}`}
-              args={[
-                planet.distance - 0.05, // Bán kính trong (gần bằng bán kính ngoài)
-                planet.distance + 0.05, // Bán kính ngoài
-                128, // Tăng số đoạn để vòng tròn siêu mịn
-              ]}
+              args={[planet.distance - 0.05, planet.distance + 0.05, 128]}
               rotation-x={-Math.PI / 2}
             >
               <meshBasicMaterial
                 color="#ffffff"
                 transparent
-                opacity={0.2} // Điều chỉnh độ mờ
+                opacity={0.2}
                 side={THREE.DoubleSide}
               />
             </Ring>
           )
       )}
-      {/* === KẾT THÚC PHẦN SỬA LỖI === */}
-      <Suspense fallback={null}>
-        {/* THÊM VÀNH ĐAI TIỂU HÀNH TINH */}
-        {/* <AsteroidBelt /> */}
 
-        {planetData.map((planet) => {
+      {visiblePlanets
+        .filter((planet): planet is PlanetData => !!planet) // đảm bảo không có undefined
+        .map((planet, index) => {
+          if (!planet) return null; // (phòng ngừa bổ sung)
           if (planet.name === "Sun") {
             return (
               <Sun
-                key={planet.name}
+                key={`sun_${index}_${planet.name}`}
                 planetData={planet}
                 sunRef={sunRef}
                 onSelect={handlePlanetSelect}
@@ -146,55 +171,48 @@ function SceneContent({
               />
             );
           }
+
           return (
             <Planet
-              key={planet.name}
+              key={`planet_${index}_${planet.name}`}
               planetData={planet}
               onSelect={handlePlanetSelect}
               onHover={setHoveredPlanet}
               isSelected={selectedPlanet?.name === planet.name}
               isHovered={hoveredPlanet?.name === planet.name}
-              // FIX: Truyền earthPosition ref cho cả Trái Đất và Mặt Trăng
               earthPositionRef={
                 planet.name === "Earth" || planet.isMoon
                   ? earthPosition
                   : undefined
               }
-              onPositionUpdate={(position) => {
-                console.log(`Position updated for ${planet.name}:`, position);
-              }}
+              onPositionUpdate={() => {}}
               ref={(el) => {
                 if (el) planetRefs.current[planet.name] = el;
               }}
             />
           );
         })}
-      </Suspense>
+
       <OrbitControls
         ref={controlsRef}
-        enablePan={true}
-        enableZoom={true}
-        enableRotate={true}
-        enableDamping={true}
+        enablePan
+        enableZoom
+        enableRotate
+        enableDamping
         dampingFactor={0.05}
         minDistance={5}
-        maxDistance={200} // Increased max distance for better overview
+        maxDistance={200}
       />
-      {/* Post-processing Effects */}
+
       {sunRef.current && (
         <EffectComposer>
-          {/* HIỆU CHỈNH LẠI BLOOM ĐỂ CÓ HÀO QUANG */}
           <Bloom
-            intensity={0.6} // Tăng lại cường độ để vầng sáng rõ hơn
-            luminanceThreshold={0.1} // Giảm nhẹ ngưỡng để "bắt" được ánh sáng của Sun
+            intensity={0.6}
+            luminanceThreshold={0.1}
             luminanceSmoothing={0.2}
             width={512}
             height={300}
           />
-
-          {/* Vẫn vô hiệu hóa GodRays để đảm bảo hiệu suất */}
-          {/* <GodRays ... /> */}
-
           <Vignette eskil={false} offset={0.1} darkness={1.1} />
         </EffectComposer>
       )}
@@ -250,6 +268,7 @@ export default function PlanetScene() {
   const [selectedPlanet, setSelectedPlanet] = useState<PlanetData | null>(null);
   const [hoveredPlanet, setHoveredPlanet] = useState<PlanetData | null>(null);
   const [isManualCamera, setIsManualCamera] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Thêm state loading
 
   // FIX 4: Khởi tạo ref để chứa các ref của hành tinh
   const planetRefs = useRef<Record<string, THREE.Group>>({});
@@ -285,8 +304,23 @@ export default function PlanetScene() {
     };
   }, [controlsRef.current]); // Dependency updated for reliability
 
+  const handleLoadingComplete = () => {
+    setIsLoading(false); // Ẩn overlay khi load xong
+  };
+
   return (
     <div className="w-full h-screen bg-black relative font-sans">
+      {/* Overlay loading */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="text-center text-white">
+            <h2 className="text-2xl font-bold mb-4">Loading Solar System...</h2>
+            <p className="text-lg">Please wait while we prepare the planets.</p>
+            {/* Tùy chọn: Thêm progress nếu muốn, ví dụ: <p>Loaded: {visiblePlanets.length}/{planetData.length}</p> */}
+          </div>
+        </div>
+      )}
+
       <PlanetMenu
         onSelectPlanet={(planetName: string) => {
           const planet = planetData.find((p) => p.name === planetName);
@@ -302,11 +336,7 @@ export default function PlanetScene() {
         onStartMission={handleStartMission}
       />
 
-      <Canvas
-        camera={{ position: [0, 25, 80], fov: 60 }} // Adjusted initial camera
-        className="relative"
-        // shadows
-      >
+      <Canvas camera={{ position: [0, 25, 80], fov: 60 }} className="relative">
         <SceneContent
           selectedPlanet={selectedPlanet}
           isManualCamera={isManualCamera}
@@ -318,6 +348,7 @@ export default function PlanetScene() {
           hoveredPlanet={hoveredPlanet}
           // FIX 5: Truyền ref xuống
           planetRefs={planetRefs}
+          onLoadingComplete={handleLoadingComplete} // Truyền callback
         />
       </Canvas>
     </div>

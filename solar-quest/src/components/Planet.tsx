@@ -2,6 +2,7 @@ import React, { useRef, useMemo, forwardRef } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
 import * as THREE from "three";
 import type { PlanetProps } from "./PlanetScene1";
+import { a, useSpring } from "@react-spring/three";
 
 // --- SHADER CODE FOR ATMOSPHERE ---
 const atmosphereVertexShader = `
@@ -87,6 +88,13 @@ const Planet = forwardRef<THREE.Group, PlanetProps>(
       [uniforms]
     );
 
+    const { scale, opacity } = useSpring({
+      from: { scale: 0.3, opacity: 0 },
+      to: { scale: 1, opacity: 1 },
+      config: { tension: 120, friction: 14 },
+      delay: Math.random() * 500, // mỗi hành tinh hơi lệch thời gian cho tự nhiên
+    });
+
     useFrame(({ clock }) => {
       if (!planetRef.current) return;
       const elapsed = clock.getElapsedTime();
@@ -115,7 +123,8 @@ const Planet = forwardRef<THREE.Group, PlanetProps>(
     if (!texture) return null;
 
     return (
-      <group
+      <a.group
+        // dùng group động (animated group)
         ref={(node) => {
           planetRef.current = node!;
           if (typeof ref === "function") ref(node);
@@ -130,25 +139,28 @@ const Planet = forwardRef<THREE.Group, PlanetProps>(
           onHover(planetData);
         }}
         onPointerOut={() => onHover(null)}
+        scale={scale.to((s) => [s, s, s])}
       >
         {/* Planet */}
-        <mesh>
+        <a.mesh>
           <sphereGeometry args={[planetData.radius, 32, 32]} />
-          <meshStandardMaterial
+          <a.meshStandardMaterial
             map={texture}
+            transparent
+            opacity={opacity}
             metalness={0.1}
             roughness={0.9}
             emissive={isHovered || isSelected ? "#ffddaa" : "black"}
             emissiveIntensity={isHovered || isSelected ? 0.5 : 0}
           />
-        </mesh>
+        </a.mesh>
 
         {/* Atmosphere */}
         {planetData.hasAtmosphere && (
-          <mesh scale={[1.1, 1.1, 1.1]}>
+          <a.mesh scale={[1.1, 1.1, 1.1]}>
             <sphereGeometry args={[planetData.radius, 32, 32]} />
             <primitive object={atmosphereMaterial} />
-          </mesh>
+          </a.mesh>
         )}
 
         {/* Saturn Rings */}
@@ -158,22 +170,21 @@ const Planet = forwardRef<THREE.Group, PlanetProps>(
               [11, 16],
               [17, 20],
             ].map(([inner, outer], i) => (
-              <mesh key={i}>
+              <a.mesh key={i}>
                 <ringGeometry args={[inner, outer, 128]} />
-                <meshStandardMaterial
+                <a.meshStandardMaterial
                   map={ringTexture}
                   alphaMap={ringAlphaMap}
                   transparent
+                  opacity={opacity}
                   side={THREE.DoubleSide}
-                  opacity={0.95}
-                  alphaTest={0.01}
                   depthWrite={false}
                 />
-              </mesh>
+              </a.mesh>
             ))}
           </group>
         )}
-      </group>
+      </a.group>
     );
   }
 );
