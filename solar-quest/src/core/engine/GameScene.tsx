@@ -1,12 +1,81 @@
-import { useEffect, useRef, useState } from "react";
-import { useGameManager } from "./GameManager";
-import CountUp from "@/components/CountUp";
-import Galaxy from "../../ui/Galaxy";
+import React, { useEffect, useRef, useState } from "react";
+
+/**
+ * PlanetMissionScene.tsx
+ * A reusable, configurable asteroid-field mini-game scene.
+ * - Pass a `planetId` or `config` to change visuals & gameplay per planet
+ * - Calls onComplete() when player finishes the mission (e.g. all asteroids spawned)
+ * - Minimal dependencies (React + Tailwind classes assumed in host app)
+ *
+ * Usage example:
+ * <PlanetMissionScene
+ *   planetId="mars"
+ *   onComplete={() => setScene('planetdetail')}
+ * />
+ */
+
+type PlanetConfig = {
+  id: string;
+  displayName: string;
+  background?: string; // css background or color
+  asteroidSpawnRate: number; // ms
+  maxAsteroids: number;
+  asteroidSpeedMin: number;
+  asteroidSpeedMax: number;
+  asteroidSize?: number;
+  shipScale?: number;
+  starfieldOptions?: { density?: number; speed?: number };
+  musicKey?: string;
+};
+
+const DEFAULT_CONFIGS: Record<string, PlanetConfig> = {
+  earth: {
+    id: "earth",
+    displayName: "Trái Đất",
+    background: "linear-gradient(#001f3f, #004080)",
+    asteroidSpawnRate: 900,
+    maxAsteroids: 20,
+    asteroidSpeedMin: 1.5,
+    asteroidSpeedMax: 3.5,
+    asteroidSize: 48,
+    shipScale: 1,
+  },
+  mars: {
+    id: "mars",
+    displayName: "Sao Hỏa",
+    background: "linear-gradient(#3a0b0b, #7a1f1f)",
+    asteroidSpawnRate: 800,
+    maxAsteroids: 18,
+    asteroidSpeedMin: 1.0,
+    asteroidSpeedMax: 3.0,
+    asteroidSize: 54,
+    shipScale: 1.05,
+  },
+  jupiter: {
+    id: "jupiter",
+    displayName: "Sao Mộc",
+    background: "linear-gradient(#3b1f00, #6b3a00)",
+    asteroidSpawnRate: 700,
+    maxAsteroids: 30,
+    asteroidSpeedMin: 2.0,
+    asteroidSpeedMax: 5.0,
+    asteroidSize: 64,
+    shipScale: 1.2,
+  },
+};
+
+interface Props {
+  planetId?: string;
+  config?: PlanetConfig;
+  onComplete?: () => void;
+  onGameOver?: () => void;
+}
 
 interface Asteroid {
   x: number;
   y: number;
   speed: number;
+  size: number;
 }
 
 interface Bullet {
@@ -15,103 +84,98 @@ interface Bullet {
   speed: number;
 }
 
-interface Explosion {
-  x: number;
-  y: number;
-  radius: number;
-  maxRadius: number;
-  alpha: number;
-}
-
-export default function GameScene() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+export default function PlanetMissionScene({
+  planetId = "earth",
+  config,
+  onComplete,
+  onGameOver,
+}: Props) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [score, setScore] = useState(0);
-  const [gameOver, setGameOver] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
-  const asteroidSpawnRate = useRef(1000);
 
-  const spaceshipImage = useRef<HTMLImageElement | null>(null);
-  const asteroidImage = useRef<HTMLImageElement | null>(null);
-  const bulletImage = useRef<HTMLImageElement | null>(null);
+  const cfg = config ?? DEFAULT_CONFIGS[planetId] ?? DEFAULT_CONFIGS.earth;
 
-  const spaceshipLoaded = useRef(false);
+  // images
+  const shipImg = useRef<HTMLImageElement | null>(null);
+  const asteroidImg = useRef<HTMLImageElement | null>(null);
+  const bulletImg = useRef<HTMLImageElement | null>(null);
+  const shipLoaded = useRef(false);
   const asteroidLoaded = useRef(false);
   const bulletLoaded = useRef(false);
 
-  const spaceshipPosition = useRef<number>(0); // Position offset for the spaceship
-
-  const { setScene } = useGameManager();
-  const maxAsteroids = 25;
-  let asteroidCount = 0;
+  // mutable refs for performance
+  const spaceshipOffset = useRef(0);
+  const asteroidCountRef = useRef(0);
+  const asteroidsRef = useRef<Asteroid[]>([]);
+  const bulletsRef = useRef<Bullet[]>([]);
+  const explosionsRef = useRef<
+    { x: number; y: number; r: number; alpha: number }[]
+  >([]);
+  const animationRef = useRef<number | null>(null);
+  const spawnIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const asteroids: Asteroid[] = [];
-    const bullets: Bullet[] = [];
-    const explosions: Explosion[] = [];
+    // --- image loading ---
+    shipImg.current = new Image();
+    shipImg.current.src = "/src/assets/models/yellow_spaceship.png";
+    shipImg.current.onload = () => (shipLoaded.current = true);
+    shipImg.current.onerror = () => console.warn("ship image failed to load");
 
-    const loadImages = () => {
-      spaceshipImage.current = new Image();
-      spaceshipImage.current.src = "src/assets/models/yellow_spaceship.png";
-      spaceshipImage.current.onload = () => {
-        spaceshipLoaded.current = true;
-      };
-      spaceshipImage.current.onerror = () => {
-        console.error("Failed to load spaceship image.");
-      };
+    asteroidImg.current = new Image();
+    asteroidImg.current.src = "/src/assets/models/asteroid1.jpg";
+    asteroidImg.current.onload = () => (asteroidLoaded.current = true);
+    asteroidImg.current.onerror = () =>
+      console.warn("asteroid image failed to load");
 
-      asteroidImage.current = new Image();
-      asteroidImage.current.src = "src/assets/models/asteroid1.jpg";
-      asteroidImage.current.onload = () => {
-        asteroidLoaded.current = true;
-      };
-      asteroidImage.current.onerror = () => {
-        console.error("Failed to load asteroid image.");
-      };
+    bulletImg.current = new Image();
+    bulletImg.current.src = "/src/assets/models/bullet_spaceship.png";
+    bulletImg.current.onload = () => (bulletLoaded.current = true);
 
-      bulletImage.current = new Image();
-      bulletImage.current.src = "src/assets/models/bullet_spaceship.png";
-      bulletImage.current.onload = () => {
-        bulletLoaded.current = true;
-      };
-      bulletImage.current.onerror = () => {
-        console.error("Failed to load bullet image.");
-      };
-    };
-
-    const resizeCanvas = () => {
+    // --- helpers ---
+    const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     };
 
+    const rand = (min: number, max: number) =>
+      min + Math.random() * (max - min);
+
     const spawnAsteroid = () => {
-      if (asteroidCount < maxAsteroids) {
-        asteroids.push({
-          x: Math.random() * canvas.width,
-          y: -50,
-          speed: 2 + Math.random() * 3,
-        });
-        asteroidCount++;
-      } else {
-        clearInterval(asteroidInterval); // Stop spawning new asteroids
-        setTransitioning(true); // Trigger transition logic
+      if (asteroidCountRef.current >= cfg.maxAsteroids) return;
+      const size = cfg.asteroidSize ?? 50;
+      asteroidsRef.current.push({
+        x: Math.random() * (canvas.width - size),
+        y: -size - Math.random() * 200,
+        speed: rand(cfg.asteroidSpeedMin, cfg.asteroidSpeedMax),
+        size,
+      });
+      asteroidCountRef.current += 1;
+      if (asteroidCountRef.current >= cfg.maxAsteroids) {
+        // stop future spawns and mark transitioning after a short delay
+        if (spawnIntervalRef.current) {
+          window.clearInterval(spawnIntervalRef.current);
+          spawnIntervalRef.current = null;
+        }
+        // small timeout so final asteroids still fall and can be shot
+        setTimeout(() => setTransitioning(true), 600);
       }
     };
 
-    const shootBullet = () => {
-      bullets.push({
-        x: canvas.width / 2 + spaceshipPosition.current,
+    const shoot = () => {
+      bulletsRef.current.push({
+        x: canvas.width / 2 + spaceshipOffset.current,
         y: canvas.height - 60,
-        speed: 5,
+        speed: 6,
       });
     };
 
-    const checkCollision = (
+    const rectCollision = (
       x1: number,
       y1: number,
       w1: number,
@@ -124,190 +188,147 @@ export default function GameScene() {
       return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
     };
 
+    // --- main animate ---
     const animate = () => {
-      if (gameOver) return;
+      const cW = canvas.width;
+      const cH = canvas.height;
+      ctx.clearRect(0, 0, cW, cH);
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // background
+      if (cfg.background) {
+        ctx.fillStyle = cfg.background;
+        ctx.fillRect(0, 0, cW, cH);
+      }
 
-      // Draw spaceship
-      const spaceshipX = canvas.width / 2 - 25 + spaceshipPosition.current;
-      let spaceshipY = canvas.height - 60;
+      // spaceship
+      const shipW = 50 * (cfg.shipScale ?? 1);
+      const shipH = 50 * (cfg.shipScale ?? 1);
+      const shipX = cW / 2 - shipW / 2 + spaceshipOffset.current;
+      let shipY = cH - 60;
+      if (transitioning) shipY -= 4;
 
-      if (transitioning) {
-        spaceshipY -= 5; // Move spaceship upwards
-        if (spaceshipY < -50) {
-          spaceshipY = -50; // Stop moving when off-screen
+      if (shipLoaded.current && shipImg.current)
+        ctx.drawImage(shipImg.current, shipX, shipY, shipW, shipH);
+
+      // asteroids
+      asteroidsRef.current.forEach((a, i) => {
+        a.y += a.speed;
+        if (a.y > cH + 100) {
+          asteroidsRef.current.splice(i, 1);
+          setScore((s) => Math.max(0, s - 10));
+        } else if (asteroidLoaded.current && asteroidImg.current) {
+          ctx.drawImage(asteroidImg.current, a.x, a.y, a.size, a.size);
         }
-      }
+      });
 
-      if (spaceshipLoaded.current && spaceshipImage.current) {
-        ctx.drawImage(spaceshipImage.current, spaceshipX, spaceshipY, 50, 50);
-      }
-
-      // Draw and update asteroids
-      if (!transitioning) {
-        asteroids.forEach((asteroid, asteroidIndex) => {
-          asteroid.y += asteroid.speed;
-          if (asteroid.y > canvas.height) {
-            asteroids.splice(asteroidIndex, 1);
-            setScore((prev) => Math.max(0, prev - 10)); // Deduct score instead of game over
-          } else if (asteroidLoaded.current && asteroidImage.current) {
-            ctx.drawImage(
-              asteroidImage.current,
-              asteroid.x,
-              asteroid.y,
-              50,
-              50
-            );
-          }
-        });
-      }
-
-      // Draw and update bullets
-      bullets.forEach((bullet, bulletIndex) => {
-        bullet.y -= bullet.speed;
-        if (bullet.y < 0) {
-          bullets.splice(bulletIndex, 1);
+      // bullets
+      bulletsRef.current.forEach((b, bi) => {
+        b.y -= b.speed;
+        if (b.y < -50) {
+          bulletsRef.current.splice(bi, 1);
         } else {
           let hit = false;
-          asteroids.forEach((asteroid, asteroidIndex) => {
-            if (
-              checkCollision(
-                bullet.x,
-                bullet.y,
-                10,
-                20,
-                asteroid.x,
-                asteroid.y,
-                50,
-                50
-              )
-            ) {
-              explosions.push({
-                x: asteroid.x + 25,
-                y: asteroid.y + 25,
-                radius: 0,
-                maxRadius: 50,
+          asteroidsRef.current.forEach((a, ai) => {
+            if (rectCollision(b.x - 5, b.y, 10, 20, a.x, a.y, a.size, a.size)) {
+              // explosion (simple)
+              explosionsRef.current.push({
+                x: a.x + a.size / 2,
+                y: a.y + a.size / 2,
+                r: 0,
                 alpha: 1,
               });
-              bullets.splice(bulletIndex, 1);
-              asteroids.splice(asteroidIndex, 1);
-              setScore((prev) => prev + 50); // Increase score on hit
+              bulletsRef.current.splice(bi, 1);
+              asteroidsRef.current.splice(ai, 1);
+              setScore((s) => s + 50);
               hit = true;
             }
           });
-          if (!hit && bulletLoaded.current && bulletImage.current) {
-            ctx.drawImage(bulletImage.current, bullet.x - 5, bullet.y, 10, 20);
-          }
+          if (!hit && bulletLoaded.current && bulletImg.current)
+            ctx.drawImage(bulletImg.current, b.x - 8, b.y, 16, 32);
         }
       });
 
-      // Draw and update explosions
-      explosions.forEach((explosion, index) => {
+      // explosions
+      explosionsRef.current.forEach((ex, ei) => {
         ctx.beginPath();
-        ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 69, 0, ${explosion.alpha})`;
+        ctx.arc(ex.x, ex.y, ex.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,160,0,${ex.alpha})`;
         ctx.fill();
         ctx.closePath();
-
-        explosion.radius += 2;
-        explosion.alpha -= 0.05;
-
-        if (explosion.radius >= explosion.maxRadius || explosion.alpha <= 0) {
-          explosions.splice(index, 1); // Remove explosion after animation ends
-        }
+        ex.r += 3;
+        ex.alpha -= 0.06;
+        if (ex.alpha <= 0) explosionsRef.current.splice(ei, 1);
       });
 
-      requestAnimationFrame(animate);
-    };
-
-    const asteroidInterval = setInterval(() => {
-      if (!gameOver) spawnAsteroid();
-    }, asteroidSpawnRate.current);
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (canvas) {
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        spaceshipPosition.current = mouseX - canvas.width / 2;
+      // finish condition: when transitioning true and no more asteroids on screen
+      if (transitioning && asteroidsRef.current.length === 0) {
+        // mission complete
+        if (onComplete) onComplete();
+        // stop animation
+        if (animationRef.current) cancelAnimationFrame(animationRef.current);
+        return;
       }
+
+      animationRef.current = requestAnimationFrame(animate);
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("resize", resizeCanvas);
-    canvas.addEventListener("click", shootBullet);
+    // --- input handlers ---
+    const onMove = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      spaceshipOffset.current = mouseX - canvas.width / 2;
+    };
 
-    loadImages();
-    resizeCanvas();
+    const onResize = () => resize();
+
+    const onClick = () => shoot();
+
+    // --- init ---
+    resize();
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("resize", onResize);
+    canvas.addEventListener("click", onClick);
+
+    // start spawn interval
+    spawnIntervalRef.current = window.setInterval(
+      spawnAsteroid,
+      cfg.asteroidSpawnRate
+    );
+
+    // start loop
     animate();
 
     return () => {
-      clearInterval(asteroidInterval);
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("resize", resizeCanvas);
-      canvas.removeEventListener("click", shootBullet);
+      if (spawnIntervalRef.current)
+        window.clearInterval(spawnIntervalRef.current);
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("resize", onResize);
+      canvas.removeEventListener("click", onClick);
     };
-  }, [gameOver, asteroidCount, setScene, transitioning]);
-
-  const restartGame = () => {
-    setScore(0);
-    setGameOver(false);
-    asteroidSpawnRate.current = 1000;
-  };
-
-  const handleExplorePlanet = () => {
-    setScene("planetdetail");
-  };
+  }, [cfg, onComplete, transitioning]);
 
   return (
-    <div className="game text-white relative">
-      <Galaxy
-        mouseRepulsion={true}
-        mouseInteraction={true}
-        density={1}
-        glowIntensity={0.3}
-        saturation={0}
-        hueShift={140}
-        starSpeed={0.1}
-      />
+    <div className="relative text-white">
       <canvas
         ref={canvasRef}
-        style={{ background: "transparent", display: "block" }}
-        className="relative z-10"
-      ></canvas>
-      <div className="absolute top-10 left-10 bg-black/70 text-white p-4 rounded z-20">
-        <h2 className="text-lg font-bold">Score: {score}</h2>
+        className="w-full h-full block"
+        style={{ background: cfg.background ?? "#000" }}
+      />
+
+      <div className="absolute top-6 left-6 bg-black/60 p-3 rounded z-20">
+        <div className="text-sm">Mission: {cfg.displayName}</div>
+        <div className="font-bold text-lg">Score: {score}</div>
       </div>
+
       {transitioning && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white z-20">
-          <h1 className="text-4xl font-bold mb-4">Bạn đã đến hành tinh!</h1>
-          <p className="text-lg mb-4">Điểm số của bạn:</p>
-          <CountUp
-            from={0}
-            to={score}
-            separator=","
-            direction="up"
-            duration={1}
-            className="text-lg mb-4"
-          />
-          <button
-            onClick={handleExplorePlanet}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Khám phá hành tinh
-          </button>
-        </div>
-      )}
-      {gameOver && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white z-20">
-          <h1 className="text-4xl font-bold mb-4">Game Over</h1>
-          <p className="text-lg mb-4">Final Score: {score}</p>
-          <button
-            onClick={restartGame}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Restart
-          </button>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 z-30">
+          <h2 className="text-3xl font-bold mb-2">
+            Đang tiếp cận {cfg.displayName}...
+          </h2>
+          <p className="text-sm mb-4">
+            Hoàn thành nhiệm vụ để khám phá hành tinh
+          </p>
         </div>
       )}
     </div>

@@ -5,7 +5,8 @@ export type SceneType = "menu" | "warp" | "solar_system" | "mission" | "3dlook" 
 
 export type GameContextType = {
     scene: SceneType;
-    setScene: React.Dispatch<React.SetStateAction<SceneType>>;
+    setScene: (name: SceneType, params?: Record<string, unknown>) => void; // Thay Dispatch<SetStateAction<SceneType>> bằng type này
+    sceneParams?: Record<string, unknown>;
     // Chúng ta sẽ sử dụng isSolarSystemLoaded
     isSolarSystemLoaded: boolean;
     preloadSolarSystem: () => Promise<void>;

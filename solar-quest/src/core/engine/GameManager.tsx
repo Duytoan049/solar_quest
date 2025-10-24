@@ -4,6 +4,10 @@ import * as THREE from "three";
 import { GameContext } from "./GameContext"; // Import Context
 import type { SceneType, GameContextType } from "./types"; // Import các types
 THREE.Cache.enabled = true;
+type SceneState = {
+  name: SceneType;
+  params?: Record<string, unknown>;
+};
 // HÀM TẢI TRƯỚC TEXTURE
 const preloadTextures = (paths: string[]): Promise<void[]> => {
   THREE.Cache.enabled = true; // 🔥 kích hoạt cache toàn cục
@@ -28,10 +32,13 @@ const preloadTextures = (paths: string[]): Promise<void[]> => {
 export const GameManagerProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [scene, setScene] = useState<SceneType>("menu");
+  const [sceneState, setSceneState] = useState<SceneState>({ name: "menu" });
   const [score, setScore] = useState(0);
   const [isSolarSystemLoaded, setIsSolarSystemLoaded] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const setScene = (name: SceneType, params?: Record<string, unknown>) => {
+    setSceneState({ name, params });
+  };
   const preloadSolarSystem = useCallback(async () => {
     if (isSolarSystemLoaded) return;
 
@@ -69,8 +76,9 @@ export const GameManagerProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [preloadSolarSystem]); // Dependency để đảm bảo hàm được gọi đúng
 
   const value: GameContextType = {
-    scene,
+    scene: sceneState.name,
     setScene,
+    sceneParams: sceneState.params,
     score,
     setScore,
     isSolarSystemLoaded,
