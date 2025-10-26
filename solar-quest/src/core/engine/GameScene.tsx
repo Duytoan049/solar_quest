@@ -10,6 +10,9 @@ import {
   drawAsteroid,
   drawBullet,
 } from "../graphics/PlanetGraphics";
+import VictorySequence from "@/features/victory/VictorySequence";
+import { getAICompanion } from "@/data/aiCompanions";
+import type { VictoryStats } from "@/types/victory";
 /**
  * PlanetMissionScene.tsx
  * A reusable, configurable asteroid-field mini-game scene.
@@ -68,13 +71,18 @@ interface Star {
   twinkleSpeed: number;
 }
 
-export default function MarsGameScene({ planetId = "mars", config }: Props) {
+export default function MarsGameScene({
+  planetId = "mars",
+  config,
+  onComplete,
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const [wave, setWave] = useState(1);
   const [isSpecialEffect, setIsSpecialEffect] = useState(false);
   const [gameOver, setGameOver] = useState(false);
+  const [victory, setVictory] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [comboDisplay, setComboDisplay] = useState({ count: 0, multiplier: 1 });
   const [heatWarning, setHeatWarning] = useState(0); // 0-100
@@ -83,6 +91,13 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
   // Get planet config
   const planetConfig = config || getPlanetConfig(planetId);
   const graphicsConfig = getGraphicsConfig(planetId);
+  const aiCompanion = getAICompanion(planetId);
+
+  // Victory stats tracking
+  const totalShots = useRef(0);
+  const hits = useRef(0);
+  const maxComboReached = useRef(0);
+  const startTime = useRef(Date.now());
 
   // Game state refs
   const spaceshipX = useRef(0);
@@ -164,7 +179,9 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
 
     // Shoot bullet
     const shoot = () => {
-      if (gameOver || isPaused) return;
+      if (gameOver || isPaused || victory) return;
+
+      totalShots.current++; // Track total shots
 
       let bulletX = spaceshipX.current;
       let bulletVX = 0;
@@ -714,10 +731,12 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
         }
       }
 
-      // Wave management
+      // Wave management - Spawn asteroids nhanh hơn
       waveTimer.current++;
       if (
-        waveTimer.current % (planetConfig.asteroidSpawnRate / 16) === 0 &&
+        waveTimer.current %
+          Math.max(1, Math.floor(planetConfig.asteroidSpawnRate / 10)) ===
+          0 &&
         asteroidsSpawned.current < planetConfig.maxAsteroids
       ) {
         spawnAsteroid();
@@ -726,11 +745,11 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
       // Check wave completion
       if (
         asteroidsSpawned.current >= planetConfig.maxAsteroids &&
-        asteroidsRef.current.length === 0
+        asteroidsRef.current.length === 0 &&
+        !victory
       ) {
-        setWave((w) => w + 1);
-        asteroidsSpawned.current = 0;
-        waveTimer.current = 0;
+        // Victory condition: completed all asteroids
+        setVictory(true);
       }
 
       // Draw spaceship
@@ -857,6 +876,12 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
               const now = Date.now();
               const deltaTime = (now - lastFrameTime.current) / 1000;
               const comboMultiplier = updateCombo(true, deltaTime);
+
+              // Track hits and max combo
+              hits.current++;
+              if (comboDisplay.count > maxComboReached.current) {
+                maxComboReached.current = comboDisplay.count;
+              }
 
               setScore(
                 (s) =>
@@ -988,10 +1013,43 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
       canvas.removeEventListener("click", onClick);
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [gameOver, isPaused, isSpecialEffect, wave, planetConfig, graphicsConfig]);
+  }, [
+    gameOver,
+    isPaused,
+    isSpecialEffect,
+    wave,
+    planetConfig,
+    graphicsConfig,
+    victory,
+    comboDisplay.count,
+  ]);
+
+  // Victory stats
+  const victoryStats: VictoryStats = {
+    score,
+    maxCombo: maxComboReached.current,
+    accuracy:
+      totalShots.current > 0 ? (hits.current / totalShots.current) * 100 : 0,
+    damagesTaken: 3 - lives,
+    timeElapsed: (Date.now() - startTime.current) / 1000,
+  };
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-black">
+      {/* Victory Sequence */}
+      {victory && (
+        <VictorySequence
+          planetId={planetId}
+          planetName={planetConfig.displayName}
+          planetColor={planetConfig.particleColor}
+          stats={victoryStats}
+          ai={aiCompanion}
+          onComplete={() => {
+            if (onComplete) onComplete();
+          }}
+        />
+      )}
+
       <canvas ref={canvasRef} className="absolute inset-0" />
 
       {/* HUD */}
@@ -1058,21 +1116,22 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
 
         {/* Warning before effect starts */}
         {effectWarning && planetConfig.specialEffectType && (
-          <div className="flex items-center gap-2 text-orange-400 text-sm animate-pulse border-2 border-orange-400 rounded px-2 py-1">
-            <AlertTriangle className="w-4 h-4 animate-bounce" />
+          <div className="flex items-center gap-2 text-sm animate-pulse border-2 rounded px-2 py-1">
+            <AlertTriangle className="w-4 h-4 text-2xl font-bold mb-2 animate-pulse" />
+
             <span className="font-bold">
               {planetConfig.specialEffectType === "dust_storm" &&
-                "⚠️ BÃO CÁT SẮP ĐẾN!"}
+                "⚠️ BÃO CÁT SẮP ĐẾN! ⚠️"}
               {planetConfig.specialEffectType === "acid_rain" &&
-                "⚠️ MƯA AXIT SẮP ĐẾN!"}
+                "⚠️ MƯA AXIT SẮP ĐẾN! ⚠️"}
               {planetConfig.specialEffectType === "heat_wave" &&
-                "⚠️ SÓNG NHIỆT SẮP ĐẾN!"}
+                "⚠️ SÓNG NHIỆT SẮP ĐẾN! ⚠️"}
               {planetConfig.specialEffectType === "ice_storm" &&
-                "⚠️ BÃO BĂNG SẮP ĐẾN!"}
+                "⚠️ BÃO BĂNG SẮP ĐẾN! ⚠️"}
               {planetConfig.specialEffectType === "gravity_well" &&
-                "⚠️ LỰC HẤP DẪN SẮP XUẤT HIỆN!"}
+                "⚠️ LỰC HẤP DẪN SẮP XUẤT HIỆN! ⚠️"}
               {planetConfig.specialEffectType === "ring_navigation" &&
-                "⚠️ VÀNH ĐAI NGUY HIỂM SẮP ĐẾN!"}
+                "⚠️ VÀNH ĐAI NGUY HIỂM SẮP ĐẾN! ⚠️"}
             </span>
           </div>
         )}

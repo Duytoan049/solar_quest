@@ -5,6 +5,7 @@ import PlanetScene from "../components/PlanetScene1";
 import WarpScreen from "../features/transition/WarpScreen";
 import GameScene from "../core/engine/GameScene";
 import PlanetGameDemo from "../components/PlanetGameDemo";
+import PlanetDetail from "../features/planet-info/PlanetDetail";
 
 function SceneController() {
   const { scene, setScene, sceneParams } = useGameManager(); // Thêm setScene và sceneParams vào destructure
@@ -22,9 +23,12 @@ function SceneController() {
       return (
         <GameScene
           planetId={planetId}
-          onComplete={() => setScene("solar_system")} // Giờ setScene đã defined
+          onComplete={() => setScene("planet_detail", { planetId })} // Chuyển đến PlanetDetail với planetId
         />
       );
+    }
+    case "planet_detail": {
+      return <PlanetDetail />;
     }
     case "demo": {
       return <PlanetGameDemo />;

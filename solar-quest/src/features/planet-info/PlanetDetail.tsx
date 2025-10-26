@@ -2,33 +2,97 @@ import { useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Html, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
+import { useGameManager } from "@/core/engine/GameContext";
+import { ArrowLeft } from "lucide-react";
 
-const markers = [
-  {
-    id: 1,
-    label: "Olympus Mons",
-    position: [2, 2, 0] as [number, number, number],
-    description: "Largest volcano in the solar system.",
-  },
-  {
-    id: 2,
-    label: "Valles Marineris",
-    position: [-2, 1, 0] as [number, number, number],
-    description: "A vast canyon system.",
-  },
-  {
-    id: 3,
-    label: "Polar Ice Caps",
-    position: [0, -2, 0] as [number, number, number],
-    description: "Frozen water and CO2.",
-  },
-  {
-    id: 4,
-    label: "Tharsis Region",
-    position: [3, -1, 0] as [number, number, number],
-    description: "Volcanic plateau.",
-  },
-];
+// Planet markers data - TODO: Move to separate config file per planet
+const planetMarkersData: Record<string, any[]> = {
+  mars: [
+    {
+      id: 1,
+      label: "Olympus Mons",
+      position: [2, 2, 0] as [number, number, number],
+      description: "Largest volcano in the solar system - 21km high!",
+    },
+    {
+      id: 2,
+      label: "Valles Marineris",
+      position: [-2, 1, 0] as [number, number, number],
+      description: "A vast canyon system over 4000km long.",
+    },
+    {
+      id: 3,
+      label: "Polar Ice Caps",
+      position: [0, -2, 0] as [number, number, number],
+      description: "Frozen water and CO2 at the poles.",
+    },
+    {
+      id: 4,
+      label: "Tharsis Region",
+      position: [3, -1, 0] as [number, number, number],
+      description: "Massive volcanic plateau.",
+    },
+  ],
+  mercury: [
+    {
+      id: 1,
+      label: "Caloris Basin",
+      position: [2, 0, 0] as [number, number, number],
+      description: "One of the largest impact craters in the solar system.",
+    },
+  ],
+  venus: [
+    {
+      id: 1,
+      label: "Maxwell Montes",
+      position: [0, 2, 0] as [number, number, number],
+      description: "Highest mountain on Venus - 11km tall.",
+    },
+  ],
+  jupiter: [
+    {
+      id: 1,
+      label: "Great Red Spot",
+      position: [0, 0, 2] as [number, number, number],
+      description: "Giant storm larger than Earth!",
+    },
+  ],
+  saturn: [
+    {
+      id: 1,
+      label: "Ring System",
+      position: [0, 0, 3] as [number, number, number],
+      description: "Spectacular ring system made of ice and rock.",
+    },
+  ],
+  uranus: [
+    {
+      id: 1,
+      label: "Polar Region",
+      position: [0, 2, 0] as [number, number, number],
+      description: "Unique tilted rotation axis at 98 degrees.",
+    },
+  ],
+  neptune: [
+    {
+      id: 1,
+      label: "Great Dark Spot",
+      position: [0, 1, 2] as [number, number, number],
+      description: "Massive storm system similar to Jupiter's.",
+    },
+  ],
+};
+
+// Planet textures - TODO: Move to config
+const planetTextures: Record<string, string> = {
+  mars: "/texture/mars.jpg",
+  mercury: "/texture/mercury.jpg",
+  venus: "/texture/venus.jpg",
+  jupiter: "/texture/jupiter.jpg",
+  saturn: "/texture/saturn.jpg",
+  uranus: "/texture/uranus.jpg",
+  neptune: "/texture/neptune.jpg",
+};
 
 interface MarkerProps {
   id: number;
@@ -56,7 +120,12 @@ function Marker({ id, label, position, onClick }: MarkerProps) {
 }
 
 export default function PlanetDetail() {
+  const { sceneParams, setScene } = useGameManager();
+  const planetId = (sceneParams?.planetId as string) || "mars";
+
   const [activeMarker, setActiveMarker] = useState<number | null>(null);
+  const markers = planetMarkersData[planetId] || planetMarkersData.mars;
+  const textureUrl = planetTextures[planetId] || planetTextures.mars;
 
   const handleMarkerClick = (id: number) => {
     setActiveMarker(id);
@@ -76,6 +145,22 @@ export default function PlanetDetail() {
 
   return (
     <div className="w-full h-screen bg-black relative">
+      {/* Back button */}
+      <button
+        onClick={() => setScene("solar_system")}
+        className="absolute top-4 left-4 z-50 px-4 py-2 bg-white/10 hover:bg-white/20 
+          backdrop-blur-md rounded-lg text-white font-semibold transition-all duration-300
+          border border-white/20 hover:border-white/40 flex items-center gap-2"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        Quay lại Solar System
+      </button>
+
+      {/* Planet name */}
+      <div className="absolute top-4 right-4 z-50 px-6 py-3 bg-black/60 backdrop-blur-md rounded-lg">
+        <h1 className="text-2xl font-bold text-white capitalize">{planetId}</h1>
+      </div>
+
       <Canvas camera={{ position: [0, 0, 5], fov: 75 }}>
         <ambientLight intensity={0.5} />
         <directionalLight position={[5, 5, 5]} />
@@ -83,7 +168,7 @@ export default function PlanetDetail() {
         <mesh>
           <sphereGeometry args={[2, 64, 64]} />
           <meshStandardMaterial
-            map={new THREE.TextureLoader().load("src/assets/textures/mars.jpg")}
+            map={new THREE.TextureLoader().load(textureUrl)}
           />
         </mesh>
 

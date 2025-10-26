@@ -121,8 +121,8 @@ export const PLANET_GAME_CONFIGS: Record<string, PlanetGameConfig> = {
         particleColor: "#ffa500",
         shipTint: "#ff8c00",
 
-        asteroidSpawnRate: 500, // Rất nhanh
-        maxAsteroids: 30,
+        asteroidSpawnRate: 400, // Điều chỉnh tốc độ spawn vừa phải
+        maxAsteroids: 30, // Số lượng vừa đủ
         asteroidSpeedMin: 4.0,
         asteroidSpeedMax: 8.0,
         asteroidSize: 35,
@@ -180,8 +180,8 @@ export const PLANET_GAME_CONFIGS: Record<string, PlanetGameConfig> = {
         particleColor: "#f39c12",
         shipTint: "#e8b86d",
 
-        asteroidSpawnRate: 700,
-        maxAsteroids: 25,
+        asteroidSpawnRate: 400, // Spawn nhanh hơn (giảm từ 700)
+        maxAsteroids: 30, // Giảm số lượng (giảm từ 20)
         asteroidSpeedMin: 2.5,
         asteroidSpeedMax: 4.5,
         asteroidSize: 45,
@@ -231,8 +231,8 @@ export const PLANET_GAME_CONFIGS: Record<string, PlanetGameConfig> = {
         particleColor: "#2ecc71",
         shipTint: "#3498db",
 
-        asteroidSpawnRate: 900,
-        maxAsteroids: 20,
+        asteroidSpawnRate: 450, // Spawn nhanh hơn (giảm từ 900)
+        maxAsteroids: 30, // Giảm số lượng (giảm từ 15)
         asteroidSpeedMin: 1.5,
         asteroidSpeedMax: 3.5,
         asteroidSize: 50,
@@ -281,8 +281,8 @@ export const PLANET_GAME_CONFIGS: Record<string, PlanetGameConfig> = {
         particleColor: "#e67e22",
         shipTint: "#d35400",
 
-        asteroidSpawnRate: 800,
-        maxAsteroids: 18,
+        asteroidSpawnRate: 400, // Spawn nhanh hơn (giảm từ 800)
+        maxAsteroids: 30, // Giảm số lượng (giảm từ 13)
         asteroidSpeedMin: 1.0,
         asteroidSpeedMax: 3.0,
         asteroidSize: 54,
@@ -340,8 +340,8 @@ export const PLANET_GAME_CONFIGS: Record<string, PlanetGameConfig> = {
         particleColor: "#f39c12",
         shipTint: "#d68910",
 
-        asteroidSpawnRate: 600,
-        maxAsteroids: 35,
+        asteroidSpawnRate: 350, // Spawn nhanh hơn (giảm từ 600)
+        maxAsteroids: 30, // Giảm số lượng (giảm từ 25)
         asteroidSpeedMin: 2.0,
         asteroidSpeedMax: 5.0,
         asteroidSize: 64,
@@ -402,8 +402,8 @@ export const PLANET_GAME_CONFIGS: Record<string, PlanetGameConfig> = {
         particleColor: "#d4af37",
         shipTint: "#f9e79f",
 
-        asteroidSpawnRate: 750,
-        maxAsteroids: 28,
+        asteroidSpawnRate: 400, // Spawn nhanh hơn (giảm từ 750)
+        maxAsteroids: 30, // Giảm số lượng (giảm từ 23)
         asteroidSpeedMin: 1.8,
         asteroidSpeedMax: 4.2,
         asteroidSize: 58,
@@ -461,8 +461,8 @@ export const PLANET_GAME_CONFIGS: Record<string, PlanetGameConfig> = {
         particleColor: "#17a2b8",
         shipTint: "#48c9b0",
 
-        asteroidSpawnRate: 650,
-        maxAsteroids: 22,
+        asteroidSpawnRate: 350, // Spawn nhanh hơn (giảm từ 650)
+        maxAsteroids: 30, // Giảm số lượng (giảm từ 17)
         asteroidSpeedMin: 2.2,
         asteroidSpeedMax: 4.8,
         asteroidSize: 52,
@@ -520,8 +520,8 @@ export const PLANET_GAME_CONFIGS: Record<string, PlanetGameConfig> = {
         particleColor: "#3498db",
         shipTint: "#5499c7",
 
-        asteroidSpawnRate: 1000,
-        maxAsteroids: 15,
+        asteroidSpawnRate: 450, // Spawn nhanh hơn (giảm từ 1000)
+        maxAsteroids: 30, // Giảm số lượng (giảm từ 15)
         asteroidSpeedMin: 0.8,
         asteroidSpeedMax: 2.5,
         asteroidSize: 70,

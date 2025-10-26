@@ -52,40 +52,17 @@ function SceneContent({
   onLoadingComplete, // Thêm prop để báo khi load xong
 }: SceneContentProps & { onLoadingComplete: () => void }) {
   const sunRef = useRef<THREE.Mesh>(null!);
-  const [visiblePlanets, setVisiblePlanets] = useState<PlanetData[]>([]);
+  const [visiblePlanets, setVisiblePlanets] =
+    useState<PlanetData[]>(planetData); // Load tất cả ngay lập tức
 
-  // 💫 Lazy load từng hành tinh một — CHỈ CHẠY 1 LẦN DUY NHẤT
+  // Load tất cả planets ngay lập tức thay vì lazy load
   useEffect(() => {
-    let index = 0;
-    let cancelled = false; // ngăn chạy lại khi Strict Mode re-run
+    // Đợi một chút để canvas render xong, sau đó tắt loading
+    const timer = setTimeout(() => {
+      onLoadingComplete();
+    }, 100); // Chỉ 100ms thay vì hơn 2 giây
 
-    const loadNext = () => {
-      if (cancelled) return;
-      const planet = planetData[index];
-      if (!planet) {
-        // Nếu hết danh sách, báo hoàn tất
-        setTimeout(() => {
-          if (!cancelled) onLoadingComplete();
-        }, 1000);
-        return;
-      }
-
-      // Kiểm tra trùng trước khi thêm
-      setVisiblePlanets((prev) => {
-        const exists = prev.some((p) => p.name === planet.name);
-        if (exists) return prev;
-        return [...prev, planet];
-      });
-
-      index++;
-      setTimeout(loadNext, 250);
-    };
-
-    loadNext();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -313,26 +290,17 @@ export default function PlanetScene() {
 
   return (
     <div className="w-full h-screen bg-black relative font-sans">
-      {/* Overlay loading */}
+      {/* Overlay loading - Nhanh hơn */}
       {isLoading && (
-        <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+        <div className="absolute inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
           <div className="text-center text-white">
-            <h2 className="text-2xl font-bold mb-4">Loading Solar System...</h2>
-            <p className="text-lg">Please wait while we prepare the planets.</p>
-            {/* Tùy chọn: Thêm progress nếu muốn, ví dụ: <p>Loaded: {visiblePlanets.length}/{planetData.length}</p> */}
-          </div>
-        </div>
-      )}
-      {!isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-40 fade-in-overlay">
-          <div className="text-center text-white animate-fadeText">
-            <h2 className="text-3xl md:text-5xl font-bold tracking-wider mb-2">
-              Warp Drive Complete
+            <h2 className="text-2xl font-bold mb-2 animate-pulse">
+              Loading Solar System...
             </h2>
-            <p className="text-lg md:text-2xl opacity-80">Solar System Ready</p>
           </div>
         </div>
       )}
+      {/* Bỏ "Warp Drive Complete" overlay để nhanh hơn */}
 
       <PlanetMenu
         onSelectPlanet={(planetName: string) => {
