@@ -1,12 +1,21 @@
-import { useState } from "react";
-import { Canvas } from "@react-three/fiber";
+import { useState, useRef, useEffect } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { Html, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { useGameManager } from "@/core/engine/GameContext";
 import { ArrowLeft } from "lucide-react";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+
+// Marker type definition
+interface MarkerData {
+  id: number;
+  label: string;
+  position: [number, number, number];
+  description: string;
+}
 
 // Planet markers data - TODO: Move to separate config file per planet
-const planetMarkersData: Record<string, any[]> = {
+const planetMarkersData: Record<string, MarkerData[]> = {
   mars: [
     {
       id: 1,
@@ -49,6 +58,20 @@ const planetMarkersData: Record<string, any[]> = {
       description: "Highest mountain on Venus - 11km tall.",
     },
   ],
+  earth: [
+    {
+      id: 1,
+      label: "Mount Everest",
+      position: [0, 2, 0] as [number, number, number],
+      description: "Highest mountain on Earth - 8.8km above sea level.",
+    },
+    {
+      id: 2,
+      label: "Pacific Ocean",
+      position: [-2, 0, 0] as [number, number, number],
+      description: "Largest ocean covering 46% of Earth's water surface.",
+    },
+  ],
   jupiter: [
     {
       id: 1,
@@ -85,31 +108,33 @@ const planetMarkersData: Record<string, any[]> = {
 
 // Planet textures - TODO: Move to config
 const planetTextures: Record<string, string> = {
-  mars: "/texture/mars.jpg",
-  mercury: "/texture/mercury.jpg",
-  venus: "/texture/venus.jpg",
-  jupiter: "/texture/jupiter.jpg",
-  saturn: "/texture/saturn.jpg",
-  uranus: "/texture/uranus.jpg",
-  neptune: "/texture/neptune.jpg",
+  mars: "/texture/mars-min.webp",
+  mercury: "/texture/mercury-min.webp",
+  venus: "/texture/venus-min.webp",
+  earth: "/texture/Albedo-min.webp",
+  jupiter: "/texture/jupiter-min.webp",
+  saturn: "/texture/Saturno-min.webp",
+  uranus: "/texture/Uranus-min.webp",
+  neptune: "/texture/neptune-min.webp",
 };
 
 interface MarkerProps {
   id: number;
   label: string;
   position: [number, number, number];
-  onClick: (id: number) => void;
+  onClick: (id: number, position: [number, number, number]) => void;
+  markerRef: (el: THREE.Mesh | null) => void;
 }
 
-function Marker({ id, label, position, onClick }: MarkerProps) {
+function Marker({ id, label, position, onClick, markerRef }: MarkerProps) {
   return (
-    <mesh position={position}>
+    <mesh position={position} ref={markerRef}>
       <sphereGeometry args={[0.1, 16, 16]} />
       <meshStandardMaterial color="yellow" />
       <Html position={[0, 0.2, 0]} center>
         <button
-          onClick={() => onClick(id)}
-          className="bg-black/70 text-white px-2 py-1 rounded text-xs"
+          onClick={() => onClick(id, position)}
+          className="bg-black/70 text-white px-2 py-1 rounded text-xs hover:bg-black/90 transition-colors"
           style={{ cursor: "pointer" }}
         >
           {label}
@@ -119,29 +144,93 @@ function Marker({ id, label, position, onClick }: MarkerProps) {
   );
 }
 
+// Camera controller component - Giống y hệt PlanetScene1
+interface CameraControllerProps {
+  targetMarkerId: number | null;
+  markerRefs: React.MutableRefObject<Record<number, THREE.Mesh>>;
+  controlsRef: React.RefObject<OrbitControlsImpl | null>;
+  isAnimating: boolean;
+  onAnimationComplete: () => void;
+}
+
+function CameraController({
+  targetMarkerId,
+  markerRefs,
+  controlsRef,
+  isAnimating,
+  onAnimationComplete,
+}: CameraControllerProps) {
+  useFrame((state) => {
+    if (!isAnimating || targetMarkerId === null || !controlsRef.current) return;
+
+    const camera = state.camera;
+    const controls = controlsRef.current;
+    const markerObject = markerRefs.current[targetMarkerId];
+
+    if (!markerObject) return;
+
+    // Lấy vị trí thực tế của marker object - GIỐNG PLANETSCENE1
+    const markerPosition = new THREE.Vector3();
+    markerObject.getWorldPosition(markerPosition);
+
+    // Tính toán vị trí camera - GIỐNG PLANETSCENE1
+    const offsetDistance = 3; // Khoảng cách phù hợp cho marker
+    const targetCameraPosition = new THREE.Vector3()
+      .copy(markerPosition)
+      .add(new THREE.Vector3(0, 1, offsetDistance));
+
+    // Smooth lerp - GIỐNG PLANETSCENE1
+    camera.position.lerp(targetCameraPosition, 0.05);
+    controls.target.lerp(markerPosition, 0.05);
+
+    // Check completion - GIỐNG PLANETSCENE1
+    const distance = camera.position.distanceTo(targetCameraPosition);
+    if (distance < 0.1) {
+      onAnimationComplete();
+    }
+  });
+
+  return null;
+}
+
 export default function PlanetDetail() {
   const { sceneParams, setScene } = useGameManager();
   const planetId = (sceneParams?.planetId as string) || "mars";
 
   const [activeMarker, setActiveMarker] = useState<number | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const controlsRef = useRef<OrbitControlsImpl | null>(null);
+  const markerRefs = useRef<Record<number, THREE.Mesh>>({});
+
   const markers = planetMarkersData[planetId] || planetMarkersData.mars;
   const textureUrl = planetTextures[planetId] || planetTextures.mars;
 
-  const handleMarkerClick = (id: number) => {
+  const handleMarkerClick = (
+    id: number,
+    position: [number, number, number]
+  ) => {
     setActiveMarker(id);
-    const marker = markers.find((m) => m.id === id);
-    if (marker) {
-      const { position } = marker;
-      const camera = new THREE.PerspectiveCamera(
-        75,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        1000
-      );
-      camera.position.set(position[0], position[1], 5);
-      camera.lookAt(new THREE.Vector3(...position));
-    }
+    setIsAnimating(true);
   };
+
+  const handleAnimationComplete = () => {
+    setIsAnimating(false);
+  };
+
+  // Khi user tự điều khiển camera, dừng animation
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+
+    const onManualControlStart = () => {
+      setIsAnimating(false);
+    };
+
+    controls.addEventListener("start", onManualControlStart);
+    return () => {
+      controls.removeEventListener("start", onManualControlStart);
+    };
+  }, []);
 
   return (
     <div className="w-full h-screen bg-black relative">
@@ -179,10 +268,29 @@ export default function PlanetDetail() {
             label={marker.label}
             position={marker.position}
             onClick={handleMarkerClick}
+            markerRef={(el) => {
+              if (el) markerRefs.current[marker.id] = el;
+            }}
           />
         ))}
 
-        <OrbitControls />
+        <CameraController
+          targetMarkerId={activeMarker}
+          markerRefs={markerRefs}
+          controlsRef={controlsRef}
+          isAnimating={isAnimating}
+          onAnimationComplete={handleAnimationComplete}
+        />
+        <OrbitControls
+          ref={controlsRef}
+          enablePan
+          enableZoom
+          enableRotate
+          enableDamping
+          dampingFactor={0.05}
+          minDistance={3}
+          maxDistance={10}
+        />
       </Canvas>
 
       {activeMarker && (
