@@ -282,7 +282,10 @@ export default function PlanetScene() {
   };
 
   const handleStartMission = () => {
-    setScene("game");
+    if (selectedPlanet) {
+      // Truyền planetId vào params
+      setScene("game", { planetId: selectedPlanet.name.toLowerCase() });
+    }
   };
 
   const handleClosePanel = () => {

@@ -1,5 +1,15 @@
-import React, { useEffect, useRef, useState } from "react";
-
+import { useEffect, useRef, useState } from "react";
+import { X, Target, AlertTriangle } from "lucide-react";
+import {
+  getPlanetConfig,
+  type PlanetGameConfig,
+} from "../game/PlanetGameConfigs";
+import {
+  getGraphicsConfig,
+  drawSpaceship,
+  drawAsteroid,
+  drawBullet,
+} from "../graphics/PlanetGraphics";
 /**
  * PlanetMissionScene.tsx
  * A reusable, configurable asteroid-field mini-game scene.
@@ -14,168 +24,156 @@ import React, { useEffect, useRef, useState } from "react";
  * />
  */
 
-type PlanetConfig = {
-  id: string;
-  displayName: string;
-  background?: string; // css background or color
-  asteroidSpawnRate: number; // ms
-  maxAsteroids: number;
-  asteroidSpeedMin: number;
-  asteroidSpeedMax: number;
-  asteroidSize?: number;
-  shipScale?: number;
-  starfieldOptions?: { density?: number; speed?: number };
-  musicKey?: string;
-};
-
-const DEFAULT_CONFIGS: Record<string, PlanetConfig> = {
-  earth: {
-    id: "earth",
-    displayName: "Trái Đất",
-    background: "linear-gradient(#001f3f, #004080)",
-    asteroidSpawnRate: 900,
-    maxAsteroids: 20,
-    asteroidSpeedMin: 1.5,
-    asteroidSpeedMax: 3.5,
-    asteroidSize: 48,
-    shipScale: 1,
-  },
-  mars: {
-    id: "mars",
-    displayName: "Sao Hỏa",
-    background: "linear-gradient(#3a0b0b, #7a1f1f)",
-    asteroidSpawnRate: 800,
-    maxAsteroids: 18,
-    asteroidSpeedMin: 1.0,
-    asteroidSpeedMax: 3.0,
-    asteroidSize: 54,
-    shipScale: 1.05,
-  },
-  jupiter: {
-    id: "jupiter",
-    displayName: "Sao Mộc",
-    background: "linear-gradient(#3b1f00, #6b3a00)",
-    asteroidSpawnRate: 700,
-    maxAsteroids: 30,
-    asteroidSpeedMin: 2.0,
-    asteroidSpeedMax: 5.0,
-    asteroidSize: 64,
-    shipScale: 1.2,
-  },
-};
-
 interface Props {
   planetId?: string;
-  config?: PlanetConfig;
+  config?: PlanetGameConfig;
   onComplete?: () => void;
   onGameOver?: () => void;
 }
-
 interface Asteroid {
   x: number;
   y: number;
   speed: number;
   size: number;
+  rotation: number;
+  rotationSpeed: number;
 }
-
 interface Bullet {
   x: number;
   y: number;
   speed: number;
 }
 
-export default function PlanetMissionScene({
-  planetId = "earth",
-  config,
-  onComplete,
-  onGameOver,
-}: Props) {
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  size: number;
+  color: string;
+}
+
+interface Star {
+  x: number;
+  y: number;
+  size: number;
+  brightness: number;
+  twinkleSpeed: number;
+}
+
+export default function MarsGameScene({ planetId = "mars", config }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [score, setScore] = useState(0);
-  const [transitioning, setTransitioning] = useState(false);
+  const [lives, setLives] = useState(3);
+  const [wave, setWave] = useState(1);
+  const [isSpecialEffect, setIsSpecialEffect] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
-  const cfg = config ?? DEFAULT_CONFIGS[planetId] ?? DEFAULT_CONFIGS.earth;
+  // Get planet config
+  const planetConfig = config || getPlanetConfig(planetId);
+  const graphicsConfig = getGraphicsConfig(planetId);
 
-  // images
-  const shipImg = useRef<HTMLImageElement | null>(null);
-  const asteroidImg = useRef<HTMLImageElement | null>(null);
-  const bulletImg = useRef<HTMLImageElement | null>(null);
-  const shipLoaded = useRef(false);
-  const asteroidLoaded = useRef(false);
-  const bulletLoaded = useRef(false);
-
-  // mutable refs for performance
-  const spaceshipOffset = useRef(0);
-  const asteroidCountRef = useRef(0);
+  // Game state refs
+  const spaceshipX = useRef(0);
   const asteroidsRef = useRef<Asteroid[]>([]);
   const bulletsRef = useRef<Bullet[]>([]);
-  const explosionsRef = useRef<
-    { x: number; y: number; r: number; alpha: number }[]
-  >([]);
+  const particlesRef = useRef<Particle[]>([]);
+  const starsRef = useRef<Star[]>([]);
   const animationRef = useRef<number | null>(null);
-  const spawnIntervalRef = useRef<number | null>(null);
+  const dustStormTimer = useRef(0);
+  const waveTimer = useRef(0);
+  const asteroidsSpawned = useRef(0);
+  const gameTime = useRef(0);
+  const animationTime = useRef(0);
+
+  // No need to load images since we're drawing with code
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // --- image loading ---
-    shipImg.current = new Image();
-    shipImg.current.src = "/src/assets/models/yellow_spaceship.png";
-    shipImg.current.onload = () => (shipLoaded.current = true);
-    shipImg.current.onerror = () => console.warn("ship image failed to load");
-
-    asteroidImg.current = new Image();
-    asteroidImg.current.src = "/src/assets/models/asteroid1.jpg";
-    asteroidImg.current.onload = () => (asteroidLoaded.current = true);
-    asteroidImg.current.onerror = () =>
-      console.warn("asteroid image failed to load");
-
-    bulletImg.current = new Image();
-    bulletImg.current.src = "/src/assets/models/bullet_spaceship.png";
-    bulletImg.current.onload = () => (bulletLoaded.current = true);
-
-    // --- helpers ---
+    // Resize canvas
     const resize = () => {
+      const oldWidth = canvas.width;
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+
+      // Only reset ship position if canvas width actually changed
+      if (oldWidth !== canvas.width) {
+        spaceshipX.current = canvas.width / 2;
+      }
     };
+    resize();
+    window.addEventListener("resize", resize);
 
-    const rand = (min: number, max: number) =>
-      min + Math.random() * (max - min);
+    // Initialize starfield
+    const initStars = () => {
+      starsRef.current = [];
+      for (let i = 0; i < 100; i++) {
+        starsRef.current.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          size: Math.random() * 2,
+          brightness: Math.random(),
+          twinkleSpeed: 0.02 + Math.random() * 0.03,
+        });
+      }
+    };
+    initStars();
 
+    // Spawn asteroid
     const spawnAsteroid = () => {
-      if (asteroidCountRef.current >= cfg.maxAsteroids) return;
-      const size = cfg.asteroidSize ?? 50;
+      if (asteroidsSpawned.current >= planetConfig.maxAsteroids) return;
+      const size = planetConfig.asteroidSize + Math.random() * 20;
       asteroidsRef.current.push({
         x: Math.random() * (canvas.width - size),
         y: -size - Math.random() * 200,
-        speed: rand(cfg.asteroidSpeedMin, cfg.asteroidSpeedMax),
+        speed:
+          planetConfig.asteroidSpeedMin +
+          Math.random() *
+            (planetConfig.asteroidSpeedMax - planetConfig.asteroidSpeedMin) +
+          wave * 0.3,
         size,
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 0.1,
       });
-      asteroidCountRef.current += 1;
-      if (asteroidCountRef.current >= cfg.maxAsteroids) {
-        // stop future spawns and mark transitioning after a short delay
-        if (spawnIntervalRef.current) {
-          window.clearInterval(spawnIntervalRef.current);
-          spawnIntervalRef.current = null;
-        }
-        // small timeout so final asteroids still fall and can be shot
-        setTimeout(() => setTransitioning(true), 600);
+      asteroidsSpawned.current++;
+    };
+
+    // Shoot bullet
+    const shoot = () => {
+      if (gameOver || isPaused) return;
+      bulletsRef.current.push({
+        x: spaceshipX.current,
+        y: canvas.height - 70,
+        speed: planetConfig.bulletSpeed,
+      });
+    };
+
+    // Create explosion particles
+    const createExplosion = (x: number, y: number) => {
+      for (let i = 0; i < 15; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 3 + 1;
+        particlesRef.current.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 1,
+          size: Math.random() * 4 + 2,
+          color: planetConfig.particleColor,
+        });
       }
     };
 
-    const shoot = () => {
-      bulletsRef.current.push({
-        x: canvas.width / 2 + spaceshipOffset.current,
-        y: canvas.height - 60,
-        speed: 6,
-      });
-    };
-
-    const rectCollision = (
+    // Collision detection
+    const checkCollision = (
       x1: number,
       y1: number,
       w1: number,
@@ -188,147 +186,598 @@ export default function PlanetMissionScene({
       return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
     };
 
-    // --- main animate ---
+    // Draw special effects based on planet type with GAMEPLAY IMPACT
+    const drawSpecialEffect = (
+      ctx: CanvasRenderingContext2D,
+      cW: number,
+      cH: number,
+      config: PlanetGameConfig
+    ) => {
+      if (!config.specialEffectType) return;
+
+      switch (config.specialEffectType) {
+        case "dust_storm": {
+          // Mars: Swirling dust vortex - reduces visibility & bullet accuracy
+          const dustGradient = ctx.createRadialGradient(cW / 2, cH / 2, 0, cW / 2, cH / 2, cW / 2);
+          dustGradient.addColorStop(0, 'rgba(139, 69, 19, 0)');
+          dustGradient.addColorStop(0.5, `rgba(139, 69, 19, ${config.fogOpacity * 0.6})`);
+          dustGradient.addColorStop(1, `rgba(101, 67, 33, ${config.fogOpacity})`);
+          ctx.fillStyle = dustGradient;
+          ctx.fillRect(0, 0, cW, cH);
+          
+          // Swirling dust particles with trail
+          for (let i = 0; i < 50; i++) {
+            const angle = (dustStormTimer.current * 0.03 + i * 0.4) % (Math.PI * 2);
+            const radius = 100 + Math.sin(dustStormTimer.current * 0.02 + i) * 150;
+            const x = cW / 2 + Math.cos(angle) * radius;
+            const y = cH / 2 + Math.sin(angle) * radius;
+            const size = 3 + Math.sin(dustStormTimer.current * 0.05 + i) * 2;
+            
+            ctx.fillStyle = `rgba(210, 105, 30, ${0.4 + Math.random() * 0.3})`;
+            ctx.shadowColor = 'rgba(210, 105, 30, 0.8)';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.shadowBlur = 0;
+          break;
+        }
+
+        case "acid_rain": {
+          // Venus: Corrosive acid rain - damages over time if hit
+          const acidGradient = ctx.createLinearGradient(0, 0, 0, cH);
+          acidGradient.addColorStop(0, `rgba(255, 100, 0, ${config.fogOpacity * 0.3})`);
+          acidGradient.addColorStop(1, `rgba(200, 50, 0, ${config.fogOpacity * 0.6})`);
+          ctx.fillStyle = acidGradient;
+          ctx.fillRect(0, 0, cW, cH);
+          
+          // Falling acid drops with glow
+          for (let i = 0; i < 60; i++) {
+            const x = (i * 30 + Math.sin(dustStormTimer.current * 0.02 + i) * 20) % cW;
+            const y = (dustStormTimer.current * 4 + i * 15) % (cH + 100);
+            const length = 15 + Math.random() * 10;
+            
+            const dropGradient = ctx.createLinearGradient(x, y, x, y + length);
+            dropGradient.addColorStop(0, 'rgba(255, 150, 50, 0.8)');
+            dropGradient.addColorStop(1, 'rgba(255, 100, 0, 0.3)');
+            
+            ctx.fillStyle = dropGradient;
+            ctx.fillRect(x, y, 2, length);
+            
+            // Splash effect when hitting bottom
+            if (y > cH - 50) {
+              ctx.fillStyle = 'rgba(255, 150, 50, 0.4)';
+              ctx.beginPath();
+              ctx.arc(x, cH, 8, 0, Math.PI, true);
+              ctx.fill();
+            }
+          }
+          break;
+        }
+
+        case "heat_wave": {
+          // Mercury: Intense heat waves - bullets slow down, vision distorted
+          const heatGradient = ctx.createRadialGradient(cW / 2, 0, 0, cW / 2, cH, cH);
+          heatGradient.addColorStop(0, 'rgba(255, 200, 0, 0.1)');
+          heatGradient.addColorStop(0.5, `rgba(255, 150, 0, ${config.fogOpacity * 0.4})`);
+          heatGradient.addColorStop(1, 'rgba(255, 100, 0, 0.2)');
+          ctx.fillStyle = heatGradient;
+          ctx.fillRect(0, 0, cW, cH);
+          
+          // Heat distortion waves
+          ctx.strokeStyle = 'rgba(255, 200, 50, 0.3)';
+          ctx.lineWidth = 2;
+          for (let i = 0; i < 8; i++) {
+            const yBase = (i * cH / 8) + (dustStormTimer.current * 2) % (cH / 8);
+            ctx.beginPath();
+            for (let x = 0; x < cW; x += 10) {
+              const y = yBase + Math.sin(x * 0.02 + dustStormTimer.current * 0.1 + i) * 15;
+              if (x === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+          }
+          
+          // Rising heat particles
+          for (let i = 0; i < 30; i++) {
+            const x = (i * 40 + Math.sin(dustStormTimer.current * 0.03 + i) * 20) % cW;
+            const y = cH - (dustStormTimer.current * 3 + i * 30) % cH;
+            ctx.fillStyle = `rgba(255, 255, 100, ${0.2 + Math.random() * 0.2})`;
+            ctx.beginPath();
+            ctx.arc(x, y, 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          break;
+        }
+
+        case "ice_storm": {
+          // Uranus: Freezing ice storm - slows ship movement
+          const iceGradient = ctx.createLinearGradient(0, 0, cW, cH);
+          iceGradient.addColorStop(0, `rgba(150, 200, 255, ${config.fogOpacity * 0.3})`);
+          iceGradient.addColorStop(0.5, `rgba(200, 220, 255, ${config.fogOpacity * 0.5})`);
+          iceGradient.addColorStop(1, `rgba(180, 210, 255, ${config.fogOpacity * 0.4})`);
+          ctx.fillStyle = iceGradient;
+          ctx.fillRect(0, 0, cW, cH);
+          
+          // Spinning ice crystals
+          for (let i = 0; i < 50; i++) {
+            const x = (i * 35 + Math.sin(dustStormTimer.current * 0.04 + i) * 30) % cW;
+            const y = (dustStormTimer.current * 2.5 + i * 20) % (cH + 50);
+            const rotation = (dustStormTimer.current * 0.1 + i) % (Math.PI * 2);
+            const size = 4 + Math.sin(dustStormTimer.current * 0.05 + i) * 2;
+            
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(rotation);
+            
+            // Crystal shape
+            ctx.strokeStyle = `rgba(150, 220, 255, ${0.6 + Math.random() * 0.3})`;
+            ctx.lineWidth = 2;
+            ctx.shadowColor = 'rgba(150, 220, 255, 0.8)';
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            for (let j = 0; j < 6; j++) {
+              const angle = (j / 6) * Math.PI * 2;
+              const px = Math.cos(angle) * size;
+              const py = Math.sin(angle) * size;
+              if (j === 0) ctx.moveTo(px, py);
+              else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.stroke();
+            ctx.restore();
+          }
+          ctx.shadowBlur = 0;
+          break;
+        }
+
+        case "gravity_well": {
+          // Jupiter/Neptune: Gravity distortion - asteroids move in curves
+          const gravityGradient = ctx.createRadialGradient(cW / 2, cH / 2, 0, cW / 2, cH / 2, cW / 2);
+          gravityGradient.addColorStop(0, 'rgba(100, 0, 150, 0.2)');
+          gravityGradient.addColorStop(0.5, `rgba(80, 0, 120, ${config.fogOpacity * 0.4})`);
+          gravityGradient.addColorStop(1, 'rgba(50, 0, 80, 0.1)');
+          ctx.fillStyle = gravityGradient;
+          ctx.fillRect(0, 0, cW, cH);
+          
+          // Spiral gravity waves
+          ctx.strokeStyle = 'rgba(150, 50, 200, 0.3)';
+          ctx.lineWidth = 2;
+          for (let i = 0; i < 5; i++) {
+            ctx.beginPath();
+            for (let angle = 0; angle < Math.PI * 4; angle += 0.1) {
+              const adjustedAngle = angle + dustStormTimer.current * 0.02 + i * 0.5;
+              const radius = 50 + angle * 15;
+              const x = cW / 2 + Math.cos(adjustedAngle) * radius;
+              const y = cH / 2 + Math.sin(adjustedAngle) * radius;
+              if (angle === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+          }
+          
+          // Orbiting gravity particles
+          for (let i = 0; i < 40; i++) {
+            const angle = (dustStormTimer.current * 0.03 + i * 0.3) % (Math.PI * 2);
+            const radius = 100 + (i % 5) * 50;
+            const x = cW / 2 + Math.cos(angle) * radius;
+            const y = cH / 2 + Math.sin(angle) * radius;
+            
+            ctx.fillStyle = `rgba(180, 100, 255, ${0.4 + Math.random() * 0.3})`;
+            ctx.shadowColor = 'rgba(180, 100, 255, 0.8)';
+            ctx.shadowBlur = 12;
+            ctx.beginPath();
+            ctx.arc(x, y, 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.shadowBlur = 0;
+          break;
+        }
+
+        case "ring_navigation": {
+          // Saturn: Dense ring particles - blocks some bullets
+          const ringGradient = ctx.createLinearGradient(0, cH / 2 - 50, 0, cH / 2 + 50);
+          ringGradient.addColorStop(0, 'rgba(255, 215, 0, 0)');
+          ringGradient.addColorStop(0.5, 'rgba(255, 215, 0, 0.15)');
+          ringGradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+          ctx.fillStyle = ringGradient;
+          ctx.fillRect(0, 0, cW, cH);
+          
+          // Dense flowing ring particles
+          for (let layer = 0; layer < 3; layer++) {
+            const yOffset = cH / 2 + (layer - 1) * 20;
+            const speed = 1 + layer * 0.3;
+            
+            for (let i = 0; i < 80; i++) {
+              const x = (dustStormTimer.current * speed + i * 15) % (cW + 20);
+              const y = yOffset + Math.sin(dustStormTimer.current * 0.05 + i * 0.2) * 8;
+              const size = 2 + Math.random() * 2;
+              
+              ctx.fillStyle = `rgba(255, 215, ${100 + Math.random() * 100}, ${0.5 + Math.random() * 0.4})`;
+              ctx.shadowColor = 'rgba(255, 215, 0, 0.6)';
+              ctx.shadowBlur = 6;
+              ctx.beginPath();
+              ctx.arc(x, y, size, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+          ctx.shadowBlur = 0;
+          break;
+        }
+      }
+    };
+
+    // Draw radar (mini-map)
+    const drawRadar = () => {
+      if (!planetConfig.hasRadar || !isSpecialEffect) return;
+
+      const radarX = canvas.width - 120;
+      const radarY = 20;
+      const radarSize = 100;
+
+      // Radar background
+      ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+      ctx.fillRect(radarX, radarY, radarSize, radarSize);
+      ctx.strokeStyle = planetConfig.particleColor;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(radarX, radarY, radarSize, radarSize);
+
+      // Center line
+      ctx.strokeStyle = planetConfig.particleColor;
+      ctx.beginPath();
+      ctx.moveTo(radarX + radarSize / 2, radarY);
+      ctx.lineTo(radarX + radarSize / 2, radarY + radarSize);
+      ctx.stroke();
+
+      // Asteroids on radar
+      asteroidsRef.current.forEach((ast) => {
+        const radarAstX = radarX + (ast.x / canvas.width) * radarSize;
+        const radarAstY = radarY + (ast.y / canvas.height) * radarSize;
+        ctx.fillStyle = "#ff0000";
+        ctx.fillRect(radarAstX - 2, radarAstY - 2, 4, 4);
+      });
+
+      // Player position
+      const playerRadarX =
+        radarX + (spaceshipX.current / canvas.width) * radarSize;
+      ctx.fillStyle = planetConfig.particleColor;
+      ctx.fillRect(playerRadarX - 3, radarY + radarSize - 5, 6, 6);
+    };
+
+    // Game loop
     const animate = () => {
+      if (gameOver || isPaused) return;
+
+      // Increment game time for consistent animations
+      gameTime.current++;
+      animationTime.current += 0.016; // ~60fps
+
       const cW = canvas.width;
       const cH = canvas.height;
-      ctx.clearRect(0, 0, cW, cH);
 
-      // background
-      if (cfg.background) {
-        ctx.fillStyle = cfg.background;
-        ctx.fillRect(0, 0, cW, cH);
+      // Draw starfield background
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, cW, cH);
+
+      starsRef.current.forEach((star) => {
+        star.brightness += star.twinkleSpeed;
+        const alpha = ((Math.sin(star.brightness) + 1) / 2) * 0.8 + 0.2;
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Planet background gradient overlay
+      const gradient = ctx.createLinearGradient(0, 0, 0, cH);
+      const colors = planetConfig.background.match(/#[0-9a-fA-F]{6}/g) || [
+        planetConfig.backgroundColor,
+      ];
+      colors.forEach((color, index) => {
+        gradient.addColorStop(index / (colors.length - 1), color);
+      });
+      ctx.fillStyle = gradient;
+      ctx.globalAlpha = 0.3; // Make gradient semi-transparent
+      ctx.fillRect(0, 0, cW, cH);
+      ctx.globalAlpha = 1;
+
+      // Special effect management
+      if (planetConfig.hasSpecialEffect) {
+        dustStormTimer.current++;
+        if (dustStormTimer.current > 300 && !isSpecialEffect) {
+          setIsSpecialEffect(true);
+          dustStormTimer.current = 0;
+        }
+        if (dustStormTimer.current > 200 && isSpecialEffect) {
+          setIsSpecialEffect(false);
+          dustStormTimer.current = 0;
+        }
+
+        // Draw special effect based on planet type
+        if (isSpecialEffect) {
+          drawSpecialEffect(ctx, cW, cH, planetConfig);
+        }
       }
 
-      // spaceship
-      const shipW = 50 * (cfg.shipScale ?? 1);
-      const shipH = 50 * (cfg.shipScale ?? 1);
-      const shipX = cW / 2 - shipW / 2 + spaceshipOffset.current;
-      let shipY = cH - 60;
-      if (transitioning) shipY -= 4;
+      // Wave management
+      waveTimer.current++;
+      if (
+        waveTimer.current % (planetConfig.asteroidSpawnRate / 16) === 0 &&
+        asteroidsSpawned.current < planetConfig.maxAsteroids
+      ) {
+        spawnAsteroid();
+      }
 
-      if (shipLoaded.current && shipImg.current)
-        ctx.drawImage(shipImg.current, shipX, shipY, shipW, shipH);
+      // Check wave completion
+      if (
+        asteroidsSpawned.current >= planetConfig.maxAsteroids &&
+        asteroidsRef.current.length === 0
+      ) {
+        setWave((w) => w + 1);
+        asteroidsSpawned.current = 0;
+        waveTimer.current = 0;
+      }
 
-      // asteroids
-      asteroidsRef.current.forEach((a, i) => {
-        a.y += a.speed;
-        if (a.y > cH + 100) {
+      // Draw spaceship
+      const shipW = 50 * planetConfig.shipScale;
+      const shipH = 50 * planetConfig.shipScale;
+      const shipX = spaceshipX.current;
+      const shipY = cH - 70;
+
+      // Draw custom spaceship based on planet
+      drawSpaceship(
+        ctx,
+        shipX,
+        shipY,
+        shipW,
+        shipH,
+        0,
+        graphicsConfig,
+        planetConfig,
+        animationTime.current
+      );
+
+      // Update and draw asteroids
+      asteroidsRef.current.forEach((ast, i) => {
+        ast.y += ast.speed;
+        ast.rotation += ast.rotationSpeed;
+
+        // Off screen - just remove asteroid without penalty
+        if (ast.y > cH + 100) {
           asteroidsRef.current.splice(i, 1);
-          setScore((s) => Math.max(0, s - 10));
-        } else if (asteroidLoaded.current && asteroidImg.current) {
-          ctx.drawImage(asteroidImg.current, a.x, a.y, a.size, a.size);
+        } else if (
+          checkCollision(
+            shipX,
+            shipY,
+            shipW,
+            shipH,
+            ast.x,
+            ast.y,
+            ast.size,
+            ast.size
+          )
+        ) {
+          createExplosion(ast.x + ast.size / 2, ast.y + ast.size / 2);
+          asteroidsRef.current.splice(i, 1);
+          setLives((l) => {
+            const newLives = l - 1;
+            if (newLives <= 0) setGameOver(true);
+            return newLives;
+          });
+        } else {
+          // Draw custom asteroid based on planet
+          ctx.save();
+          ctx.globalAlpha =
+            planetConfig.visibility * (isSpecialEffect ? 0.6 : 1);
+          drawAsteroid(
+            ctx,
+            ast.x,
+            ast.y,
+            ast.size,
+            ast.rotation,
+            graphicsConfig,
+            planetConfig
+          );
+          ctx.restore();
         }
       });
 
-      // bullets
+      // Update and draw bullets
       bulletsRef.current.forEach((b, bi) => {
         b.y -= b.speed;
+
         if (b.y < -50) {
           bulletsRef.current.splice(bi, 1);
         } else {
           let hit = false;
-          asteroidsRef.current.forEach((a, ai) => {
-            if (rectCollision(b.x - 5, b.y, 10, 20, a.x, a.y, a.size, a.size)) {
-              // explosion (simple)
-              explosionsRef.current.push({
-                x: a.x + a.size / 2,
-                y: a.y + a.size / 2,
-                r: 0,
-                alpha: 1,
-              });
+          asteroidsRef.current.forEach((ast, ai) => {
+            if (
+              checkCollision(
+                b.x - 5,
+                b.y,
+                10,
+                20,
+                ast.x,
+                ast.y,
+                ast.size,
+                ast.size
+              )
+            ) {
+              createExplosion(ast.x + ast.size / 2, ast.y + ast.size / 2);
               bulletsRef.current.splice(bi, 1);
               asteroidsRef.current.splice(ai, 1);
-              setScore((s) => s + 50);
+              setScore(
+                (s) =>
+                  s +
+                  planetConfig.pointsPerAsteroid * planetConfig.bonusMultiplier
+              );
               hit = true;
             }
           });
-          if (!hit && bulletLoaded.current && bulletImg.current)
-            ctx.drawImage(bulletImg.current, b.x - 8, b.y, 16, 32);
+
+          if (!hit) {
+            // Draw custom bullet based on planet
+            drawBullet(ctx, b.x, b.y, 16, 32, graphicsConfig);
+          }
         }
       });
 
-      // explosions
-      explosionsRef.current.forEach((ex, ei) => {
-        ctx.beginPath();
-        ctx.arc(ex.x, ex.y, ex.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,160,0,${ex.alpha})`;
-        ctx.fill();
-        ctx.closePath();
-        ex.r += 3;
-        ex.alpha -= 0.06;
-        if (ex.alpha <= 0) explosionsRef.current.splice(ei, 1);
+      // Update and draw particles
+      particlesRef.current.forEach((p, i) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.02;
+
+        if (p.life <= 0) {
+          particlesRef.current.splice(i, 1);
+        } else {
+          ctx.save();
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = p.life;
+          ctx.fillRect(p.x, p.y, p.size, p.size);
+          ctx.restore();
+        }
       });
 
-      // finish condition: when transitioning true and no more asteroids on screen
-      if (transitioning && asteroidsRef.current.length === 0) {
-        // mission complete
-        if (onComplete) onComplete();
-        // stop animation
-        if (animationRef.current) cancelAnimationFrame(animationRef.current);
-        return;
-      }
+      // Draw radar
+      drawRadar();
 
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    // --- input handlers ---
-    const onMove = (e: MouseEvent) => {
+    // Input handlers
+    const onMouseMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      spaceshipOffset.current = mouseX - canvas.width / 2;
+      spaceshipX.current = e.clientX - rect.left;
     };
 
-    const onResize = () => resize();
-
     const onClick = () => shoot();
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        shoot();
+      }
+      if (e.code === "KeyP") {
+        setIsPaused((p) => !p);
+      }
+    };
 
-    // --- init ---
-    resize();
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("resize", onResize);
+    window.addEventListener("mousemove", onMouseMove);
     canvas.addEventListener("click", onClick);
+    window.addEventListener("keydown", onKeyDown);
 
-    // start spawn interval
-    spawnIntervalRef.current = window.setInterval(
-      spawnAsteroid,
-      cfg.asteroidSpawnRate
-    );
-
-    // start loop
     animate();
 
     return () => {
-      if (spawnIntervalRef.current)
-        window.clearInterval(spawnIntervalRef.current);
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("resize", resize);
       canvas.removeEventListener("click", onClick);
+      window.removeEventListener("keydown", onKeyDown);
     };
-  }, [cfg, onComplete, transitioning]);
+  }, [gameOver, isPaused, isSpecialEffect, wave, planetConfig, graphicsConfig]);
 
   return (
-    <div className="relative text-white">
-      <canvas
-        ref={canvasRef}
-        className="w-full h-full block"
-        style={{ background: cfg.background ?? "#000" }}
-      />
+    <div className="relative w-full h-screen overflow-hidden bg-black">
+      <canvas ref={canvasRef} className="absolute inset-0" />
 
-      <div className="absolute top-6 left-6 bg-black/60 p-3 rounded z-20">
-        <div className="text-sm">Mission: {cfg.displayName}</div>
-        <div className="font-bold text-lg">Score: {score}</div>
+      {/* HUD */}
+      <div className="absolute top-4 left-4 text-white space-y-2 z-10">
+        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg">
+          <div className="text-2xl font-bold">Điểm: {score}</div>
+        </div>
+        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Mạng:</span>
+            {Array.from({ length: lives }).map((_, i) => (
+              <div key={i} className="w-6 h-6 bg-red-500 rounded-full" />
+            ))}
+          </div>
+        </div>
+        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg">
+          <div className="font-semibold">Wave: {wave}</div>
+        </div>
       </div>
 
-      {transitioning && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 z-30">
-          <h2 className="text-3xl font-bold mb-2">
-            Đang tiếp cận {cfg.displayName}...
-          </h2>
-          <p className="text-sm mb-4">
-            Hoàn thành nhiệm vụ để khám phá hành tinh
-          </p>
+      {/* Planet Info */}
+      <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md p-4 rounded-lg text-white max-w-xs z-10">
+        <h3
+          className="text-xl font-bold mb-2"
+          style={{ color: planetConfig.particleColor }}
+        >
+          {planetConfig.displayName.toUpperCase()}
+        </h3>
+        <p className="text-sm mb-2">{planetConfig.description}</p>
+        {isSpecialEffect && planetConfig.specialEffectType && (
+          <div className="flex items-center gap-2 text-yellow-400 text-sm animate-pulse">
+            <AlertTriangle className="w-4 h-4" />
+            <span className="font-bold">
+              {planetConfig.specialEffectType === "dust_storm" &&
+                "BÃO CÁT ĐANG HOẠT ĐỘNG!"}
+              {planetConfig.specialEffectType === "acid_rain" &&
+                "MƯA AXIT NGUY HIỂM!"}
+              {planetConfig.specialEffectType === "heat_wave" &&
+                "SÓNG NHIỆT CỰC MẠNH!"}
+              {planetConfig.specialEffectType === "ice_storm" &&
+                "BÃO BĂNG ĐANG HOẠT ĐỘNG!"}
+              {planetConfig.specialEffectType === "gravity_well" &&
+                "LỰC HẤP DẪN BẤT THƯỜNG!"}
+              {planetConfig.specialEffectType === "ring_navigation" &&
+                "VÀNH ĐAI NGUY HIỂM!"}
+            </span>
+          </div>
+        )}
+        <div className="mt-2 text-xs text-gray-300">
+          <div>Độ khó: {planetConfig.difficulty.toUpperCase()}</div>
+          <div>Điểm/Thiên thạch: {planetConfig.pointsPerAsteroid}</div>
+        </div>
+      </div>
+
+      {/* Controls Guide */}
+      <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md px-4 py-3 rounded-lg text-white text-sm z-10">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Target className="w-4 h-4" />
+            <span>Di chuyển chuột để điều khiển</span>
+          </div>
+          <div>• Click hoặc Space để bắn</div>
+          <div>• P để tạm dừng</div>
+        </div>
+      </div>
+
+      {/* Pause Screen */}
+      {isPaused && (
+        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-20">
+          <div className="bg-gray-900 p-8 rounded-xl text-center">
+            <h2 className="text-3xl font-bold text-white mb-4">TẠM DỪNG</h2>
+            <button
+              onClick={() => setIsPaused(false)}
+              className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg"
+            >
+              Tiếp tục
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Game Over Screen */}
+      {gameOver && (
+        <div className="absolute inset-0 bg-black/90 flex items-center justify-center z-30">
+          <div className="bg-gray-900 p-8 rounded-xl text-center max-w-md">
+            <X className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-4xl font-bold text-white mb-4">GAME OVER</h2>
+            <div className="text-2xl text-white mb-2">Điểm cuối: {score}</div>
+            <div className="text-lg text-gray-400 mb-6">
+              Wave đạt được: {wave}
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg"
+            >
+              Chơi lại
+            </button>
+          </div>
         </div>
       )}
     </div>

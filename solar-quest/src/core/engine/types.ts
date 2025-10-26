@@ -1,7 +1,7 @@
 import React from "react";
 
 // Định nghĩa và export các kiểu dữ liệu
-export type SceneType = "menu" | "warp" | "solar_system" | "mission" | "3dlook" | "game"; // Thêm các scene bạn có
+export type SceneType = "menu" | "warp" | "solar_system" | "mission" | "3dlook" | "game" | "demo"; // Thêm các scene bạn có
 
 export type GameContextType = {
     scene: SceneType;

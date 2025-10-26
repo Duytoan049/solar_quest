@@ -4,6 +4,7 @@ import MainMenu from "../features/menu/MainMenu";
 import PlanetScene from "../components/PlanetScene1";
 import WarpScreen from "../features/transition/WarpScreen";
 import GameScene from "../core/engine/GameScene";
+import PlanetGameDemo from "../components/PlanetGameDemo";
 
 function SceneController() {
   const { scene, setScene, sceneParams } = useGameManager(); // Thêm setScene và sceneParams vào destructure
@@ -17,16 +18,16 @@ function SceneController() {
     case "solar_system":
       return <PlanetScene />;
     case "game": {
-      const planetId =
-        typeof sceneParams?.planetId === "string"
-          ? sceneParams.planetId
-          : "earth";
+      const planetId = (sceneParams?.planetId as string) ?? "earth";
       return (
         <GameScene
           planetId={planetId}
           onComplete={() => setScene("solar_system")} // Giờ setScene đã defined
         />
       );
+    }
+    case "demo": {
+      return <PlanetGameDemo />;
     }
     default:
       return <MainMenu />;

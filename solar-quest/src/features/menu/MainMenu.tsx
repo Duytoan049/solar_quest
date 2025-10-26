@@ -91,6 +91,13 @@ export default function MainMenu() {
 
           <Button
             style={{ fontFamily: "Sebino-Regular" }}
+            onClick={() => handleStart("demo")}
+          >
+            Demo Game
+          </Button>
+
+          <Button
+            style={{ fontFamily: "Sebino-Regular" }}
             onClick={() => handleStart("game")}
           >
             About Us
