@@ -1,3 +1,59 @@
+// ==================== GAMEPLAY MODIFIER INTERFACES ====================
+
+export interface EnvironmentHazard {
+    type: 'heat_damage' | 'acid_damage' | 'freeze_slow' | 'gravity_pull';
+    damagePerSecond: number;
+    onlyWhenStationary: boolean;
+    threshold: number;
+    visualWarning: boolean;
+}
+
+export interface MovementModifier {
+    enabled: boolean;
+    accelerationMultiplier: number;  // 0.0 - 1.0
+    decelerationMultiplier: number;  // 0.0 - 1.0
+    maxSpeedMultiplier: number;
+    slidingEffect: boolean;
+}
+
+export interface AccuracyModifier {
+    enabled: boolean;
+    deviationX: number;
+    deviationY: number;
+    onlyDuringEffect: boolean;
+    visualTrail: boolean;
+}
+
+export interface GravityField {
+    enabled: boolean;
+    centerX: number;  // 0-1 relative
+    centerY: number;  // 0-1 relative
+    strength: number;
+    affectAsteroids: boolean;
+    affectBullets: boolean;
+    affectPlayer: boolean;
+    visualField: boolean;
+}
+
+export interface ParticleCollision {
+    enabled: boolean;
+    blockChance: number;  // 0.0 - 1.0
+    particleDensity: number;
+    blockZoneY: [number, number];
+    visualFeedback: boolean;
+}
+
+export interface ComboSystem {
+    enabled: boolean;
+    comboWindow: number;
+    multipliers: number[];
+    comboThresholds: number[];
+    visualFeedback: boolean;
+    soundFeedback: boolean;
+}
+
+// ==================== MAIN CONFIG INTERFACE ====================
+
 export interface PlanetGameConfig {
     id: string;
     displayName: string;
@@ -44,6 +100,14 @@ export interface PlanetGameConfig {
 
     // Difficulty
     difficulty: 'easy' | 'medium' | 'hard' | 'extreme';
+
+    // ==================== NEW: GAMEPLAY MODIFIERS ====================
+    environmentHazard?: EnvironmentHazard;
+    movementModifier?: MovementModifier;
+    accuracyModifier?: AccuracyModifier;
+    gravityField?: GravityField;
+    particleCollision?: ParticleCollision;
+    comboSystem?: ComboSystem;
 }
 
 export const PLANET_GAME_CONFIGS: Record<string, PlanetGameConfig> = {
@@ -84,7 +148,26 @@ export const PLANET_GAME_CONFIGS: Record<string, PlanetGameConfig> = {
         pointsPerAsteroid: 100,
         bonusMultiplier: 1.5,
 
-        difficulty: 'hard'
+        difficulty: 'hard',
+
+        // Heat Damage System
+        environmentHazard: {
+            type: 'heat_damage',
+            damagePerSecond: 0.33,
+            onlyWhenStationary: true,
+            threshold: 5,
+            visualWarning: true
+        },
+
+        // Combo system (all planets)
+        comboSystem: {
+            enabled: true,
+            comboWindow: 3,
+            multipliers: [2, 3, 4, 5],
+            comboThresholds: [3, 7, 12, 20],
+            visualFeedback: true,
+            soundFeedback: true
+        }
     },
 
     venus: {
@@ -124,7 +207,18 @@ export const PLANET_GAME_CONFIGS: Record<string, PlanetGameConfig> = {
         pointsPerAsteroid: 80,
         bonusMultiplier: 1.2,
 
-        difficulty: 'medium'
+        difficulty: 'medium',
+
+        // Venus doesn't use environment hazard (low visibility is enough challenge)
+        // Combo system (all planets)
+        comboSystem: {
+            enabled: true,
+            comboWindow: 3,
+            multipliers: [2, 3, 4, 5],
+            comboThresholds: [3, 7, 12, 20],
+            visualFeedback: true,
+            soundFeedback: true
+        }
     },
 
     earth: {
@@ -163,7 +257,18 @@ export const PLANET_GAME_CONFIGS: Record<string, PlanetGameConfig> = {
         pointsPerAsteroid: 50,
         bonusMultiplier: 1.0,
 
-        difficulty: 'easy'
+        difficulty: 'easy',
+
+        // Earth: No modifiers (tutorial/easy planet)
+        // Combo system (all planets)
+        comboSystem: {
+            enabled: true,
+            comboWindow: 3,
+            multipliers: [2, 3, 4, 5],
+            comboThresholds: [3, 7, 12, 20],
+            visualFeedback: true,
+            soundFeedback: true
+        }
     },
 
     mars: {
@@ -203,7 +308,26 @@ export const PLANET_GAME_CONFIGS: Record<string, PlanetGameConfig> = {
         pointsPerAsteroid: 60,
         bonusMultiplier: 1.1,
 
-        difficulty: 'medium'
+        difficulty: 'medium',
+
+        // Accuracy Penalty System
+        accuracyModifier: {
+            enabled: true,
+            deviationX: 15,
+            deviationY: 5,
+            onlyDuringEffect: true,
+            visualTrail: true
+        },
+
+        // Combo system (all planets)
+        comboSystem: {
+            enabled: true,
+            comboWindow: 3,
+            multipliers: [2, 3, 4, 5],
+            comboThresholds: [3, 7, 12, 20],
+            visualFeedback: true,
+            soundFeedback: true
+        }
     },
 
     jupiter: {
@@ -243,7 +367,29 @@ export const PLANET_GAME_CONFIGS: Record<string, PlanetGameConfig> = {
         pointsPerAsteroid: 120,
         bonusMultiplier: 2.0,
 
-        difficulty: 'hard'
+        difficulty: 'hard',
+
+        // Gravity Trajectory System
+        gravityField: {
+            enabled: true,
+            centerX: 0.5,
+            centerY: 0.5,
+            strength: 0.3,
+            affectAsteroids: true,
+            affectBullets: true,
+            affectPlayer: false,
+            visualField: true
+        },
+
+        // Combo system (all planets)
+        comboSystem: {
+            enabled: true,
+            comboWindow: 3,
+            multipliers: [2, 3, 4, 5],
+            comboThresholds: [3, 7, 12, 20],
+            visualFeedback: true,
+            soundFeedback: true
+        }
     },
 
     saturn: {
@@ -283,7 +429,26 @@ export const PLANET_GAME_CONFIGS: Record<string, PlanetGameConfig> = {
         pointsPerAsteroid: 90,
         bonusMultiplier: 1.3,
 
-        difficulty: 'medium'
+        difficulty: 'medium',
+
+        // Bullet Blocking System
+        particleCollision: {
+            enabled: true,
+            blockChance: 0.2,
+            particleDensity: 0.05,
+            blockZoneY: [0.4, 0.6],
+            visualFeedback: true
+        },
+
+        // Combo system (all planets)
+        comboSystem: {
+            enabled: true,
+            comboWindow: 3,
+            multipliers: [2, 3, 4, 5],
+            comboThresholds: [3, 7, 12, 20],
+            visualFeedback: true,
+            soundFeedback: true
+        }
     },
 
     uranus: {
@@ -323,7 +488,26 @@ export const PLANET_GAME_CONFIGS: Record<string, PlanetGameConfig> = {
         pointsPerAsteroid: 70,
         bonusMultiplier: 1.4,
 
-        difficulty: 'medium'
+        difficulty: 'medium',
+
+        // Movement Friction System (Ice Physics)
+        movementModifier: {
+            enabled: true,
+            accelerationMultiplier: 0.5,
+            decelerationMultiplier: 0.3,
+            maxSpeedMultiplier: 1.2,
+            slidingEffect: true
+        },
+
+        // Combo system (all planets)
+        comboSystem: {
+            enabled: true,
+            comboWindow: 3,
+            multipliers: [2, 3, 4, 5],
+            comboThresholds: [3, 7, 12, 20],
+            visualFeedback: true,
+            soundFeedback: true
+        }
     },
 
     neptune: {
@@ -363,7 +547,29 @@ export const PLANET_GAME_CONFIGS: Record<string, PlanetGameConfig> = {
         pointsPerAsteroid: 150,
         bonusMultiplier: 2.5,
 
-        difficulty: 'extreme'
+        difficulty: 'extreme',
+
+        // Gravity Trajectory System (same as Jupiter but stronger)
+        gravityField: {
+            enabled: true,
+            centerX: 0.5,
+            centerY: 0.5,
+            strength: 0.4,  // Stronger than Jupiter
+            affectAsteroids: true,
+            affectBullets: true,
+            affectPlayer: false,
+            visualField: true
+        },
+
+        // Combo system (all planets)
+        comboSystem: {
+            enabled: true,
+            comboWindow: 3,
+            multipliers: [2, 3, 4, 5],
+            comboThresholds: [3, 7, 12, 20],
+            visualFeedback: true,
+            soundFeedback: true
+        }
     }
 };
 

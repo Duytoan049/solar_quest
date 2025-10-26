@@ -37,11 +37,17 @@ interface Asteroid {
   size: number;
   rotation: number;
   rotationSpeed: number;
+  vx?: number; // Horizontal velocity for gravity
+  vy?: number; // Vertical velocity
+  health?: number; // HP for multi-hit asteroids
 }
 interface Bullet {
   x: number;
   y: number;
   speed: number;
+  vx?: number; // Horizontal velocity for deviation
+  vy?: number; // Vertical velocity
+  curve?: number; // Visual curve amount
 }
 
 interface Particle {
@@ -70,6 +76,9 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
   const [isSpecialEffect, setIsSpecialEffect] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [comboDisplay, setComboDisplay] = useState({ count: 0, multiplier: 1 });
+  const [heatWarning, setHeatWarning] = useState(0); // 0-100
+  const [effectWarning, setEffectWarning] = useState(false); // Warning before effect starts
 
   // Get planet config
   const planetConfig = config || getPlanetConfig(planetId);
@@ -87,6 +96,14 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
   const asteroidsSpawned = useRef(0);
   const gameTime = useRef(0);
   const animationTime = useRef(0);
+
+  // ==================== NEW: GAMEPLAY MODIFIER REFS ====================
+  const lastShipX = useRef(0); // For heat damage detection
+  const heatMeter = useRef(0); // Heat accumulation
+  const shipVelocityX = useRef(0); // Ship velocity for ice physics
+  const comboCount = useRef(0); // Combo counter
+  const comboTimer = useRef(0); // Time remaining for combo
+  const lastFrameTime = useRef(Date.now()); // For delta time calculation
 
   // No need to load images since we're drawing with code
 
@@ -148,10 +165,31 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
     // Shoot bullet
     const shoot = () => {
       if (gameOver || isPaused) return;
+
+      let bulletX = spaceshipX.current;
+      let bulletVX = 0;
+      let bulletVY = -planetConfig.bulletSpeed;
+      let curve = 0;
+
+      // Apply accuracy modifier (Mars dust storm)
+      if (isSpecialEffect && planetConfig.accuracyModifier?.enabled) {
+        const mod = planetConfig.accuracyModifier;
+        const deviationX = (Math.random() - 0.5) * mod.deviationX * 2;
+        const deviationY = (Math.random() - 0.5) * mod.deviationY * 2;
+
+        bulletX += deviationX;
+        bulletVX = deviationX * 0.1;
+        bulletVY += deviationY * 0.05;
+        curve = deviationX;
+      }
+
       bulletsRef.current.push({
-        x: spaceshipX.current,
+        x: bulletX,
         y: canvas.height - 70,
         speed: planetConfig.bulletSpeed,
+        vx: bulletVX,
+        vy: bulletVY,
+        curve: curve,
       });
     };
 
@@ -186,6 +224,102 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
       return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
     };
 
+    // ==================== GAMEPLAY MODIFIER HELPER FUNCTIONS ====================
+
+    // Apply gravity field to object
+    const applyGravity = (
+      obj: { x: number; y: number; vx?: number; vy?: number },
+      speed: number
+    ) => {
+      const grav = planetConfig.gravityField;
+      if (!grav?.enabled || !isSpecialEffect) return { vx: 0, vy: speed };
+
+      const centerX = canvas.width * grav.centerX;
+      const centerY = canvas.height * grav.centerY;
+
+      const dx = centerX - obj.x;
+      const dy = centerY - obj.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < 10) return { vx: obj.vx || 0, vy: obj.vy || speed };
+
+      const force = grav.strength / (distance * 0.01);
+      const forceX = (dx / distance) * force;
+      const forceY = (dy / distance) * force;
+
+      return {
+        vx: (obj.vx || 0) + forceX,
+        vy: (obj.vy || speed) + forceY,
+      };
+    };
+
+    // Check bullet blocking (Saturn rings)
+    const checkBulletBlocking = (bullet: { x: number; y: number }): boolean => {
+      const config = planetConfig.particleCollision;
+      if (!config?.enabled || !isSpecialEffect) return false;
+
+      const blockZoneStart = canvas.height * config.blockZoneY[0];
+      const blockZoneEnd = canvas.height * config.blockZoneY[1];
+
+      if (bullet.y >= blockZoneStart && bullet.y <= blockZoneEnd) {
+        return Math.random() < config.blockChance;
+      }
+
+      return false;
+    };
+
+    // Check heat damage (Mercury)
+    const checkHeatDamage = (deltaTime: number): number => {
+      const hazard = planetConfig.environmentHazard;
+      if (!hazard || hazard.type !== "heat_damage" || !isSpecialEffect) {
+        heatMeter.current = Math.max(0, heatMeter.current - deltaTime * 2);
+        setHeatWarning(0);
+        return 0;
+      }
+
+      const moved = Math.abs(spaceshipX.current - lastShipX.current);
+
+      if (hazard.onlyWhenStationary && moved < hazard.threshold) {
+        heatMeter.current += deltaTime;
+        const warningPercent = Math.min((heatMeter.current / 3) * 100, 100);
+        setHeatWarning(warningPercent);
+        return hazard.damagePerSecond * deltaTime;
+      } else {
+        heatMeter.current = Math.max(0, heatMeter.current - deltaTime * 2);
+        setHeatWarning((h) => Math.max(0, h - 10));
+        return 0;
+      }
+    };
+
+    // Update combo system
+    const updateCombo = (hitRegistered: boolean, deltaTime: number): number => {
+      const config = planetConfig.comboSystem;
+      if (!config?.enabled) return 1;
+
+      if (hitRegistered) {
+        comboCount.current++;
+        comboTimer.current = config.comboWindow;
+      } else {
+        comboTimer.current = Math.max(0, comboTimer.current - deltaTime);
+        if (comboTimer.current <= 0 && comboCount.current > 0) {
+          comboCount.current = 0;
+        }
+      }
+
+      // Determine multiplier
+      let multiplier = 1;
+      for (let i = 0; i < config.comboThresholds.length; i++) {
+        if (comboCount.current >= config.comboThresholds[i]) {
+          multiplier = config.multipliers[i];
+        }
+      }
+
+      // Update UI
+      setComboDisplay({ count: comboCount.current, multiplier });
+
+      return multiplier;
+    };
+
     // Draw special effects based on planet type with GAMEPLAY IMPACT
     const drawSpecialEffect = (
       ctx: CanvasRenderingContext2D,
@@ -198,23 +332,38 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
       switch (config.specialEffectType) {
         case "dust_storm": {
           // Mars: Swirling dust vortex - reduces visibility & bullet accuracy
-          const dustGradient = ctx.createRadialGradient(cW / 2, cH / 2, 0, cW / 2, cH / 2, cW / 2);
-          dustGradient.addColorStop(0, 'rgba(139, 69, 19, 0)');
-          dustGradient.addColorStop(0.5, `rgba(139, 69, 19, ${config.fogOpacity * 0.6})`);
-          dustGradient.addColorStop(1, `rgba(101, 67, 33, ${config.fogOpacity})`);
+          const dustGradient = ctx.createRadialGradient(
+            cW / 2,
+            cH / 2,
+            0,
+            cW / 2,
+            cH / 2,
+            cW / 2
+          );
+          dustGradient.addColorStop(0, "rgba(139, 69, 19, 0)");
+          dustGradient.addColorStop(
+            0.5,
+            `rgba(139, 69, 19, ${config.fogOpacity * 0.6})`
+          );
+          dustGradient.addColorStop(
+            1,
+            `rgba(101, 67, 33, ${config.fogOpacity})`
+          );
           ctx.fillStyle = dustGradient;
           ctx.fillRect(0, 0, cW, cH);
-          
+
           // Swirling dust particles with trail
           for (let i = 0; i < 50; i++) {
-            const angle = (dustStormTimer.current * 0.03 + i * 0.4) % (Math.PI * 2);
-            const radius = 100 + Math.sin(dustStormTimer.current * 0.02 + i) * 150;
+            const angle =
+              (dustStormTimer.current * 0.03 + i * 0.4) % (Math.PI * 2);
+            const radius =
+              100 + Math.sin(dustStormTimer.current * 0.02 + i) * 150;
             const x = cW / 2 + Math.cos(angle) * radius;
             const y = cH / 2 + Math.sin(angle) * radius;
             const size = 3 + Math.sin(dustStormTimer.current * 0.05 + i) * 2;
-            
+
             ctx.fillStyle = `rgba(210, 105, 30, ${0.4 + Math.random() * 0.3})`;
-            ctx.shadowColor = 'rgba(210, 105, 30, 0.8)';
+            ctx.shadowColor = "rgba(210, 105, 30, 0.8)";
             ctx.shadowBlur = 10;
             ctx.beginPath();
             ctx.arc(x, y, size, 0, Math.PI * 2);
@@ -227,27 +376,34 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
         case "acid_rain": {
           // Venus: Corrosive acid rain - damages over time if hit
           const acidGradient = ctx.createLinearGradient(0, 0, 0, cH);
-          acidGradient.addColorStop(0, `rgba(255, 100, 0, ${config.fogOpacity * 0.3})`);
-          acidGradient.addColorStop(1, `rgba(200, 50, 0, ${config.fogOpacity * 0.6})`);
+          acidGradient.addColorStop(
+            0,
+            `rgba(255, 100, 0, ${config.fogOpacity * 0.3})`
+          );
+          acidGradient.addColorStop(
+            1,
+            `rgba(200, 50, 0, ${config.fogOpacity * 0.6})`
+          );
           ctx.fillStyle = acidGradient;
           ctx.fillRect(0, 0, cW, cH);
-          
+
           // Falling acid drops with glow
           for (let i = 0; i < 60; i++) {
-            const x = (i * 30 + Math.sin(dustStormTimer.current * 0.02 + i) * 20) % cW;
+            const x =
+              (i * 30 + Math.sin(dustStormTimer.current * 0.02 + i) * 20) % cW;
             const y = (dustStormTimer.current * 4 + i * 15) % (cH + 100);
             const length = 15 + Math.random() * 10;
-            
+
             const dropGradient = ctx.createLinearGradient(x, y, x, y + length);
-            dropGradient.addColorStop(0, 'rgba(255, 150, 50, 0.8)');
-            dropGradient.addColorStop(1, 'rgba(255, 100, 0, 0.3)');
-            
+            dropGradient.addColorStop(0, "rgba(255, 150, 50, 0.8)");
+            dropGradient.addColorStop(1, "rgba(255, 100, 0, 0.3)");
+
             ctx.fillStyle = dropGradient;
             ctx.fillRect(x, y, 2, length);
-            
+
             // Splash effect when hitting bottom
             if (y > cH - 50) {
-              ctx.fillStyle = 'rgba(255, 150, 50, 0.4)';
+              ctx.fillStyle = "rgba(255, 150, 50, 0.4)";
               ctx.beginPath();
               ctx.arc(x, cH, 8, 0, Math.PI, true);
               ctx.fill();
@@ -258,31 +414,45 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
 
         case "heat_wave": {
           // Mercury: Intense heat waves - bullets slow down, vision distorted
-          const heatGradient = ctx.createRadialGradient(cW / 2, 0, 0, cW / 2, cH, cH);
-          heatGradient.addColorStop(0, 'rgba(255, 200, 0, 0.1)');
-          heatGradient.addColorStop(0.5, `rgba(255, 150, 0, ${config.fogOpacity * 0.4})`);
-          heatGradient.addColorStop(1, 'rgba(255, 100, 0, 0.2)');
+          const heatGradient = ctx.createRadialGradient(
+            cW / 2,
+            0,
+            0,
+            cW / 2,
+            cH,
+            cH
+          );
+          heatGradient.addColorStop(0, "rgba(255, 200, 0, 0.1)");
+          heatGradient.addColorStop(
+            0.5,
+            `rgba(255, 150, 0, ${config.fogOpacity * 0.4})`
+          );
+          heatGradient.addColorStop(1, "rgba(255, 100, 0, 0.2)");
           ctx.fillStyle = heatGradient;
           ctx.fillRect(0, 0, cW, cH);
-          
+
           // Heat distortion waves
-          ctx.strokeStyle = 'rgba(255, 200, 50, 0.3)';
+          ctx.strokeStyle = "rgba(255, 200, 50, 0.3)";
           ctx.lineWidth = 2;
           for (let i = 0; i < 8; i++) {
-            const yBase = (i * cH / 8) + (dustStormTimer.current * 2) % (cH / 8);
+            const yBase =
+              (i * cH) / 8 + ((dustStormTimer.current * 2) % (cH / 8));
             ctx.beginPath();
             for (let x = 0; x < cW; x += 10) {
-              const y = yBase + Math.sin(x * 0.02 + dustStormTimer.current * 0.1 + i) * 15;
+              const y =
+                yBase +
+                Math.sin(x * 0.02 + dustStormTimer.current * 0.1 + i) * 15;
               if (x === 0) ctx.moveTo(x, y);
               else ctx.lineTo(x, y);
             }
             ctx.stroke();
           }
-          
+
           // Rising heat particles
           for (let i = 0; i < 30; i++) {
-            const x = (i * 40 + Math.sin(dustStormTimer.current * 0.03 + i) * 20) % cW;
-            const y = cH - (dustStormTimer.current * 3 + i * 30) % cH;
+            const x =
+              (i * 40 + Math.sin(dustStormTimer.current * 0.03 + i) * 20) % cW;
+            const y = cH - ((dustStormTimer.current * 3 + i * 30) % cH);
             ctx.fillStyle = `rgba(255, 255, 100, ${0.2 + Math.random() * 0.2})`;
             ctx.beginPath();
             ctx.arc(x, y, 3, 0, Math.PI * 2);
@@ -294,27 +464,39 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
         case "ice_storm": {
           // Uranus: Freezing ice storm - slows ship movement
           const iceGradient = ctx.createLinearGradient(0, 0, cW, cH);
-          iceGradient.addColorStop(0, `rgba(150, 200, 255, ${config.fogOpacity * 0.3})`);
-          iceGradient.addColorStop(0.5, `rgba(200, 220, 255, ${config.fogOpacity * 0.5})`);
-          iceGradient.addColorStop(1, `rgba(180, 210, 255, ${config.fogOpacity * 0.4})`);
+          iceGradient.addColorStop(
+            0,
+            `rgba(150, 200, 255, ${config.fogOpacity * 0.3})`
+          );
+          iceGradient.addColorStop(
+            0.5,
+            `rgba(200, 220, 255, ${config.fogOpacity * 0.5})`
+          );
+          iceGradient.addColorStop(
+            1,
+            `rgba(180, 210, 255, ${config.fogOpacity * 0.4})`
+          );
           ctx.fillStyle = iceGradient;
           ctx.fillRect(0, 0, cW, cH);
-          
+
           // Spinning ice crystals
           for (let i = 0; i < 50; i++) {
-            const x = (i * 35 + Math.sin(dustStormTimer.current * 0.04 + i) * 30) % cW;
+            const x =
+              (i * 35 + Math.sin(dustStormTimer.current * 0.04 + i) * 30) % cW;
             const y = (dustStormTimer.current * 2.5 + i * 20) % (cH + 50);
             const rotation = (dustStormTimer.current * 0.1 + i) % (Math.PI * 2);
             const size = 4 + Math.sin(dustStormTimer.current * 0.05 + i) * 2;
-            
+
             ctx.save();
             ctx.translate(x, y);
             ctx.rotate(rotation);
-            
+
             // Crystal shape
-            ctx.strokeStyle = `rgba(150, 220, 255, ${0.6 + Math.random() * 0.3})`;
+            ctx.strokeStyle = `rgba(150, 220, 255, ${
+              0.6 + Math.random() * 0.3
+            })`;
             ctx.lineWidth = 2;
-            ctx.shadowColor = 'rgba(150, 220, 255, 0.8)';
+            ctx.shadowColor = "rgba(150, 220, 255, 0.8)";
             ctx.shadowBlur = 8;
             ctx.beginPath();
             for (let j = 0; j < 6; j++) {
@@ -334,20 +516,31 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
 
         case "gravity_well": {
           // Jupiter/Neptune: Gravity distortion - asteroids move in curves
-          const gravityGradient = ctx.createRadialGradient(cW / 2, cH / 2, 0, cW / 2, cH / 2, cW / 2);
-          gravityGradient.addColorStop(0, 'rgba(100, 0, 150, 0.2)');
-          gravityGradient.addColorStop(0.5, `rgba(80, 0, 120, ${config.fogOpacity * 0.4})`);
-          gravityGradient.addColorStop(1, 'rgba(50, 0, 80, 0.1)');
+          const gravityGradient = ctx.createRadialGradient(
+            cW / 2,
+            cH / 2,
+            0,
+            cW / 2,
+            cH / 2,
+            cW / 2
+          );
+          gravityGradient.addColorStop(0, "rgba(100, 0, 150, 0.2)");
+          gravityGradient.addColorStop(
+            0.5,
+            `rgba(80, 0, 120, ${config.fogOpacity * 0.4})`
+          );
+          gravityGradient.addColorStop(1, "rgba(50, 0, 80, 0.1)");
           ctx.fillStyle = gravityGradient;
           ctx.fillRect(0, 0, cW, cH);
-          
+
           // Spiral gravity waves
-          ctx.strokeStyle = 'rgba(150, 50, 200, 0.3)';
+          ctx.strokeStyle = "rgba(150, 50, 200, 0.3)";
           ctx.lineWidth = 2;
           for (let i = 0; i < 5; i++) {
             ctx.beginPath();
             for (let angle = 0; angle < Math.PI * 4; angle += 0.1) {
-              const adjustedAngle = angle + dustStormTimer.current * 0.02 + i * 0.5;
+              const adjustedAngle =
+                angle + dustStormTimer.current * 0.02 + i * 0.5;
               const radius = 50 + angle * 15;
               const x = cW / 2 + Math.cos(adjustedAngle) * radius;
               const y = cH / 2 + Math.sin(adjustedAngle) * radius;
@@ -356,16 +549,17 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
             }
             ctx.stroke();
           }
-          
+
           // Orbiting gravity particles
           for (let i = 0; i < 40; i++) {
-            const angle = (dustStormTimer.current * 0.03 + i * 0.3) % (Math.PI * 2);
+            const angle =
+              (dustStormTimer.current * 0.03 + i * 0.3) % (Math.PI * 2);
             const radius = 100 + (i % 5) * 50;
             const x = cW / 2 + Math.cos(angle) * radius;
             const y = cH / 2 + Math.sin(angle) * radius;
-            
+
             ctx.fillStyle = `rgba(180, 100, 255, ${0.4 + Math.random() * 0.3})`;
-            ctx.shadowColor = 'rgba(180, 100, 255, 0.8)';
+            ctx.shadowColor = "rgba(180, 100, 255, 0.8)";
             ctx.shadowBlur = 12;
             ctx.beginPath();
             ctx.arc(x, y, 3, 0, Math.PI * 2);
@@ -377,25 +571,33 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
 
         case "ring_navigation": {
           // Saturn: Dense ring particles - blocks some bullets
-          const ringGradient = ctx.createLinearGradient(0, cH / 2 - 50, 0, cH / 2 + 50);
-          ringGradient.addColorStop(0, 'rgba(255, 215, 0, 0)');
-          ringGradient.addColorStop(0.5, 'rgba(255, 215, 0, 0.15)');
-          ringGradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+          const ringGradient = ctx.createLinearGradient(
+            0,
+            cH / 2 - 50,
+            0,
+            cH / 2 + 50
+          );
+          ringGradient.addColorStop(0, "rgba(255, 215, 0, 0)");
+          ringGradient.addColorStop(0.5, "rgba(255, 215, 0, 0.15)");
+          ringGradient.addColorStop(1, "rgba(255, 215, 0, 0)");
           ctx.fillStyle = ringGradient;
           ctx.fillRect(0, 0, cW, cH);
-          
+
           // Dense flowing ring particles
           for (let layer = 0; layer < 3; layer++) {
             const yOffset = cH / 2 + (layer - 1) * 20;
             const speed = 1 + layer * 0.3;
-            
+
             for (let i = 0; i < 80; i++) {
               const x = (dustStormTimer.current * speed + i * 15) % (cW + 20);
-              const y = yOffset + Math.sin(dustStormTimer.current * 0.05 + i * 0.2) * 8;
+              const y =
+                yOffset + Math.sin(dustStormTimer.current * 0.05 + i * 0.2) * 8;
               const size = 2 + Math.random() * 2;
-              
-              ctx.fillStyle = `rgba(255, 215, ${100 + Math.random() * 100}, ${0.5 + Math.random() * 0.4})`;
-              ctx.shadowColor = 'rgba(255, 215, 0, 0.6)';
+
+              ctx.fillStyle = `rgba(255, 215, ${100 + Math.random() * 100}, ${
+                0.5 + Math.random() * 0.4
+              })`;
+              ctx.shadowColor = "rgba(255, 215, 0, 0.6)";
               ctx.shadowBlur = 6;
               ctx.beginPath();
               ctx.arc(x, y, size, 0, Math.PI * 2);
@@ -485,12 +687,24 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
       // Special effect management
       if (planetConfig.hasSpecialEffect) {
         dustStormTimer.current++;
-        if (dustStormTimer.current > 300 && !isSpecialEffect) {
+
+        // Warning phase: 180 frames (3 seconds) before effect starts
+        if (
+          dustStormTimer.current > 300 &&
+          dustStormTimer.current <= 480 &&
+          !isSpecialEffect
+        ) {
+          setEffectWarning(true);
+        } else if (dustStormTimer.current > 480 && !isSpecialEffect) {
           setIsSpecialEffect(true);
+          setEffectWarning(false);
           dustStormTimer.current = 0;
         }
-        if (dustStormTimer.current > 200 && isSpecialEffect) {
+
+        // Effect active for 240 frames (4 seconds)
+        if (dustStormTimer.current > 240 && isSpecialEffect) {
           setIsSpecialEffect(false);
+          setEffectWarning(false);
           dustStormTimer.current = 0;
         }
 
@@ -540,7 +754,17 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
 
       // Update and draw asteroids
       asteroidsRef.current.forEach((ast, i) => {
-        ast.y += ast.speed;
+        // Apply gravity field (Jupiter/Neptune)
+        if (planetConfig.gravityField?.affectAsteroids) {
+          const gravResult = applyGravity(ast, ast.speed);
+          ast.vx = gravResult.vx;
+          ast.vy = gravResult.vy;
+          ast.x += ast.vx;
+          ast.y += ast.vy;
+        } else {
+          ast.y += ast.speed;
+        }
+
         ast.rotation += ast.rotationSpeed;
 
         // Off screen - just remove asteroid without penalty
@@ -585,7 +809,28 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
 
       // Update and draw bullets
       bulletsRef.current.forEach((b, bi) => {
-        b.y -= b.speed;
+        // Apply gravity field (Jupiter/Neptune)
+        if (planetConfig.gravityField?.affectBullets) {
+          const gravResult = applyGravity(b, b.speed);
+          b.vx = gravResult.vx;
+          b.vy = gravResult.vy;
+          b.x += b.vx;
+          b.y -= Math.abs(b.vy); // Still going up
+        } else if (b.vx !== undefined && b.vy !== undefined) {
+          // Accuracy modifier deviation
+          b.x += b.vx;
+          b.y += b.vy;
+        } else {
+          b.y -= b.speed;
+        }
+
+        // Check bullet blocking (Saturn rings)
+        const isBlocked = checkBulletBlocking(b);
+        if (isBlocked) {
+          createExplosion(b.x, b.y); // Small spark effect
+          bulletsRef.current.splice(bi, 1);
+          return;
+        }
 
         if (b.y < -50) {
           bulletsRef.current.splice(bi, 1);
@@ -607,10 +852,18 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
               createExplosion(ast.x + ast.size / 2, ast.y + ast.size / 2);
               bulletsRef.current.splice(bi, 1);
               asteroidsRef.current.splice(ai, 1);
+
+              // Calculate score with combo multiplier
+              const now = Date.now();
+              const deltaTime = (now - lastFrameTime.current) / 1000;
+              const comboMultiplier = updateCombo(true, deltaTime);
+
               setScore(
                 (s) =>
                   s +
-                  planetConfig.pointsPerAsteroid * planetConfig.bonusMultiplier
+                  planetConfig.pointsPerAsteroid *
+                    planetConfig.bonusMultiplier *
+                    comboMultiplier
               );
               hit = true;
             }
@@ -643,13 +896,72 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
       // Draw radar
       drawRadar();
 
+      // ==================== UPDATE GAMEPLAY MODIFIERS ====================
+      const now = Date.now();
+      const deltaTime = (now - lastFrameTime.current) / 1000;
+      lastFrameTime.current = now;
+
+      // Heat damage system (Mercury)
+      const heatDamage = checkHeatDamage(deltaTime);
+      if (heatDamage > 0) {
+        setLives((l) => {
+          const newLives = Math.max(0, l - heatDamage);
+          if (newLives <= 0) setGameOver(true);
+          return newLives;
+        });
+      }
+
+      // Update combo timer
+      updateCombo(false, deltaTime);
+
+      // Store last ship position for next frame
+      lastShipX.current = spaceshipX.current;
+
       animationRef.current = requestAnimationFrame(animate);
     };
 
     // Input handlers
     const onMouseMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
-      spaceshipX.current = e.clientX - rect.left;
+      const targetX = e.clientX - rect.left;
+
+      // Apply movement modifier (ice physics on Uranus)
+      const mod = planetConfig.movementModifier;
+      if (mod?.enabled && isSpecialEffect) {
+        // Ice physics - sliding effect
+        const direction =
+          targetX > spaceshipX.current
+            ? 1
+            : targetX < spaceshipX.current
+            ? -1
+            : 0;
+        const baseAccel = 0.5;
+
+        if (direction !== 0) {
+          shipVelocityX.current +=
+            direction * baseAccel * mod.accelerationMultiplier;
+        } else {
+          shipVelocityX.current *= mod.decelerationMultiplier; // Slide!
+        }
+
+        const maxSpeed = planetConfig.shipSpeed * mod.maxSpeedMultiplier;
+        shipVelocityX.current = Math.max(
+          -maxSpeed,
+          Math.min(shipVelocityX.current, maxSpeed)
+        );
+
+        spaceshipX.current += shipVelocityX.current;
+      } else {
+        // Normal movement
+        spaceshipX.current = targetX;
+        shipVelocityX.current = 0;
+      }
+
+      // Clamp to canvas bounds
+      spaceshipX.current = Math.max(
+        20,
+        Math.min(spaceshipX.current, canvas.width - 20)
+      );
     };
 
     const onClick = () => shoot();
@@ -698,6 +1010,40 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
         <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg">
           <div className="font-semibold">Wave: {wave}</div>
         </div>
+
+        {/* Combo Display */}
+        {comboDisplay.count > 0 && (
+          <div className="bg-gradient-to-r from-yellow-500/80 to-orange-500/80 backdrop-blur-md px-4 py-2 rounded-lg animate-pulse">
+            <div className="flex items-center gap-2">
+              <Target className="w-5 h-5" />
+              <div>
+                <div className="text-sm font-semibold">
+                  COMBO x{comboDisplay.multiplier}
+                </div>
+                <div className="text-xs">{comboDisplay.count} hits</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Heat Warning (Mercury) */}
+        {heatWarning > 0 && (
+          <div className="bg-red-500/80 backdrop-blur-md px-4 py-2 rounded-lg border-2 border-red-300 animate-pulse">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              <div>
+                <div className="text-xs font-bold">HEAT DAMAGE!</div>
+                <div className="text-xs">Keep moving!</div>
+              </div>
+            </div>
+            <div className="mt-1 w-full bg-black/40 rounded-full h-2">
+              <div
+                className="bg-gradient-to-r from-yellow-400 to-red-600 h-2 rounded-full transition-all"
+                style={{ width: `${heatWarning}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Planet Info */}
@@ -709,6 +1055,29 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
           {planetConfig.displayName.toUpperCase()}
         </h3>
         <p className="text-sm mb-2">{planetConfig.description}</p>
+
+        {/* Warning before effect starts */}
+        {effectWarning && planetConfig.specialEffectType && (
+          <div className="flex items-center gap-2 text-orange-400 text-sm animate-pulse border-2 border-orange-400 rounded px-2 py-1">
+            <AlertTriangle className="w-4 h-4 animate-bounce" />
+            <span className="font-bold">
+              {planetConfig.specialEffectType === "dust_storm" &&
+                "⚠️ BÃO CÁT SẮP ĐẾN!"}
+              {planetConfig.specialEffectType === "acid_rain" &&
+                "⚠️ MƯA AXIT SẮP ĐẾN!"}
+              {planetConfig.specialEffectType === "heat_wave" &&
+                "⚠️ SÓNG NHIỆT SẮP ĐẾN!"}
+              {planetConfig.specialEffectType === "ice_storm" &&
+                "⚠️ BÃO BĂNG SẮP ĐẾN!"}
+              {planetConfig.specialEffectType === "gravity_well" &&
+                "⚠️ LỰC HẤP DẪN SẮP XUẤT HIỆN!"}
+              {planetConfig.specialEffectType === "ring_navigation" &&
+                "⚠️ VÀNH ĐAI NGUY HIỂM SẮP ĐẾN!"}
+            </span>
+          </div>
+        )}
+
+        {/* Active effect notification */}
         {isSpecialEffect && planetConfig.specialEffectType && (
           <div className="flex items-center gap-2 text-yellow-400 text-sm animate-pulse">
             <AlertTriangle className="w-4 h-4" />
@@ -745,6 +1114,37 @@ export default function MarsGameScene({ planetId = "mars", config }: Props) {
           <div>• P để tạm dừng</div>
         </div>
       </div>
+
+      {/* Center Warning - Subtle Flashing */}
+      {effectWarning && planetConfig.specialEffectType && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+          <div
+            className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-red-500 to-orange-400"
+            style={{
+              animation:
+                "fadeInOut 1.5s ease-in-out infinite, gentleScale 1.5s ease-in-out infinite",
+              textShadow:
+                "0 0 20px rgba(251, 146, 60, 0.8), 0 0 40px rgba(239, 68, 68, 0.5)",
+              filter: "drop-shadow(0 0 10px rgba(251, 146, 60, 0.6))",
+            }}
+          >
+            ⚠️{" "}
+            {planetConfig.specialEffectType === "dust_storm" &&
+              "BÃO CÁT SẮP ĐẾN"}
+            {planetConfig.specialEffectType === "acid_rain" &&
+              "MƯA AXIT SẮP ĐẾN"}
+            {planetConfig.specialEffectType === "heat_wave" &&
+              "SÓNG NHIỆT SẮP ĐẾN"}
+            {planetConfig.specialEffectType === "ice_storm" &&
+              "BÃO BĂNG SẮP ĐẾN"}
+            {planetConfig.specialEffectType === "gravity_well" &&
+              "LỰC HẤP DẪN SẮP XUẤT HIỆN"}
+            {planetConfig.specialEffectType === "ring_navigation" &&
+              "VÀNH ĐAI NGUY HIỂM"}{" "}
+            ⚠️
+          </div>
+        </div>
+      )}
 
       {/* Pause Screen */}
       {isPaused && (
