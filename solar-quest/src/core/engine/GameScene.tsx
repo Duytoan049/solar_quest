@@ -101,6 +101,7 @@ export default function MarsGameScene({
 
   // Game state refs
   const spaceshipX = useRef(0);
+  const spaceshipY = useRef(0); // NEW: Y position for free movement
   const asteroidsRef = useRef<Asteroid[]>([]);
   const bulletsRef = useRef<Bullet[]>([]);
   const particlesRef = useRef<Particle[]>([]);
@@ -138,6 +139,7 @@ export default function MarsGameScene({
       // Only reset ship position if canvas width actually changed
       if (oldWidth !== canvas.width) {
         spaceshipX.current = canvas.width / 2;
+        spaceshipY.current = canvas.height / 2; // NEW: Center Y position
       }
     };
     resize();
@@ -202,7 +204,7 @@ export default function MarsGameScene({
 
       bulletsRef.current.push({
         x: bulletX,
-        y: canvas.height - 70,
+        y: spaceshipY.current, // NEW: Shoot from current Y position
         speed: planetConfig.bulletSpeed,
         vx: bulletVX,
         vy: bulletVY,
@@ -752,11 +754,11 @@ export default function MarsGameScene({
         setVictory(true);
       }
 
-      // Draw spaceship
+      // Draw spaceship - NOW FOLLOWS MOUSE EVERYWHERE
       const shipW = 50 * planetConfig.shipScale;
       const shipH = 50 * planetConfig.shipScale;
       const shipX = spaceshipX.current;
-      const shipY = cH - 70;
+      const shipY = spaceshipY.current; // NEW: Use dynamic Y position
 
       // Draw custom spaceship based on planet
       drawSpaceship(
@@ -945,10 +947,11 @@ export default function MarsGameScene({
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    // Input handlers
+    // Input handlers - FREE MOVEMENT
     const onMouseMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
       const targetX = e.clientX - rect.left;
+      const targetY = e.clientY - rect.top; // NEW: Track Y position
 
       // Apply movement modifier (ice physics on Uranus)
       const mod = planetConfig.movementModifier;
@@ -976,9 +979,11 @@ export default function MarsGameScene({
         );
 
         spaceshipX.current += shipVelocityX.current;
+        spaceshipY.current = targetY; // NEW: Y follows mouse directly
       } else {
-        // Normal movement
+        // Normal movement - follow mouse exactly
         spaceshipX.current = targetX;
+        spaceshipY.current = targetY; // NEW: Y follows mouse
         shipVelocityX.current = 0;
       }
 
@@ -987,6 +992,10 @@ export default function MarsGameScene({
         20,
         Math.min(spaceshipX.current, canvas.width - 20)
       );
+      spaceshipY.current = Math.max(
+        20,
+        Math.min(spaceshipY.current, canvas.height - 20)
+      ); // NEW: Clamp Y position
     };
 
     const onClick = () => shoot();
@@ -1035,7 +1044,7 @@ export default function MarsGameScene({
   };
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-black">
+    <div className="relative w-full h-screen overflow-hidden bg-black cursor-none">
       {/* Victory Sequence */}
       {victory && (
         <VictorySequence
