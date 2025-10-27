@@ -17,6 +17,7 @@ interface Props {
 }
 
 export default function VictorySequence({
+  planetId,
   planetName,
   planetColor,
   stats,
@@ -379,6 +380,7 @@ export default function VictorySequence({
       {phase === "ai-intro" && (
         <AICompanion
           ai={ai}
+          planetId={planetId}
           onComplete={() => {
             setPhase("complete");
             onComplete();

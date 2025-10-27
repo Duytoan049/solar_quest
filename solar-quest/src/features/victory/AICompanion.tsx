@@ -1,22 +1,41 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import QuizPanel from "@/features/quiz/QuizPanel";
 import type { AICompanionData } from "@/types/victory";
+import type { QuizResult } from "@/types/quiz";
 
 interface Props {
   ai: AICompanionData;
+  planetId: string; // NEW: Need planetId for quiz
   onComplete: () => void;
 }
 
-export default function AICompanion({ ai, onComplete }: Props) {
+export default function AICompanion({ ai, planetId, onComplete }: Props) {
+  // Phase management: intro -> quiz -> complete
+  const [phase, setPhase] = useState<"intro" | "quiz" | "complete">(() => {
+    // Check if user has already completed quiz for this planet
+    const savedQuiz = localStorage.getItem(`quiz-${planetId}`);
+    return savedQuiz ? "complete" : "intro";
+  });
+
   const [currentDialogue, setCurrentDialogue] = useState(0);
   const [displayedText, setDisplayedText] = useState("");
   const [isTyping, setIsTyping] = useState(true);
 
   const fullText = ai.dialogues.intro[currentDialogue] || "";
 
+  // Auto-skip to PlanetDetail if quiz already completed
+  useEffect(() => {
+    if (phase === "complete") {
+      setTimeout(() => {
+        onComplete();
+      }, 1000);
+    }
+  }, [phase, onComplete]);
+
   // Typing effect
   useEffect(() => {
-    if (!isTyping) return;
+    if (phase !== "intro" || !isTyping) return;
 
     let index = 0;
     setDisplayedText("");
@@ -46,7 +65,7 @@ export default function AICompanion({ ai, onComplete }: Props) {
     }, 50); // Typing speed
 
     return () => clearInterval(interval);
-  }, [currentDialogue, isTyping, fullText, ai.dialogues.intro.length]);
+  }, [currentDialogue, isTyping, fullText, ai.dialogues.intro.length, phase]);
 
   const skipToEnd = () => {
     setDisplayedText(fullText);
@@ -55,6 +74,23 @@ export default function AICompanion({ ai, onComplete }: Props) {
 
   const isExplorePhase = currentDialogue >= ai.dialogues.intro.length;
   const exploreText = ai.dialogues.explore;
+
+  const handleQuizComplete = (result: QuizResult) => {
+    console.log("Quiz completed:", result);
+    setPhase("complete");
+    // Will auto-redirect to PlanetDetail via useEffect
+  };
+
+  // Show quiz phase
+  if (phase === "quiz") {
+    return (
+      <QuizPanel
+        planetId={planetId}
+        ai={ai}
+        onComplete={handleQuizComplete}
+      />
+    );
+  }
 
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-black/95 z-50 cursor-auto">
@@ -194,7 +230,7 @@ export default function AICompanion({ ai, onComplete }: Props) {
         </motion.div>
 
         {/* Action Button - Clean */}
-        {isExplorePhase && !isTyping && (
+        {isExplorePhase && !isTyping && phase === "intro" && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -202,7 +238,7 @@ export default function AICompanion({ ai, onComplete }: Props) {
             className="flex justify-center mt-6"
           >
             <button
-              onClick={onComplete}
+              onClick={() => setPhase("quiz")}
               className="px-8 py-3 rounded-lg font-semibold text-white
                 bg-white/10 hover:bg-white/20 backdrop-blur-md
                 border border-white/20 hover:border-white/40
@@ -211,7 +247,7 @@ export default function AICompanion({ ai, onComplete }: Props) {
                 boxShadow: `0 0 20px ${ai.color}20`,
               }}
             >
-              🚀 Bắt đầu khám phá
+              � Bắt đầu Quiz
             </button>
           </motion.div>
         )}
