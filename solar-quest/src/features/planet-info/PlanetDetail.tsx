@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Html, OrbitControls, Stars } from "@react-three/drei";
 import * as THREE from "three";
@@ -23,6 +23,16 @@ import {
   getPlanetImagery,
   getMarkerImagery,
 } from "@/services/nasaApi";
+import {
+  getProfile,
+  updateLastVisited,
+  unlockBadge,
+} from "@/services/profileStorage";
+import { ROLE_INFO } from "@/types/profile";
+import { motion, AnimatePresence } from "framer-motion";
+import ChatbotPanel from "@/features/chatbot/ChatbotPanel";
+import QuizPanel from "@/features/quiz/QuizPanel";
+import { aiCompanions } from "@/data/aiCompanions";
 
 // Marker type definition
 interface MarkerData {
@@ -192,7 +202,7 @@ const planetStats: Record<
     temperature: "-140°C",
     gravity: "9.0 m/s²",
     diameter: "116,460 km",
-    dayLength: "10.7 hours",
+    dayLength: "12 hours",
   },
   uranus: {
     temperature: "-195°C",
@@ -233,9 +243,14 @@ function Marker({
 
   useFrame(() => {
     if (meshRef.current) {
-      // Pulse animation - Keep for interactivity
-      const scale = isActive ? 1.5 : isHovered ? 1.3 : 1.0;
-      meshRef.current.scale.lerp(new THREE.Vector3(scale, scale, scale), 0.1);
+      // Only animate if active or hovered for better performance
+      if (isActive || isHovered) {
+        const scale = isActive ? 1.5 : 1.3;
+        meshRef.current.scale.lerp(new THREE.Vector3(scale, scale, scale), 0.1);
+      } else if (meshRef.current.scale.x !== 1.0) {
+        // Return to normal size
+        meshRef.current.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
+      }
 
       // DISABLED: Floating animation to reduce lag
       // const time = state.clock.getElapsedTime();
@@ -310,9 +325,14 @@ function AtmosphereGlow({ color }: { color: string }) {
   );
 }
 
-// Rotating Planet Component
+// Rotating Planet Component - Optimized with texture caching
 function RotatingPlanet({ textureUrl }: { textureUrl: string }) {
   const meshRef = useRef<THREE.Mesh>(null);
+
+  // Cache texture to avoid reloading on every render
+  const texture = useMemo(() => {
+    return new THREE.TextureLoader().load(textureUrl);
+  }, [textureUrl]);
 
   // DISABLED: Rotation animation to reduce lag
   // useFrame((_state, delta) => {
@@ -324,7 +344,7 @@ function RotatingPlanet({ textureUrl }: { textureUrl: string }) {
   return (
     <mesh ref={meshRef}>
       <sphereGeometry args={[2, 64, 64]} />
-      <meshStandardMaterial map={new THREE.TextureLoader().load(textureUrl)} />
+      <meshStandardMaterial map={texture} />
     </mesh>
   );
 }
@@ -403,9 +423,25 @@ export default function PlanetDetail() {
     explanation?: string;
   } | null>(null);
   const [isLoadingMarkerImage, setIsLoadingMarkerImage] = useState(false);
+  const [showProfileCard, setShowProfileCard] = useState(true);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const markerRefs = useRef<Record<number, THREE.Mesh>>({});
   const tourIndexRef = useRef(0);
+
+  // Load profile
+  const profile = getProfile(planetId);
+
+  // Get AI companion for this planet
+  const aiCompanion = aiCompanions[planetId];
+
+  // Update last visited when component mounts
+  useEffect(() => {
+    if (profile) {
+      updateLastVisited(planetId);
+    }
+  }, [planetId, profile]);
 
   const markers =
     nasaMarkers.length > 0
@@ -445,42 +481,56 @@ export default function PlanetDetail() {
     fetchPlanetData();
   }, [planetId]);
 
-  const handleMarkerClick = async (id: number) => {
-    setActiveMarker(id);
-    setIsAnimating(true);
-    setVisitedMarkers((prev) => new Set(prev).add(id));
-    setIsTourMode(false);
+  const handleMarkerClick = useCallback(
+    async (id: number) => {
+      setActiveMarker(id);
+      setIsAnimating(true);
+      const newVisitedMarkers = new Set(visitedMarkers).add(id);
+      setVisitedMarkers(newVisitedMarkers);
+      setIsTourMode(false);
 
-    // Fetch marker image
-    const marker = markers.find((m) => m.id === id);
-    if (marker) {
-      const markerName = "name" in marker ? marker.name : marker.label;
-      setIsLoadingMarkerImage(true);
-      try {
-        const imagery = await getMarkerImagery(markerName, planetId);
-        if (imagery) {
-          setMarkerImage({
-            imageUrl: imagery.imageUrl,
-            title: imagery.title,
-            explanation: imagery.explanation,
-          });
-          console.log(`✅ Loaded image for marker: ${markerName}`);
-        } else {
-          setMarkerImage(null);
-          console.log(`⚠️ No image found for marker: ${markerName}`);
-        }
-      } catch (error) {
-        console.error("Error loading marker image:", error);
-        setMarkerImage(null);
-      } finally {
-        setIsLoadingMarkerImage(false);
+      // Check for Cartographer badge (visited all markers)
+      if (newVisitedMarkers.size === markers.length && profile) {
+        unlockBadge(planetId, "🗺️ Cartographer");
       }
-    }
-  };
 
-  const handleAnimationComplete = () => {
+      // Fetch marker image
+      const marker = markers.find((m) => m.id === id);
+      if (marker) {
+        const markerName = "name" in marker ? marker.name : marker.label;
+        setIsLoadingMarkerImage(true);
+        try {
+          const imagery = await getMarkerImagery(markerName, planetId);
+          if (imagery) {
+            setMarkerImage({
+              imageUrl: imagery.imageUrl,
+              title: imagery.title,
+              explanation: imagery.explanation,
+            });
+            console.log(`✅ Loaded image for marker: ${markerName}`);
+
+            // Unlock Photographer badge if profile exists
+            if (profile) {
+              unlockBadge(planetId, "📸 Photographer");
+            }
+          } else {
+            setMarkerImage(null);
+            console.log(`⚠️ No image found for marker: ${markerName}`);
+          }
+        } catch (error) {
+          console.error("Error loading marker image:", error);
+          setMarkerImage(null);
+        } finally {
+          setIsLoadingMarkerImage(false);
+        }
+      }
+    },
+    [visitedMarkers, markers, profile, planetId]
+  );
+
+  const handleAnimationComplete = useCallback(() => {
     setIsAnimating(false);
-  };
+  }, []);
 
   const startTourMode = () => {
     setIsTourMode(true);
@@ -535,8 +585,157 @@ export default function PlanetDetail() {
           border border-white/20 hover:border-white/40 flex items-center gap-2"
       >
         <ArrowLeft className="w-5 h-5" />
-        Quay lại Solar System
+        Solar System
       </button>
+
+      {/* Profile Card */}
+      <AnimatePresence mode="wait">
+        {profile && showProfileCard && (
+          <motion.div
+            initial={{ x: -100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -100, opacity: 0 }}
+            transition={{ type: "tween", duration: 0.2 }}
+            className="absolute top-20 left-4 z-40 max-w-[280px]"
+          >
+            <div
+              className="bg-black/80 backdrop-blur-xl rounded-2xl p-4 border border-white/20 
+              shadow-2xl min-w-[280px] max-w-[320px]"
+            >
+              {/* Header with avatar and minimize button */}
+              <div className="flex items-start gap-4 mb-3">
+                {/* Avatar */}
+                <div className="text-5xl flex-shrink-0">{profile.avatar}</div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-bold text-white truncate">
+                    {profile.citizenName}
+                  </h3>
+                  <p className="text-sm text-gray-400 flex items-center gap-1">
+                    <span>{ROLE_INFO[profile.role].icon}</span>
+                    <span>{ROLE_INFO[profile.role].title}</span>
+                  </p>
+                </div>
+
+                {/* Minimize button */}
+                <button
+                  onClick={() => setShowProfileCard(false)}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
+                  title="Ẩn profile"
+                >
+                  <svg
+                    className="w-4 h-4 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M20 12H4"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Quiz Score */}
+              <div className="bg-white/5 rounded-lg p-2 mb-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-400">Quiz Score</span>
+                  <span className="font-bold text-white">
+                    {profile.quizScore}/5
+                  </span>
+                </div>
+                <div className="mt-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${(profile.quizScore / 5) * 100}%`,
+                      background:
+                        profile.quizTier === "gold"
+                          ? "linear-gradient(90deg, #FFD700, #FFA500)"
+                          : profile.quizTier === "silver"
+                          ? "linear-gradient(90deg, #C0C0C0, #A0A0A0)"
+                          : "linear-gradient(90deg, #CD7F32, #8B4513)",
+                    }}
+                  />
+                </div>
+                {/* Retry Quiz Button */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowQuiz(true)}
+                  className="w-full mt-2 px-3 py-1.5 bg-gradient-to-r from-purple-600/80 to-blue-600/80 
+                    hover:from-purple-600 hover:to-blue-600 rounded-md text-xs font-semibold text-white
+                    transition-all duration-300 flex items-center justify-center gap-1.5"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                    className="w-3.5 h-3.5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                    />
+                  </svg>
+                  <span>Làm lại Quiz</span>
+                </motion.button>
+              </div>
+
+              {/* Badges */}
+              {profile.badges.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-xs text-gray-400 font-semibold uppercase tracking-wide">
+                    Huy hiệu ({profile.badges.length})
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {profile.badges.slice(0, 6).map((badge, i) => (
+                      <motion.span
+                        key={i}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="text-xs px-2 py-1 bg-white/10 rounded-md border border-white/20 
+                          hover:bg-white/20 transition-colors cursor-default"
+                        title={badge}
+                      >
+                        {badge.split(" ")[0]}
+                      </motion.span>
+                    ))}
+                    {profile.badges.length > 6 && (
+                      <span className="text-xs px-2 py-1 bg-white/10 rounded-md border border-white/20 text-gray-400">
+                        +{profile.badges.length - 6}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Show profile button when hidden */}
+      {profile && !showProfileCard && (
+        <motion.button
+          initial={{ x: -100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ type: "tween", duration: 0.2 }}
+          onClick={() => setShowProfileCard(true)}
+          className="absolute top-20 left-4 z-40 p-3 bg-black/80 backdrop-blur-xl 
+            rounded-full border border-white/20 hover:bg-white/10 transition-all"
+          title="Hiện profile"
+        >
+          <span className="text-2xl">{profile.avatar}</span>
+        </motion.button>
+      )}
 
       {/* Planet name & Stats toggle */}
       <div className="absolute top-4 right-4 z-50 flex gap-2">
@@ -566,269 +765,314 @@ export default function PlanetDetail() {
       </div>
 
       {/* Stats Panel */}
-      {showStats && (
-        <div
-          className="absolute top-20 right-4 z-50 w-80 bg-black/80 backdrop-blur-md rounded-lg p-4 
-          border border-white/20 animate-in slide-in-from-right duration-300"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-bold text-white">Planet Stats</h3>
-            {isLoadingPlanetInfo && (
-              <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
-            )}
-          </div>
-
-          {/* NASA Image */}
-          {planetInfo?.imageUrl && (
-            <div className="mb-3 rounded-lg overflow-hidden border border-white/10">
-              <img
-                src={planetInfo.imageUrl}
-                alt={`${planetId} from NASA`}
-                className="w-full h-40 object-cover"
-                onError={(e) => {
-                  // Simply hide if image fails to load
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
-              />
-              <p className="text-xs text-gray-500 p-2 bg-black/40">
-                {planetId === "mars"
-                  ? "📸 Latest from Mars Rover"
-                  : planetId === "earth"
-                  ? "🌍 EPIC Satellite Imagery"
-                  : "NASA Image"}
-              </p>
-            </div>
-          )}
-
-          {planetInfo?.description && (
-            <p className="text-gray-300 text-xs mb-3 leading-relaxed">
-              {planetInfo.description}
-            </p>
-          )}
-
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-400">Temperature:</span>
-              <span className="text-white font-semibold text-xs">
-                {planetInfo?.stats.temperature || stats.temperature}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Gravity:</span>
-              <span className="text-white font-semibold text-xs">
-                {planetInfo?.stats.gravity || stats.gravity}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Diameter:</span>
-              <span className="text-white font-semibold">
-                {planetInfo?.stats.diameter || stats.diameter}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Day Length:</span>
-              <span className="text-white font-semibold text-xs">
-                {planetInfo?.stats.dayLength || stats.dayLength}
-              </span>
-            </div>
-
-            {/* Additional NASA data */}
-            {planetInfo?.stats.mass && (
-              <div className="flex justify-between">
-                <span className="text-gray-400">Mass:</span>
-                <span className="text-white font-semibold text-xs">
-                  {planetInfo.stats.mass}
-                </span>
-              </div>
-            )}
-            {planetInfo?.stats.distanceFromSun && (
-              <div className="flex justify-between">
-                <span className="text-gray-400">Distance from Sun:</span>
-                <span className="text-white font-semibold text-xs">
-                  {planetInfo.stats.distanceFromSun}
-                </span>
-              </div>
-            )}
-            {planetInfo?.stats.moons !== undefined && (
-              <div className="flex justify-between">
-                <span className="text-gray-400">Moons:</span>
-                <span className="text-white font-semibold">
-                  {planetInfo.stats.moons}
-                </span>
-              </div>
-            )}
-            {planetInfo?.stats.atmosphere && (
-              <div className="flex justify-between">
-                <span className="text-gray-400">Atmosphere:</span>
-                <span className="text-white font-semibold text-xs">
-                  {planetInfo.stats.atmosphere}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* NASA Source credit */}
-          {planetInfo && (
-            <div className="mt-3 pt-3 border-t border-white/10">
-              <p className="text-xs text-gray-500 flex items-center gap-1">
-                <span>📡</span>
-                <span>Data from NASA</span>
-                {planetInfo.lastUpdated && (
-                  <span className="text-gray-600">
-                    {" "}
-                    • Updated: {planetInfo.lastUpdated}
-                  </span>
+      <AnimatePresence mode="wait">
+        {showStats && (
+          <motion.div
+            initial={{ x: 100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 100, opacity: 0 }}
+            transition={{ type: "tween", duration: 0.2 }} // Faster transition
+            className="absolute top-20 right-4 z-50 w-72 bg-black/80 backdrop-blur-md rounded-lg p-3 
+          border border-white/20 max-h-[75vh] overflow-y-auto scrollbar-thin"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-bold text-white">Planet Stats</h3>
+              <div className="flex items-center gap-2">
+                {isLoadingPlanetInfo && (
+                  <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
                 )}
-              </p>
+                <button
+                  onClick={() => setShowStats(false)}
+                  className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                  title="Đóng"
+                >
+                  <svg
+                    className="w-4 h-4 text-gray-400 hover:text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
-          )}
-        </div>
-      )}
 
-      {/* NASA Image Gallery */}
-      {showImageGallery && (
-        <div
-          className="absolute top-20 right-4 z-50 w-96 bg-black/90 backdrop-blur-md rounded-lg p-4 
-          border border-white/20 animate-in slide-in-from-right duration-300 max-h-[80vh] overflow-y-auto"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Camera className="w-5 h-5" />
-              NASA Images
-            </h3>
-            <button
-              onClick={() => setShowImageGallery(false)}
-              className="text-gray-400 hover:text-white"
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* Planet Info Image */}
-          {planetInfo?.imageUrl && (
-            <div className="mb-4">
-              <h4 className="text-sm font-semibold text-white mb-2">
-                {planetId === "mars"
-                  ? "🔴 Mars Rover Photo"
-                  : planetId === "earth"
-                  ? "🌍 Earth from EPIC Satellite"
-                  : `${
-                      planetId.charAt(0).toUpperCase() + planetId.slice(1)
-                    } Image`}
-              </h4>
-              <div className="rounded-lg overflow-hidden border border-white/20">
+            {/* NASA Image */}
+            {planetInfo?.imageUrl && (
+              <div className="mb-2 rounded-lg overflow-hidden border border-white/10">
                 <img
                   src={planetInfo.imageUrl}
                   alt={`${planetId} from NASA`}
-                  className="w-full h-64 object-cover"
+                  className="w-full h-32 object-cover"
                   onError={(e) => {
-                    // Hide image if failed to load
-                    const img = e.target as HTMLImageElement;
-                    img.style.display = "none";
-                    // Show error message
-                    const parent = img.parentElement;
-                    if (parent && !parent.querySelector(".error-msg")) {
-                      const errorDiv = document.createElement("div");
-                      errorDiv.className =
-                        "error-msg p-4 bg-red-900/20 text-red-400 text-xs text-center";
-                      errorDiv.textContent = "Failed to load image";
-                      parent.appendChild(errorDiv);
-                    }
+                    // Simply hide if image fails to load
+                    (e.target as HTMLImageElement).style.display = "none";
                   }}
                 />
-                <div className="p-2 bg-black/60">
-                  <p className="text-xs text-gray-400">
-                    {planetInfo.lastUpdated
-                      ? `Updated: ${planetInfo.lastUpdated}`
-                      : "NASA Official Image"}
-                  </p>
+                <p className="text-xs text-gray-500 p-1.5 bg-black/40">
+                  {planetId === "mars"
+                    ? "📸 Latest from Mars Rover"
+                    : planetId === "earth"
+                    ? "🌍 EPIC Satellite Imagery"
+                    : "NASA Image"}
+                </p>
+              </div>
+            )}
+
+            {planetInfo?.description && (
+              <p className="text-gray-300 text-xs mb-2 leading-relaxed">
+                {planetInfo.description}
+              </p>
+            )}
+
+            <div className="space-y-1.5 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Temperature:</span>
+                <span className="text-white font-semibold text-xs">
+                  {planetInfo?.stats.temperature || stats.temperature}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Gravity:</span>
+                <span className="text-white font-semibold text-xs">
+                  {planetInfo?.stats.gravity || stats.gravity}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Diameter:</span>
+                <span className="text-white font-semibold">
+                  {planetInfo?.stats.diameter || stats.diameter}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Day Length:</span>
+                <span className="text-white font-semibold text-xs">
+                  {planetInfo?.stats.dayLength || stats.dayLength}
+                </span>
+              </div>
+
+              {/* Additional NASA data */}
+              {planetInfo?.stats.mass && (
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Mass:</span>
+                  <span className="text-white font-semibold text-xs">
+                    {planetInfo.stats.mass}
+                  </span>
+                </div>
+              )}
+              {planetInfo?.stats.distanceFromSun && (
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Distance from Sun:</span>
+                  <span className="text-white font-semibold text-xs">
+                    {planetInfo.stats.distanceFromSun}
+                  </span>
+                </div>
+              )}
+              {planetInfo?.stats.moons !== undefined && (
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Moons:</span>
+                  <span className="text-white font-semibold">
+                    {planetInfo.stats.moons}
+                  </span>
+                </div>
+              )}
+              {planetInfo?.stats.atmosphere && (
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Atmosphere:</span>
+                  <span className="text-white font-semibold text-xs">
+                    {planetInfo.stats.atmosphere}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* NASA Source credit */}
+            {planetInfo && (
+              <div className="mt-3 pt-3 border-t border-white/10">
+                <p className="text-xs text-gray-500 flex items-center gap-1">
+                  <span>📡</span>
+                  <span>Data from NASA</span>
+                  {planetInfo.lastUpdated && (
+                    <span className="text-gray-600">
+                      {" "}
+                      • Updated: {planetInfo.lastUpdated}
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* NASA Image Gallery */}
+      <AnimatePresence mode="wait">
+        {showImageGallery && (
+          <motion.div
+            initial={{ x: 100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 100, opacity: 0 }}
+            transition={{ type: "tween", duration: 0.2 }}
+            className="absolute top-20 right-4 z-50 w-80 bg-black/90 backdrop-blur-md rounded-lg p-3 
+          border border-white/20 max-h-[75vh] overflow-y-auto scrollbar-thin"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Camera className="w-4 h-4" />
+                NASA Images
+              </h3>
+              <button
+                onClick={() => setShowImageGallery(false)}
+                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                title="Đóng"
+              >
+                <svg
+                  className="w-4 h-4 text-gray-400 hover:text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Planet Info Image */}
+            {planetInfo?.imageUrl && (
+              <div className="mb-3">
+                <h4 className="text-xs font-semibold text-white mb-1.5">
+                  {planetId === "mars"
+                    ? "🔴 Mars Rover Photo"
+                    : planetId === "earth"
+                    ? "🌍 Earth from EPIC Satellite"
+                    : `${
+                        planetId.charAt(0).toUpperCase() + planetId.slice(1)
+                      } Image`}
+                </h4>
+                <div className="rounded-lg overflow-hidden border border-white/20">
+                  <img
+                    src={planetInfo.imageUrl}
+                    alt={`${planetId} from NASA`}
+                    className="w-full h-40 object-cover"
+                    onError={(e) => {
+                      // Hide image if failed to load
+                      const img = e.target as HTMLImageElement;
+                      img.style.display = "none";
+                      // Show error message
+                      const parent = img.parentElement;
+                      if (parent && !parent.querySelector(".error-msg")) {
+                        const errorDiv = document.createElement("div");
+                        errorDiv.className =
+                          "error-msg p-4 bg-red-900/20 text-red-400 text-xs text-center";
+                        errorDiv.textContent = "Failed to load image";
+                        parent.appendChild(errorDiv);
+                      }
+                    }}
+                  />
+                  <div className="p-1.5 bg-black/60">
+                    <p className="text-xs text-gray-400">
+                      {planetInfo.lastUpdated
+                        ? `Updated: ${planetInfo.lastUpdated}`
+                        : "NASA Official Image"}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Additional planet-specific images from APOD */}
-          {planetImage && (
-            <div className="mb-4">
-              <h4 className="text-sm font-semibold text-white mb-2">
-                🌌 NASA APOD -{" "}
-                {planetId.charAt(0).toUpperCase() + planetId.slice(1)}
-              </h4>
-              <div className="rounded-lg overflow-hidden border border-white/20">
-                <img
-                  src={planetImage}
-                  alt={`${planetId} from NASA APOD`}
-                  className="w-full h-48 object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
+            {/* Additional planet-specific images from APOD */}
+            {planetImage && (
+              <div className="mb-3">
+                <h4 className="text-xs font-semibold text-white mb-1.5">
+                  🌌 NASA APOD -{" "}
+                  {planetId.charAt(0).toUpperCase() + planetId.slice(1)}
+                </h4>
+                <div className="rounded-lg overflow-hidden border border-white/20">
+                  <img
+                    src={planetImage}
+                    alt={`${planetId} from NASA APOD`}
+                    className="w-full h-32 object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Additional Images */}
-          {marsRoverImage && planetId === "mars" && (
-            <div className="mb-4">
-              <h4 className="text-sm font-semibold text-white mb-2">
-                📸 Additional Mars Rover Photos
-              </h4>
-              <div className="rounded-lg overflow-hidden border border-white/20">
-                <img
-                  src={marsRoverImage}
-                  alt="Mars Rover"
-                  className="w-full h-48 object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
+            {/* Additional Images */}
+            {marsRoverImage && planetId === "mars" && (
+              <div className="mb-3">
+                <h4 className="text-xs font-semibold text-white mb-1.5">
+                  📸 Additional Mars Rover Photos
+                </h4>
+                <div className="rounded-lg overflow-hidden border border-white/20">
+                  <img
+                    src={marsRoverImage}
+                    alt="Mars Rover"
+                    className="w-full h-32 object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {earthImage && planetId === "earth" && (
-            <div className="mb-4">
-              <h4 className="text-sm font-semibold text-white mb-2">
-                🛰️ Additional Earth Imagery
-              </h4>
-              <div className="rounded-lg overflow-hidden border border-white/20">
-                <img
-                  src={earthImage}
-                  alt="Earth"
-                  className="w-full h-48 object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
+            {earthImage && planetId === "earth" && (
+              <div className="mb-3">
+                <h4 className="text-xs font-semibold text-white mb-1.5">
+                  🛰️ Additional Earth Imagery
+                </h4>
+                <div className="rounded-lg overflow-hidden border border-white/20">
+                  <img
+                    src={earthImage}
+                    alt="Earth"
+                    className="w-full h-32 object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Load More Button - Works for ALL planets */}
-          <button
-            onClick={async () => {
-              setIsLoadingImages(true);
-              try {
-                // Load APOD imagery for ANY planet
-                const img = await getPlanetImagery(planetId);
-                if (img?.imageUrl) setPlanetImage(img.imageUrl);
+            {/* Load More Button - Works for ALL planets */}
+            <button
+              onClick={async () => {
+                setIsLoadingImages(true);
+                try {
+                  // Load APOD imagery for ANY planet
+                  const img = await getPlanetImagery(planetId);
+                  if (img?.imageUrl) setPlanetImage(img.imageUrl);
 
-                // Also load planet-specific APIs if available
-                if (planetId === "mars") {
-                  const photo = await getMarsRoverPhoto();
-                  if (photo?.imageUrl) setMarsRoverImage(photo.imageUrl);
-                } else if (planetId === "earth") {
-                  const earthImg = await getEarthImagery();
-                  if (earthImg?.imageUrl) setEarthImage(earthImg.imageUrl);
+                  // Also load planet-specific APIs if available
+                  if (planetId === "mars") {
+                    const photo = await getMarsRoverPhoto();
+                    if (photo?.imageUrl) setMarsRoverImage(photo.imageUrl);
+                  } else if (planetId === "earth") {
+                    const earthImg = await getEarthImagery();
+                    if (earthImg?.imageUrl) setEarthImage(earthImg.imageUrl);
+                  }
+                } catch (error) {
+                  console.error("Error loading images:", error);
+                } finally {
+                  setIsLoadingImages(false);
                 }
-              } catch (error) {
-                console.error("Error loading images:", error);
-              } finally {
-                setIsLoadingImages(false);
-              }
-            }}
-            disabled={isLoadingImages}
-            className={`w-full px-4 py-2 backdrop-blur-md rounded-lg 
+              }}
+              disabled={isLoadingImages}
+              className={`w-full px-4 py-2 backdrop-blur-md rounded-lg 
               text-white font-semibold transition-all duration-300 border 
               flex items-center justify-center gap-2
               ${
@@ -836,47 +1080,48 @@ export default function PlanetDetail() {
                   ? "bg-gray-600/20 border-gray-400/30 cursor-not-allowed"
                   : "bg-blue-600/20 hover:bg-blue-600/40 border-blue-400/30 hover:border-blue-400/60"
               }`}
-          >
-            {isLoadingImages ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Loading NASA Images...
-              </>
-            ) : (
-              <>
-                <Camera className="w-4 h-4" />
-                Load More NASA Images
-              </>
-            )}
-          </button>
+            >
+              {isLoadingImages ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading NASA Images...
+                </>
+              ) : (
+                <>
+                  <Camera className="w-4 h-4" />
+                  Load More NASA Images
+                </>
+              )}
+            </button>
 
-          {!planetInfo?.imageUrl &&
-            !marsRoverImage &&
-            !earthImage &&
-            !planetImage && (
-              <div className="text-center py-8">
-                <Camera className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                <p className="text-gray-400 text-sm">
-                  No NASA images available for {planetId} yet.
-                </p>
-                <p className="text-gray-500 text-xs mt-2">
-                  Try loading images using the button below.
-                </p>
-              </div>
-            )}
+            {!planetInfo?.imageUrl &&
+              !marsRoverImage &&
+              !earthImage &&
+              !planetImage && (
+                <div className="text-center py-8">
+                  <Camera className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                  <p className="text-gray-400 text-sm">
+                    No NASA images available for {planetId} yet.
+                  </p>
+                  <p className="text-gray-500 text-xs mt-2">
+                    Try loading images using the button below.
+                  </p>
+                </div>
+              )}
 
-          {/* NASA Credit */}
-          <div className="mt-4 pt-3 border-t border-white/10">
-            <p className="text-xs text-gray-500 flex items-center gap-1">
-              <span>📡</span>
-              <span>Images from NASA API</span>
-            </p>
-          </div>
-        </div>
-      )}
+            {/* NASA Credit */}
+            <div className="mt-4 pt-3 border-t border-white/10">
+              <p className="text-xs text-gray-500 flex items-center gap-1">
+                <span>📡</span>
+                <span>Images from NASA API</span>
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Tour Controls */}
-      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 flex gap-2">
+      {/* <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 flex gap-2">
         <button
           onClick={isTourMode ? stopTourMode : startTourMode}
           className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg 
@@ -895,7 +1140,7 @@ export default function PlanetDetail() {
             </>
           )}
         </button>
-      </div>
+      </div> */}
 
       {/* Progress & Achievement */}
       <div className="absolute bottom-4 right-4 z-50 flex flex-col items-end gap-2">
@@ -929,7 +1174,15 @@ export default function PlanetDetail() {
         )}
       </div>
 
-      <Canvas camera={{ position: [0, 0, 5], fov: 75 }}>
+      <Canvas
+        camera={{ position: [0, 0, 5], fov: 75 }}
+        gl={{
+          antialias: false, // Disable for better performance
+          powerPreference: "high-performance",
+        }}
+        dpr={[1, 1.5]} // Limit pixel ratio for performance
+        frameloop="demand" // Only render when needed
+      >
         <ambientLight intensity={0.5} />
         <directionalLight position={[5, 5, 5]} intensity={1} />
         <pointLight position={[10, 10, 10]} intensity={0.5} />
@@ -938,7 +1191,7 @@ export default function PlanetDetail() {
         <Stars
           radius={100}
           depth={50}
-          count={5000}
+          count={1000}
           factor={4}
           saturation={0}
           fade
@@ -987,49 +1240,73 @@ export default function PlanetDetail() {
       </Canvas>
 
       {activeMarker && (
-        <div
-          className="absolute bottom-10 left-10 max-w-md bg-black/80 backdrop-blur-md 
-          text-white p-6 rounded-lg border border-white/20 shadow-2xl
-          animate-in slide-in-from-bottom duration-300"
+        <motion.div
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 100, opacity: 0 }}
+          transition={{ type: "tween", duration: 0.2 }}
+          className="absolute bottom-4 left-4 max-w-sm bg-black/80 backdrop-blur-md 
+          text-white p-4 rounded-lg border border-white/20 shadow-2xl"
         >
-          <div className="flex items-start justify-between mb-3">
-            <h2 className="text-xl font-bold flex items-center gap-2">
+          <div className="flex items-start justify-between mb-2">
+            <h2 className="text-base font-bold flex items-center gap-2">
               {(() => {
                 const marker = markers.find((m) => m.id === activeMarker);
                 return "name" in marker! ? marker!.name : marker!.label;
               })()}
               {isLoadingMarkerImage && (
-                <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                <Loader2 className="w-3 h-3 text-blue-400 animate-spin" />
               )}
             </h2>
-            {visitedMarkers.has(activeMarker) && (
-              <div className="bg-green-500/20 px-2 py-1 rounded-full flex items-center gap-1">
-                <Award className="w-3 h-3 text-green-400" />
-                <span className="text-xs text-green-400 font-semibold">
-                  Visited
-                </span>
-              </div>
-            )}
+            <div className="flex items-center gap-1">
+              {visitedMarkers.has(activeMarker) && (
+                <div className="bg-green-500/20 px-2 py-1 rounded-full flex items-center gap-1">
+                  <Award className="w-3 h-3 text-green-400" />
+                  <span className="text-xs text-green-400 font-semibold">
+                    Visited
+                  </span>
+                </div>
+              )}
+              <button
+                onClick={() => setActiveMarker(null)}
+                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors ml-2"
+                title="Đóng"
+              >
+                <svg
+                  className="w-4 h-4 text-gray-400 hover:text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {/* Marker Image from NASA APOD */}
           {markerImage && (
-            <div className="mb-4 rounded-lg overflow-hidden border border-white/20">
+            <div className="mb-3 rounded-lg overflow-hidden border border-white/20">
               <img
                 src={markerImage.imageUrl}
                 alt={markerImage.title || "Landmark"}
-                className="w-full h-48 object-cover"
+                className="w-full h-32 object-cover"
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
                 }}
               />
               {markerImage.title && (
-                <div className="p-2 bg-black/60">
+                <div className="p-1.5 bg-black/60">
                   <p className="text-xs text-white font-semibold">
                     📸 {markerImage.title}
                   </p>
                   {markerImage.explanation && (
-                    <p className="text-xs text-gray-400 mt-1 line-clamp-2">
+                    <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">
                       {markerImage.explanation}
                     </p>
                   )}
@@ -1038,7 +1315,7 @@ export default function PlanetDetail() {
             </div>
           )}
 
-          <p className="text-gray-300 leading-relaxed">
+          <p className="text-sm text-gray-300 leading-relaxed mb-2">
             {markers.find((m) => m.id === activeMarker)?.description}
           </p>
 
@@ -1120,8 +1397,73 @@ export default function PlanetDetail() {
               </div>
             </div>
           )}
+        </motion.div>
+      )}
+
+      {/* AI Chatbot Panel */}
+      {aiCompanion ? (
+        <ChatbotPanel
+          planetId={planetId}
+          planetName={planetId.charAt(0).toUpperCase() + planetId.slice(1)}
+          ai={aiCompanion}
+          profile={profile}
+          isOpen={isChatbotOpen}
+          onToggle={() => setIsChatbotOpen(!isChatbotOpen)}
+        />
+      ) : (
+        /* Debug: Show warning if AI companion not found */
+        <div className="fixed bottom-8 right-6 z-50 p-4 bg-red-500/20 border border-red-500 rounded-lg text-white text-sm">
+          ⚠️ AI Companion not found for: {planetId}
         </div>
       )}
+
+      {/* Quiz Panel */}
+      <AnimatePresence>
+        {showQuiz && aiCompanion && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm"
+          >
+            <QuizPanel
+              planetId={planetId}
+              ai={aiCompanion}
+              onComplete={(result) => {
+                console.log("Quiz completed:", result);
+                // Save the result to profile if needed
+                setShowQuiz(false);
+              }}
+            />
+            {/* Close button */}
+            <motion.button
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setShowQuiz(false)}
+              className="fixed top-6 right-6 z-[101] p-3 bg-white/10 backdrop-blur-xl 
+                rounded-full border border-white/20 hover:bg-white/20 transition-all"
+              title="Đóng Quiz"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2.5}
+                stroke="currentColor"
+                className="w-6 h-6 text-white"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

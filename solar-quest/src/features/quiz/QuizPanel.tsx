@@ -14,9 +14,11 @@ interface Props {
 
 export default function QuizPanel({ planetId, ai, onComplete }: Props) {
   const quiz = getPlanetQuiz(planetId);
-  
+
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<{ questionId: string; selectedAnswer: number; isCorrect: boolean }[]>([]);
+  const [answers, setAnswers] = useState<
+    { questionId: string; selectedAnswer: number; isCorrect: boolean }[]
+  >([]);
   const [showResult, setShowResult] = useState(false);
 
   if (!quiz) {
@@ -91,9 +93,9 @@ export default function QuizPanel({ planetId, ai, onComplete }: Props) {
   };
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-black/95 z-50 p-6 overflow-y-auto cursor-auto">
+    <div className="inset-0 flex items-center justify-center bg-black/95 z-50 p-6 overflow-y-auto cursor-auto pt-10">
       {/* Background stars */}
-      <div className="absolute inset-0 overflow-hidden opacity-20">
+      {/* <div className="absolute inset-0 overflow-hidden opacity-20">
         {[...Array(50)].map((_, i) => (
           <motion.div
             key={i}
@@ -112,10 +114,10 @@ export default function QuizPanel({ planetId, ai, onComplete }: Props) {
             }}
           />
         ))}
-      </div>
+      </div> */}
 
       {/* Content */}
-      <div className="relative z-10 w-full max-w-4xl">
+      <div className="relative z-10 w-full max-w-2xl">
         <AnimatePresence mode="wait">
           {!showResult ? (
             <motion.div
@@ -128,7 +130,7 @@ export default function QuizPanel({ planetId, ai, onComplete }: Props) {
               <motion.div
                 initial={{ y: -20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                className="text-center mb-8"
+                className="text-center mb-2"
               >
                 <h2
                   className="text-4xl font-bold mb-2"
@@ -141,7 +143,8 @@ export default function QuizPanel({ planetId, ai, onComplete }: Props) {
                   Quiz: {quiz.planetName}
                 </h2>
                 <p className="text-gray-400">
-                  Trả lời đúng {quiz.passingScore}/{quiz.questions.length} để đạt huy hiệu Silver
+                  Trả lời đúng {quiz.passingScore}/{quiz.questions.length} để
+                  đạt huy hiệu Silver
                 </p>
               </motion.div>
 
@@ -156,7 +159,9 @@ export default function QuizPanel({ planetId, ai, onComplete }: Props) {
             </motion.div>
           ) : (
             <QuizResult
-              result={JSON.parse(localStorage.getItem(`quiz-${planetId}`) || "{}")}
+              result={JSON.parse(
+                localStorage.getItem(`quiz-${planetId}`) || "{}"
+              )}
               ai={ai}
               onContinue={handleContinue}
             />

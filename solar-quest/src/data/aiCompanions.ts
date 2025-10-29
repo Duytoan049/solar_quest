@@ -61,6 +61,34 @@ export const aiCompanions: Record<string, AICompanionData> = {
         },
     },
 
+    earth: {
+        id: "earth",
+        name: "TERRA",
+        title: "Chuyên gia Môi trường Trái Đất",
+        personality: "friendly",
+        color: "rgba(100, 180, 255, 0.6)",
+        avatar: "🌍",
+        dialogues: {
+            intro: [
+                "Chào mừng trở về Trái Đất!",
+                "Tôi là TERRA, chuyên gia về môi trường và khí hậu Trái Đất.",
+                "Hành tinh xanh duy nhất có sự sống trong hệ mặt trời!",
+            ],
+            performanceBased: {
+                highScore: "Xuất sắc! Bạn bay vòng quanh Trái Đất như một phi hành gia chuyên nghiệp!",
+                noDamage: "Hoàn hảo! Kỹ năng điều khiển của bạn mượt mà như quỹ đạo ISS!",
+                highCombo: "Combo tuyệt vời! Chính xác như vệ tinh định vị GPS!",
+                default: "Bạn đã hoàn thành nhiệm vụ tốt!",
+            },
+            facts: [
+                "Trái Đất là hành tinh duy nhất có nước lỏng trên bề mặt",
+                "71% bề mặt Trái Đất được bao phủ bởi đại dương",
+                "Khí quyển bảo vệ chúng ta khỏi bức xạ vũ trụ và thiên thạch",
+            ],
+            explore: "Hãy khám phá đại dương, rừng nhiệt đới và những kỳ quan thiên nhiên!",
+        },
+    },
+
     mars: {
         id: "mars",
         name: "ARES",

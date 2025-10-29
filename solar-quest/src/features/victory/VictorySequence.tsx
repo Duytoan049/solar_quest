@@ -35,13 +35,13 @@ export default function VictorySequence({
     const timers: NodeJS.Timeout[] = [];
 
     if (phase === "celebration") {
-      timers.push(setTimeout(() => setPhase("launch"), 2500));
+      timers.push(setTimeout(() => setPhase("launch"), 2000));
     } else if (phase === "launch") {
-      timers.push(setTimeout(() => setPhase("travel"), 3000));
+      timers.push(setTimeout(() => setPhase("travel"), 2000));
     } else if (phase === "travel") {
-      timers.push(setTimeout(() => setPhase("arrival"), 3500));
+      timers.push(setTimeout(() => setPhase("arrival"), 2500));
     } else if (phase === "arrival") {
-      timers.push(setTimeout(() => setPhase("ai-intro"), 4000));
+      timers.push(setTimeout(() => setPhase("ai-intro"), 2500));
     }
 
     return () => timers.forEach(clearTimeout);
@@ -52,7 +52,7 @@ export default function VictorySequence({
     if (phase === "launch" || phase === "travel") {
       let y = shipY;
       const animate = () => {
-        y -= 8; // Speed up
+        y -= 5;
         setShipY(y);
         if (y > -1000) {
           animationRef.current = requestAnimationFrame(animate);
@@ -89,7 +89,7 @@ export default function VictorySequence({
     }
   }, [phase]);
 
-  // Warp effect on canvas
+  // Simple warp effect - matching game theme
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || phase !== "travel") return;
@@ -103,23 +103,38 @@ export default function VictorySequence({
     let animationId: number;
     let time = 0;
 
+    const lines: Array<{
+      x: number;
+      y: number;
+      speed: number;
+      opacity: number;
+    }> = [];
+
+    // Simple white lines for warp effect
+    for (let i = 0; i < 50; i++) {
+      lines.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        speed: 15 + Math.random() * 25,
+        opacity: 0.3 + Math.random() * 0.4,
+      });
+    }
+
     const drawWarp = () => {
       ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Draw warp lines - subtle white
-      for (let i = 0; i < 50; i++) {
-        const x = (i / 50) * canvas.width;
-        const speed = 20 + Math.random() * 30;
-        const y = ((time * speed) % canvas.height) - 100;
+      lines.forEach((line) => {
+        const y = ((time * line.speed) % (canvas.height + 100)) - 50;
 
-        ctx.strokeStyle = `rgba(255, 255, 255, ${Math.random() * 0.5})`;
-        ctx.lineWidth = 1 + Math.random() * 2;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${line.opacity})`;
+        ctx.lineWidth = 1.5;
+        ctx.lineCap = "round";
         ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x, y + 50 + Math.random() * 100);
+        ctx.moveTo(line.x, y);
+        ctx.lineTo(line.x, y + 80);
         ctx.stroke();
-      }
+      });
 
       time += 0.05;
       animationId = requestAnimationFrame(drawWarp);
@@ -164,68 +179,53 @@ export default function VictorySequence({
       <AnimatePresence>
         {phase === "celebration" && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.2 }}
-            transition={{ duration: 0.5 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             className="absolute inset-0 flex items-center justify-center"
           >
-            <div className="text-center">
-              <motion.div
-                animate={{
-                  scale: [1, 1.2, 1],
-                  rotate: [0, 5, -5, 0],
-                }}
-                transition={{
-                  duration: 0.5,
-                  repeat: 3,
-                }}
-              >
-                <h1
-                  className="text-8xl font-black mb-4 text-white"
-                  style={{
-                    textShadow: `0 0 30px rgba(255,255,255,0.3)`,
-                  }}
-                >
-                  CHIẾN THẮNG! 🎉
-                </h1>
-              </motion.div>
-
+            <div className="text-center space-y-8">
+              {/* Simple title */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="text-2xl text-gray-300 space-y-2"
+                transition={{ duration: 0.5 }}
               >
-                <p>Điểm: {stats.score}</p>
-                <p>Combo tối đa: x{stats.maxCombo}</p>
-                <p>Sát thương nhận: {stats.damagesTaken}</p>
+                <h1 className="text-7xl font-bold text-white mb-4">
+                  CHIẾN THẮNG!
+                </h1>
               </motion.div>
 
-              {/* Particle explosion - subtle white */}
-              <div className="absolute inset-0 pointer-events-none">
-                {[...Array(30)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className="absolute w-2 h-2 rounded-full bg-white"
-                    style={{
-                      left: "50%",
-                      top: "50%",
-                      opacity: 0.6,
-                    }}
-                    animate={{
-                      x: (Math.random() - 0.5) * 800,
-                      y: (Math.random() - 0.5) * 800,
-                      opacity: [0.6, 0],
-                      scale: [1, 0],
-                    }}
-                    transition={{
-                      duration: 2,
-                      delay: Math.random() * 0.5,
-                    }}
-                  />
-                ))}
-              </div>
+              {/* Stats - matching GameScene HUD style */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="space-y-3 max-w-md mx-auto"
+              >
+                <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-lg border border-white/20">
+                  <span className="text-white font-semibold">Điểm: </span>
+                  <span className="text-white text-2xl font-bold">
+                    {stats.score}
+                  </span>
+                </div>
+                <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-lg border border-white/20">
+                  <span className="text-white font-semibold">
+                    Combo tối đa:{" "}
+                  </span>
+                  <span className="text-white text-2xl font-bold">
+                    x{stats.maxCombo}
+                  </span>
+                </div>
+                <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-lg border border-white/20">
+                  <span className="text-white font-semibold">
+                    Sát thương nhận:{" "}
+                  </span>
+                  <span className="text-white text-2xl font-bold">
+                    {stats.damagesTaken}
+                  </span>
+                </div>
+              </motion.div>
             </div>
           </motion.div>
         )}
@@ -234,55 +234,48 @@ export default function VictorySequence({
       {/* Phase 2 & 3: Launch + Travel */}
       {(phase === "launch" || phase === "travel") && (
         <div className="absolute inset-0">
-          {/* Spaceship */}
+          {/* Spaceship indicator */}
           <motion.div
-            className="absolute left-1/2 transform -translate-x-1/2 text-6xl"
+            className="absolute left-1/2 transform -translate-x-1/2"
             style={{ bottom: `${-shipY}px` }}
-            animate={{
-              rotate: [0, -2, 2, 0],
-            }}
-            transition={{
-              duration: 0.1,
-              repeat: Infinity,
-            }}
           >
-            🚀
+            <div className="w-4 h-8 bg-white/90 rounded-full"></div>
           </motion.div>
 
-          {/* Particle trail - white */}
-          {[...Array(20)].map((_, i) => (
+          {/* Simple particle trail */}
+          {[...Array(10)].map((_, i) => (
             <motion.div
               key={i}
-              className="absolute left-1/2 w-2 h-2 rounded-full bg-white"
+              className="absolute left-1/2 w-2 h-2 rounded-full bg-white/50"
               style={{
-                bottom: `${-shipY - 50 - i * 10}px`,
-                left: `calc(50% + ${(Math.random() - 0.5) * 30}px)`,
-                opacity: 0.5,
+                bottom: `${-shipY - 50 - i * 15}px`,
+                left: `calc(50% + ${(Math.random() - 0.5) * 20}px)`,
               }}
               animate={{
                 opacity: [0.5, 0],
-                scale: [1, 0.5],
+                scale: [1, 0.3],
               }}
               transition={{
                 duration: 0.5,
-                delay: i * 0.02,
+                delay: i * 0.03,
                 repeat: Infinity,
               }}
             />
           ))}
 
-          {/* Status text - minimal */}
+          {/* Status text */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="absolute top-1/3 left-1/2 transform -translate-x-1/2 text-center"
           >
-            <p className="text-3xl text-white font-bold mb-2">
-              {phase === "launch" ? "🚀 KHỞI ĐỘNG TÊN LỬA" : "⚡ WARP SPEED"}
-            </p>
-            <p className="text-xl text-gray-400">
-              Đang bay đến {planetName}...
-            </p>
+            <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-lg border border-white/20">
+              <p className="text-2xl text-white font-semibold">
+                {phase === "launch"
+                  ? "Khởi động..."
+                  : "Đang bay đến " + planetName}
+              </p>
+            </div>
           </motion.div>
         </div>
       )}
@@ -294,20 +287,19 @@ export default function VictorySequence({
           animate={{ opacity: 1 }}
           className="absolute inset-0 flex items-center justify-center"
         >
-          {/* Planet appearance */}
+          {/* Planet with simple glow */}
           <motion.div
             className="relative"
-            style={{
-              transform: `scale(${planetScale})`,
-            }}
+            initial={{ scale: 0 }}
+            animate={{ scale: planetScale }}
           >
-            {/* Planet glow - subtle */}
+            {/* Subtle glow */}
             <div
-              className="absolute inset-0 rounded-full blur-3xl"
+              className="absolute inset-0 rounded-full blur-2xl"
               style={{
-                background: `radial-gradient(circle, ${planetColor}30, transparent)`,
-                width: "400px",
-                height: "400px",
+                background: `radial-gradient(circle, ${planetColor}40, transparent)`,
+                width: "350px",
+                height: "350px",
                 left: "50%",
                 top: "50%",
                 transform: "translate(-50%, -50%)",
@@ -316,62 +308,60 @@ export default function VictorySequence({
 
             {/* Planet */}
             <div
-              className="relative w-64 h-64 rounded-full"
+              className="relative w-48 h-48 rounded-full"
               style={{
-                background: `radial-gradient(circle at 30% 30%, ${planetColor}cc, ${planetColor}44)`,
-                boxShadow: `0 0 30px ${planetColor}40, inset -30px -30px 60px rgba(0,0,0,0.5)`,
+                background: `radial-gradient(circle at 35% 35%, ${planetColor}dd, ${planetColor}66)`,
+                boxShadow: `0 0 40px ${planetColor}50, inset -20px -20px 50px rgba(0,0,0,0.5)`,
               }}
             >
               <motion.div
                 className="absolute inset-0 rounded-full"
-                animate={{
-                  rotate: 360,
-                }}
+                animate={{ rotate: 360 }}
                 transition={{
                   duration: 20,
                   repeat: Infinity,
                   ease: "linear",
                 }}
                 style={{
-                  background: `linear-gradient(135deg, transparent 40%, ${planetColor}20 50%, transparent 60%)`,
+                  background: `linear-gradient(135deg, transparent 40%, ${planetColor}30 50%, transparent 60%)`,
                 }}
               />
             </div>
 
-            {/* Orbiting spaceship */}
+            {/* Orbiting ship indicator */}
             <motion.div
-              className="absolute text-4xl"
-              animate={{
-                rotate: 360,
-              }}
+              className="absolute"
+              animate={{ rotate: 360 }}
               transition={{
                 duration: 4,
                 repeat: Infinity,
                 ease: "linear",
               }}
               style={{
-                width: "300px",
-                height: "300px",
+                width: "220px",
+                height: "220px",
                 left: "50%",
                 top: "50%",
                 transform: "translate(-50%, -50%)",
               }}
             >
-              <div className="absolute top-0 left-1/2 -translate-x-1/2">🚀</div>
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3 h-6 bg-white/90 rounded-full"></div>
             </motion.div>
           </motion.div>
 
-          {/* Arrival text */}
+          {/* Arrival message */}
           <motion.div
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1 }}
+            transition={{ delay: 0.8 }}
             className="absolute bottom-1/4 text-center"
           >
-            <p className="text-4xl font-bold text-white mb-2">
-              ✨ Đã đến {planetName}! ✨
-            </p>
-            <p className="text-xl text-gray-300">{getPerformanceMessage()}</p>
+            <div className="bg-black/60 backdrop-blur-md px-8 py-4 rounded-lg border border-white/20">
+              <p className="text-3xl font-bold text-white mb-2">
+                Đã đến {planetName}!
+              </p>
+              <p className="text-lg text-gray-300">{getPerformanceMessage()}</p>
+            </div>
           </motion.div>
         </motion.div>
       )}
@@ -381,6 +371,7 @@ export default function VictorySequence({
         <AICompanion
           ai={ai}
           planetId={planetId}
+          planetName={planetName}
           onComplete={() => {
             setPhase("complete");
             onComplete();
@@ -397,7 +388,7 @@ export default function VictorySequence({
         >
           <button
             onClick={() => setPhase("ai-intro")}
-            className="px-6 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md 
+            className="px-6 py-3 bg-black/60 hover:bg-black/80 backdrop-blur-md 
               rounded-lg text-white font-semibold transition-all duration-300
               border border-white/30 hover:border-white/60"
           >
@@ -406,12 +397,12 @@ export default function VictorySequence({
         </motion.div>
       )}
 
-      {/* Progress bar - minimal white */}
+      {/* Progress bar */}
       {phase !== "ai-intro" && phase !== "complete" && (
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-64">
           <div className="h-1 bg-white/20 rounded-full overflow-hidden">
             <motion.div
-              className="h-full bg-white"
+              className="h-full bg-white/80"
               initial={{ width: "0%" }}
               animate={{
                 width:

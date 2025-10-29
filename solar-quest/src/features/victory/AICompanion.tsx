@@ -1,22 +1,31 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import QuizPanel from "@/features/quiz/QuizPanel";
+import ProfileCreation from "@/features/profile/ProfileCreation";
 import type { AICompanionData } from "@/types/victory";
 import type { QuizResult } from "@/types/quiz";
 
 interface Props {
   ai: AICompanionData;
   planetId: string; // NEW: Need planetId for quiz
+  planetName: string; // NEW: Need planetName for profile
   onComplete: () => void;
 }
 
-export default function AICompanion({ ai, planetId, onComplete }: Props) {
-  // Phase management: intro -> quiz -> complete
-  const [phase, setPhase] = useState<"intro" | "quiz" | "complete">(() => {
-    // Check if user has already completed quiz for this planet
-    const savedQuiz = localStorage.getItem(`quiz-${planetId}`);
-    return savedQuiz ? "complete" : "intro";
-  });
+export default function AICompanion({
+  ai,
+  planetId,
+  planetName,
+  onComplete,
+}: Props) {
+  // Phase management: intro -> quiz -> profile -> complete
+  const [phase, setPhase] = useState<"intro" | "quiz" | "profile" | "complete">(
+    () => {
+      // Check if user has already completed quiz for this planet
+      const savedQuiz = localStorage.getItem(`quiz-${planetId}`);
+      return savedQuiz ? "complete" : "intro";
+    }
+  );
 
   const [currentDialogue, setCurrentDialogue] = useState(0);
   const [displayedText, setDisplayedText] = useState("");
@@ -77,18 +86,30 @@ export default function AICompanion({ ai, planetId, onComplete }: Props) {
 
   const handleQuizComplete = (result: QuizResult) => {
     console.log("Quiz completed:", result);
-    setPhase("complete");
-    // Will auto-redirect to PlanetDetail via useEffect
+    setPhase("profile"); // Go to profile creation instead of complete
   };
+
+  // Show profile phase
+  if (phase === "profile") {
+    return (
+      <ProfileCreation
+        planetId={planetId}
+        planetName={planetName}
+        ai={ai}
+        onComplete={() => {
+          setPhase("complete");
+        }}
+        onSkip={() => {
+          setPhase("complete");
+        }}
+      />
+    );
+  }
 
   // Show quiz phase
   if (phase === "quiz") {
     return (
-      <QuizPanel
-        planetId={planetId}
-        ai={ai}
-        onComplete={handleQuizComplete}
-      />
+      <QuizPanel planetId={planetId} ai={ai} onComplete={handleQuizComplete} />
     );
   }
 

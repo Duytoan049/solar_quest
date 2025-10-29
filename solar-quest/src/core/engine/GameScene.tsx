@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X, Target, AlertTriangle } from "lucide-react";
+import { X, Target, AlertTriangle, SkipForward } from "lucide-react";
 import {
   getPlanetConfig,
   type PlanetGameConfig,
@@ -13,6 +13,10 @@ import {
 import VictorySequence from "@/features/victory/VictorySequence";
 import { getAICompanion } from "@/data/aiCompanions";
 import type { VictoryStats } from "@/types/victory";
+import {
+  setMinigameCompleted,
+  hasCompletedMinigame,
+} from "@/services/profileStorage";
 /**
  * PlanetMissionScene.tsx
  * A reusable, configurable asteroid-field mini-game scene.
@@ -87,11 +91,18 @@ export default function MarsGameScene({
   const [comboDisplay, setComboDisplay] = useState({ count: 0, multiplier: 1 });
   const [heatWarning, setHeatWarning] = useState(0); // 0-100
   const [effectWarning, setEffectWarning] = useState(false); // Warning before effect starts
+  const [showSkipButton, setShowSkipButton] = useState(false);
 
   // Get planet config
   const planetConfig = config || getPlanetConfig(planetId);
   const graphicsConfig = getGraphicsConfig(planetId);
   const aiCompanion = getAICompanion(planetId);
+
+  // Check if player has completed this minigame before
+  useEffect(() => {
+    const hasCompleted = hasCompletedMinigame(planetId);
+    setShowSkipButton(hasCompleted);
+  }, [planetId]);
 
   // Victory stats tracking
   const totalShots = useRef(0);
@@ -1054,6 +1065,8 @@ export default function MarsGameScene({
           stats={victoryStats}
           ai={aiCompanion}
           onComplete={() => {
+            // Save minigame completion status
+            setMinigameCompleted(planetId);
             if (onComplete) onComplete();
           }}
         />
@@ -1114,7 +1127,7 @@ export default function MarsGameScene({
       </div>
 
       {/* Planet Info */}
-      <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md p-4 rounded-lg text-white max-w-xs z-10">
+      <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-xs p-4 rounded-lg text-white max-w-xs z-10">
         <h3
           className="text-xl font-bold mb-2"
           style={{ color: planetConfig.particleColor }}
@@ -1124,7 +1137,7 @@ export default function MarsGameScene({
         <p className="text-sm mb-2">{planetConfig.description}</p>
 
         {/* Warning before effect starts */}
-        {effectWarning && planetConfig.specialEffectType && (
+        {/* {effectWarning && planetConfig.specialEffectType && (
           <div className="flex items-center gap-2 text-sm animate-pulse border-2 rounded px-2 py-1">
             <AlertTriangle className="w-4 h-4 text-2xl font-bold mb-2 animate-pulse" />
 
@@ -1143,7 +1156,7 @@ export default function MarsGameScene({
                 "⚠️ VÀNH ĐAI NGUY HIỂM SẮP ĐẾN! ⚠️"}
             </span>
           </div>
-        )}
+        )} */}
 
         {/* Active effect notification */}
         {isSpecialEffect && planetConfig.specialEffectType && (
@@ -1165,14 +1178,14 @@ export default function MarsGameScene({
             </span>
           </div>
         )}
-        <div className="mt-2 text-xs text-gray-300">
+        {/* <div className="mt-2 text-xs text-gray-300">
           <div>Độ khó: {planetConfig.difficulty.toUpperCase()}</div>
           <div>Điểm/Thiên thạch: {planetConfig.pointsPerAsteroid}</div>
-        </div>
+        </div> */}
       </div>
 
       {/* Controls Guide */}
-      <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md px-4 py-3 rounded-lg text-white text-sm z-10">
+      <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-xs px-4 py-3 rounded-lg text-white text-sm z-10">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Target className="w-4 h-4" />
@@ -1183,10 +1196,26 @@ export default function MarsGameScene({
         </div>
       </div>
 
+      {/* Skip Button - Only show if player has completed before */}
+      {showSkipButton && !gameOver && !victory && (
+        <button
+          onClick={() => {
+            if (onComplete) onComplete();
+          }}
+          className="absolute bottom-4 right-4 z-50 px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 
+            text-white font-bold rounded-lg shadow-2xl transition-all duration-300 
+            flex items-center gap-2 animate-pulse hover:animate-none hover:scale-105"
+          title="Bạn đã hoàn thành minigame này rồi!"
+        >
+          <SkipForward className="w-5 h-5" />
+          <span>Bỏ qua</span>
+        </button>
+      )}
+
       {/* Center Warning - Subtle Flashing */}
       {effectWarning && planetConfig.specialEffectType && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-          <div
+          {/* <div
             className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-red-500 to-orange-400"
             style={{
               animation:
@@ -1195,7 +1224,8 @@ export default function MarsGameScene({
                 "0 0 20px rgba(251, 146, 60, 0.8), 0 0 40px rgba(239, 68, 68, 0.5)",
               filter: "drop-shadow(0 0 10px rgba(251, 146, 60, 0.6))",
             }}
-          >
+          > */}
+          <div className="flex items-center gap-2 text-2xl animate-pulse border-2 rounded px-2 py-1 text-white">
             ⚠️{" "}
             {planetConfig.specialEffectType === "dust_storm" &&
               "BÃO CÁT SẮP ĐẾN"}

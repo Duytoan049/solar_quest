@@ -58,7 +58,7 @@ export default function QuizQuestion({
             transition={{ duration: 0.5 }}
             className="h-full rounded-full"
             style={{
-              background: `linear-gradient(90deg, ${aiColor}40 0%, ${aiColor} 100%)`,
+              background: `linear-gradient(90deg, ${aiColor} 0%, ${aiColor} 100%)`,
             }}
           />
         </div>
@@ -71,7 +71,7 @@ export default function QuizQuestion({
         transition={{ delay: 0.2 }}
         className="bg-white/5 backdrop-blur-lg rounded-2xl p-8 mb-6 border border-white/10"
       >
-        <h3 className="text-2xl font-bold text-white mb-6 leading-relaxed">
+        <h3 className="text-xl font-bold text-white mb-6 leading-relaxed">
           {question.question}
         </h3>
 
@@ -106,11 +106,17 @@ export default function QuizQuestion({
                 key={index}
                 onClick={() => handleSelectAnswer(index)}
                 disabled={selectedAnswer !== null}
-                whileHover={selectedAnswer === null ? { scale: 1.02, x: 5 } : {}}
+                whileHover={
+                  selectedAnswer === null ? { scale: 1.02, x: 5 } : {}
+                }
                 whileTap={selectedAnswer === null ? { scale: 0.98 } : {}}
-                className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-300 
+                className={`w-full text-left p-3 rounded-xl border-2 transition-all duration-300 
                   ${bgColor} ${borderColor} ${textColor}
-                  ${selectedAnswer === null ? "cursor-pointer" : "cursor-not-allowed"}
+                  ${
+                    selectedAnswer === null
+                      ? "cursor-pointer"
+                      : "cursor-not-allowed"
+                  }
                   flex items-center gap-4`}
               >
                 <span
@@ -158,9 +164,7 @@ export default function QuizQuestion({
           }`}
         >
           <div className="flex items-start gap-3">
-            <span className="text-3xl">
-              {isCorrect ? "🎉" : "💡"}
-            </span>
+            <span className="text-3xl">{isCorrect ? "🎉" : "💡"}</span>
             <div>
               <h4 className="font-bold text-lg mb-2 text-white">
                 {isCorrect ? "Chính xác!" : "Không chính xác!"}
@@ -178,6 +182,7 @@ export default function QuizQuestion({
               transition={{ duration: 3, ease: "linear" }}
               className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full"
             />
+            {/* <Loader2 className="w-4 h-4 text-yellow-400 animate-spin" /> */}
             <span>Tiếp tục sau 3 giây...</span>
           </div>
         </motion.div>
