@@ -26,7 +26,7 @@ export default function AsteroidBelt() {
   }, []);
 
   // Cập nhật vị trí của các tiểu hành tinh trong mỗi khung hình
-  useFrame((state, delta) => {
+  useFrame((state) => {
     const time = state.clock.getElapsedTime();
     asteroids.forEach((asteroid, i) => {
       const { position, speed } = asteroid;
