@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react"; // Xóa Suspense khỏi import
-import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber"; // Thêm useLoader
+import { Canvas, useFrame } from "@react-three/fiber"; // Thêm useLoader
 import * as THREE from "three";
 import { useGameManager } from "../core/engine/GameContext";
 import { OrbitControls, Stars, Ring } from "@react-three/drei";
@@ -7,7 +7,7 @@ import { planets as planetData } from "./planets";
 import PlanetMenu from "./PlanetMenu";
 import Planet from "./Planet";
 import Sun from "./Sun";
-import AsteroidBelt from "./AsteroidBelt"; // <-- Import Vành đai Tiểu hành tinh
+// import AsteroidBelt from "./AsteroidBelt";
 import PlanetInfoPanel from "./PlanetInfoPanel";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
@@ -52,8 +52,7 @@ function SceneContent({
   onLoadingComplete, // Thêm prop để báo khi load xong
 }: SceneContentProps & { onLoadingComplete: () => void }) {
   const sunRef = useRef<THREE.Mesh>(null!);
-  const [visiblePlanets, setVisiblePlanets] =
-    useState<PlanetData[]>(planetData); // Load tất cả ngay lập tức
+  const [visiblePlanets] = useState<PlanetData[]>(planetData); // Load tất cả ngay lập tức
 
   // Load tất cả planets ngay lập tức thay vì lazy load
   useEffect(() => {

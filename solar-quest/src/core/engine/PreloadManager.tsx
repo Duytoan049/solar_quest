@@ -18,20 +18,18 @@ export default function PreloadManager() {
   // Gọi useLoader để thực sự tải và cache. React Suspense sẽ xử lý phần còn lại.
   useLoader(THREE.TextureLoader, planetTextureUrls);
 
-  // Lấy hàm setter từ store
-  const setPlanetSceneReady = useGameManager.getState().setPlanetSceneReady;
+  // Lấy context (không cần gọi setter vì GameManager đã xử lý việc này)
+  const { preloadSolarSystem } = useGameManager();
 
   // Sử dụng ref để đảm bảo hàm chỉ được gọi một lần duy nhất trong suốt vòng đời component
   const hasSignaled = useRef(false);
 
-  // FIX: Gọi hàm setPlanetSceneReady ngay trong quá trình render
-  // Khi đoạn code này chạy, điều đó có nghĩa là Suspense đã hoàn thành
-  // và tất cả các texture đã được tải xong.
+  // FIX: Khi component này render thành công, có nghĩa là tất cả texture đã tải xong
+  // Chúng ta có thể gọi preloadSolarSystem để đảm bảo state được cập nhật
   if (!hasSignaled.current) {
-    console.log(
-      "PreloadManager has finished loading. Signaling readiness NOW."
-    );
-    setPlanetSceneReady(true);
+    console.log("PreloadManager has finished loading textures.");
+    // Gọi preloadSolarSystem để đảm bảo isSolarSystemLoaded được set thành true
+    preloadSolarSystem();
     hasSignaled.current = true;
   }
 

@@ -1,6 +1,5 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import React from "react";
 
 export default function CameraFlyTo({
   target,

@@ -1,7 +1,5 @@
-import React from "react";
 import { useLoader } from "@react-three/fiber";
 import { TextureLoader } from "three";
-import { Mesh } from "three";
 
 export default function Saturn({
   position = [0, 0, 0],
