@@ -577,20 +577,22 @@ export default function PlanetDetail() {
 
   return (
     <div className="w-full h-screen bg-black relative">
-      {/* Back button */}
-      <button
-        onClick={() => setScene("solar_system")}
-        className="absolute top-4 left-4 z-50 px-4 py-2 bg-white/10 hover:bg-white/20 
-          backdrop-blur-md rounded-lg text-white font-semibold transition-all duration-300
-          border border-white/20 hover:border-white/40 flex items-center gap-2"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        Solar System
-      </button>
+      {/* Back button - Hide when Quiz is open */}
+      {!showQuiz && (
+        <button
+          onClick={() => setScene("solar_system")}
+          className="absolute top-4 left-4 z-50 px-4 py-2 bg-white/10 hover:bg-white/20 
+            backdrop-blur-md rounded-lg text-white font-semibold transition-all duration-300
+            border border-white/20 hover:border-white/40 flex items-center gap-2"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          Solar System
+        </button>
+      )}
 
-      {/* Profile Card */}
+      {/* Profile Card - Hide when Quiz is open */}
       <AnimatePresence mode="wait">
-        {profile && showProfileCard && (
+        {profile && showProfileCard && !showQuiz && (
           <motion.div
             initial={{ x: -100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -722,8 +724,8 @@ export default function PlanetDetail() {
         )}
       </AnimatePresence>
 
-      {/* Show profile button when hidden */}
-      {profile && !showProfileCard && (
+      {/* Show profile button when hidden - Hide when Quiz is open */}
+      {profile && !showProfileCard && !showQuiz && (
         <motion.button
           initial={{ x: -100, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
@@ -737,32 +739,34 @@ export default function PlanetDetail() {
         </motion.button>
       )}
 
-      {/* Planet name & Stats toggle */}
-      <div className="absolute top-4 right-4 z-50 flex gap-2">
-        <div className="px-6 py-3 bg-black/60 backdrop-blur-md rounded-lg flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-white capitalize">
-            {planetId}
-          </h1>
-          {isLoadingMarkers && (
-            <Loader2 className="w-4 h-4 text-yellow-400 animate-spin" />
-          )}
+      {/* Planet name & Stats toggle - Hide when Quiz is open */}
+      {!showQuiz && (
+        <div className="absolute top-4 right-4 z-50 flex gap-2">
+          <div className="px-6 py-3 bg-black/60 backdrop-blur-md rounded-lg flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-white capitalize">
+              {planetId}
+            </h1>
+            {isLoadingMarkers && (
+              <Loader2 className="w-4 h-4 text-yellow-400 animate-spin" />
+            )}
+          </div>
+          <button
+            onClick={() => setShowImageGallery(!showImageGallery)}
+            className="px-4 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg 
+            text-white transition-all duration-300 border border-white/20 hover:border-white/40"
+            title="NASA Images"
+          >
+            <Camera className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setShowStats(!showStats)}
+            className="px-4 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg 
+            text-white transition-all duration-300 border border-white/20 hover:border-white/40"
+          >
+            <Info className="w-5 h-5" />
+          </button>
         </div>
-        <button
-          onClick={() => setShowImageGallery(!showImageGallery)}
-          className="px-4 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg 
-            text-white transition-all duration-300 border border-white/20 hover:border-white/40"
-          title="NASA Images"
-        >
-          <Camera className="w-5 h-5" />
-        </button>
-        <button
-          onClick={() => setShowStats(!showStats)}
-          className="px-4 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg 
-            text-white transition-all duration-300 border border-white/20 hover:border-white/40"
-        >
-          <Info className="w-5 h-5" />
-        </button>
-      </div>
+      )}
 
       {/* Stats Panel */}
       <AnimatePresence mode="wait">
@@ -1142,104 +1146,109 @@ export default function PlanetDetail() {
         </button>
       </div> */}
 
-      {/* Progress & Achievement */}
-      <div className="absolute bottom-4 right-4 z-50 flex flex-col items-end gap-2">
-        {/* Progress bar */}
-        <div className="bg-black/80 backdrop-blur-md rounded-lg p-3 border border-white/20">
-          <div className="flex items-center gap-2 mb-2">
-            <Award className="w-4 h-4 text-yellow-400" />
-            <span className="text-white text-sm font-semibold">
-              Explored: {visitedMarkers.size}/{markers.length}
-            </span>
-          </div>
-          <div className="w-48 h-2 bg-gray-700 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Achievement badge */}
-        {progress === 100 && (
-          <div
-            className="bg-gradient-to-r from-yellow-400 to-orange-500 px-4 py-2 rounded-lg 
-            shadow-lg animate-in zoom-in duration-500"
-          >
-            <div className="flex items-center gap-2">
-              <Award className="w-5 h-5 text-white" />
-              <span className="text-white font-bold">Master Explorer!</span>
+      {/* Progress & Achievement - Hide when Quiz is open */}
+      {!showQuiz && (
+        <div className="absolute bottom-4 right-4 z-50 flex flex-col items-end gap-2">
+          {/* Progress bar */}
+          <div className="bg-black/80 backdrop-blur-md rounded-lg p-3 border border-white/20">
+            <div className="flex items-center gap-2 mb-2">
+              <Award className="w-4 h-4 text-yellow-400" />
+              <span className="text-white text-sm font-semibold">
+                Explored: {visitedMarkers.size}/{markers.length}
+              </span>
+            </div>
+            <div className="w-48 h-2 bg-gray-700 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-500"
+                style={{ width: `${progress}%` }}
+              />
             </div>
           </div>
-        )}
-      </div>
 
-      <Canvas
-        camera={{ position: [0, 0, 5], fov: 75 }}
-        gl={{
-          antialias: false, // Disable for better performance
-          powerPreference: "high-performance",
-        }}
-        dpr={[1, 1.5]} // Limit pixel ratio for performance
-        frameloop="demand" // Only render when needed
-      >
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[5, 5, 5]} intensity={1} />
-        <pointLight position={[10, 10, 10]} intensity={0.5} />
+          {/* Achievement badge */}
+          {progress === 100 && (
+            <div
+              className="bg-gradient-to-r from-yellow-400 to-orange-500 px-4 py-2 rounded-lg 
+            shadow-lg animate-in zoom-in duration-500"
+            >
+              <div className="flex items-center gap-2">
+                <Award className="w-5 h-5 text-white" />
+                <span className="text-white font-bold">Master Explorer!</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
-        {/* Starfield background */}
-        <Stars
-          radius={100}
-          depth={50}
-          count={1000}
-          factor={4}
-          saturation={0}
-          fade
-          speed={1}
-        />
+      {/* Hide Canvas when Quiz is open to prevent z-index conflicts */}
+      {!showQuiz && (
+        <Canvas
+          camera={{ position: [0, 0, 5], fov: 75 }}
+          gl={{
+            antialias: false, // Disable for better performance
+            powerPreference: "high-performance",
+          }}
+          dpr={[1, 1.5]} // Limit pixel ratio for performance
+          frameloop="demand" // Only render when needed
+        >
+          <ambientLight intensity={0.5} />
+          <directionalLight position={[5, 5, 5]} intensity={1} />
+          <pointLight position={[10, 10, 10]} intensity={0.5} />
 
-        {/* Planet with rotation */}
-        <RotatingPlanet textureUrl={textureUrl} />
-
-        {/* Atmosphere glow */}
-        <AtmosphereGlow color={atmosphereColor} />
-
-        {markers.map((marker) => (
-          <Marker
-            key={marker.id}
-            id={marker.id}
-            label={"name" in marker ? marker.name : marker.label}
-            position={marker.position}
-            onClick={handleMarkerClick}
-            markerRef={(el) => {
-              if (el) markerRefs.current[marker.id] = el;
-            }}
-            isActive={activeMarker === marker.id}
-            isHovered={hoveredMarker === marker.id}
-            onHover={setHoveredMarker}
+          {/* Starfield background */}
+          <Stars
+            radius={100}
+            depth={50}
+            count={1000}
+            factor={4}
+            saturation={0}
+            fade
+            speed={1}
           />
-        ))}
 
-        <CameraController
-          targetMarkerId={activeMarker}
-          markerRefs={markerRefs}
-          controlsRef={controlsRef}
-          isAnimating={isAnimating}
-          onAnimationComplete={handleAnimationComplete}
-        />
-        <OrbitControls
-          ref={controlsRef}
-          enablePan
-          enableZoom
-          enableRotate
-          enableDamping
-          dampingFactor={0.05}
-          minDistance={3}
-          maxDistance={10}
-        />
-      </Canvas>
+          {/* Planet with rotation */}
+          <RotatingPlanet textureUrl={textureUrl} />
 
-      {activeMarker && (
+          {/* Atmosphere glow */}
+          <AtmosphereGlow color={atmosphereColor} />
+
+          {markers.map((marker) => (
+            <Marker
+              key={marker.id}
+              id={marker.id}
+              label={"name" in marker ? marker.name : marker.label}
+              position={marker.position}
+              onClick={handleMarkerClick}
+              markerRef={(el) => {
+                if (el) markerRefs.current[marker.id] = el;
+              }}
+              isActive={activeMarker === marker.id}
+              isHovered={hoveredMarker === marker.id}
+              onHover={setHoveredMarker}
+            />
+          ))}
+
+          <CameraController
+            targetMarkerId={activeMarker}
+            markerRefs={markerRefs}
+            controlsRef={controlsRef}
+            isAnimating={isAnimating}
+            onAnimationComplete={handleAnimationComplete}
+          />
+          <OrbitControls
+            ref={controlsRef}
+            enablePan
+            enableZoom
+            enableRotate
+            enableDamping
+            dampingFactor={0.05}
+            minDistance={3}
+            maxDistance={10}
+          />
+        </Canvas>
+      )}
+
+      {activeMarker && !showQuiz && (
         <motion.div
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -1400,22 +1409,23 @@ export default function PlanetDetail() {
         </motion.div>
       )}
 
-      {/* AI Chatbot Panel */}
-      {aiCompanion ? (
-        <ChatbotPanel
-          planetId={planetId}
-          planetName={planetId.charAt(0).toUpperCase() + planetId.slice(1)}
-          ai={aiCompanion}
-          profile={profile}
-          isOpen={isChatbotOpen}
-          onToggle={() => setIsChatbotOpen(!isChatbotOpen)}
-        />
-      ) : (
-        /* Debug: Show warning if AI companion not found */
-        <div className="fixed bottom-8 right-6 z-50 p-4 bg-red-500/20 border border-red-500 rounded-lg text-white text-sm">
-          ⚠️ AI Companion not found for: {planetId}
-        </div>
-      )}
+      {/* AI Chatbot Panel - Hide when Quiz is open */}
+      {!showQuiz &&
+        (aiCompanion ? (
+          <ChatbotPanel
+            planetId={planetId}
+            planetName={planetId.charAt(0).toUpperCase() + planetId.slice(1)}
+            ai={aiCompanion}
+            profile={profile}
+            isOpen={isChatbotOpen}
+            onToggle={() => setIsChatbotOpen(!isChatbotOpen)}
+          />
+        ) : (
+          /* Debug: Show warning if AI companion not found */
+          <div className="fixed bottom-8 right-6 z-50 p-4 bg-red-500/20 border border-red-500 rounded-lg text-white text-sm">
+            ⚠️ AI Companion not found for: {planetId}
+          </div>
+        ))}
 
       {/* Quiz Panel */}
       <AnimatePresence>
@@ -1424,7 +1434,7 @@ export default function PlanetDetail() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] bg-black"
           >
             <QuizPanel
               planetId={planetId}

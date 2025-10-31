@@ -93,7 +93,7 @@ export default function QuizPanel({ planetId, ai, onComplete }: Props) {
   };
 
   return (
-    <div className="inset-0 flex items-center justify-center bg-black/95 z-50 p-6 overflow-y-auto cursor-auto pt-10">
+    <div className="inset-0 flex items-center justify-center bg-black z-1000 p-6 overflow-y-auto cursor-auto pt-10">
       {/* Background stars */}
       {/* <div className="absolute inset-0 overflow-hidden opacity-20">
         {[...Array(50)].map((_, i) => (

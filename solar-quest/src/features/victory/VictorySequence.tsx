@@ -90,6 +90,7 @@ export default function VictorySequence({
   }, [phase]);
 
   // Simple warp effect - matching game theme
+  // IMPORTANT: Only run during "travel" phase to avoid interference with Quiz
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || phase !== "travel") return;
@@ -144,6 +145,8 @@ export default function VictorySequence({
 
     return () => {
       if (animationId) cancelAnimationFrame(animationId);
+      // Clear canvas when leaving travel phase
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
   }, [phase]);
 
@@ -172,8 +175,10 @@ export default function VictorySequence({
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-black">
-      {/* Canvas for warp effect */}
-      <canvas ref={canvasRef} className="absolute inset-0" />
+      {/* Canvas for warp effect - Hide during AI intro phase to prevent interference with Quiz */}
+      {phase !== "ai-intro" && (
+        <canvas ref={canvasRef} className="absolute inset-0" />
+      )}
 
       {/* Phase 1: Celebration */}
       <AnimatePresence>

@@ -89,12 +89,12 @@ export default function MainMenu() {
             Setting
           </Button>
 
-          <Button
+          {/* <Button
             style={{ fontFamily: "Sebino-Regular" }}
             onClick={() => handleStart("demo")}
           >
             Demo Game
-          </Button>
+          </Button> */}
 
           <Button
             style={{ fontFamily: "Sebino-Regular" }}

@@ -39,7 +39,7 @@ export default function QuizQuestion({
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="w-full max-w-2xl mx-auto"
+      className="w-full max-w-2xl mx-auto z-1000"
     >
       {/* Progress bar */}
       <div className="mb-6">

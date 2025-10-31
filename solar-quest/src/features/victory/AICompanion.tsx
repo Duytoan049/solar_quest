@@ -114,7 +114,7 @@ export default function AICompanion({
   }
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-black/95 z-50 cursor-auto">
+    <div className="absolute inset-0 flex items-center justify-center bg-black z-50 cursor-auto">
       {/* Background stars - subtle */}
       <div className="absolute inset-0 overflow-hidden opacity-30">
         {[...Array(30)].map((_, i) => (
