@@ -16,8 +16,6 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import {
   getPlanetInfo,
   type PlanetInfo,
-  getPlanetaryFeatures,
-  type PlanetaryFeature,
   getMarsRoverPhoto,
   getEarthImagery,
   getPlanetImagery,
@@ -30,108 +28,62 @@ import {
 } from "@/services/profileStorage";
 import { ROLE_INFO } from "@/types/profile";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  getCachedPlanetData,
+  getCachedTexture,
+  getCachedMarkerImagery,
+} from "@/utils/planetPreloader";
 import ChatbotPanel from "@/features/chatbot/ChatbotPanel";
 import QuizPanel from "@/features/quiz/QuizPanel";
 import { aiCompanions } from "@/data/aiCompanions";
+import {
+  marsMarkers,
+  earthMarkers,
+  venusMarkers,
+  jupiterMarkers,
+  saturnMarkers,
+  uranusMarkers,
+  neptuneMarkers,
+  mercuryMarkers,
+  sunMarkers,
+} from "./planetMarkers";
 
 // Marker type definition
 interface MarkerData {
   id: number;
-  label: string;
+  name: string;
+  label?: string;
   position: [number, number, number];
   description: string;
+  type?: string;
+  height?: string;
+  depth?: string;
+  diameter?: string;
+  coordinates?: { latitude: number; longitude: number };
+  namedAfter?: string;
+  discoveryDate?: string;
 }
 
-// Planet markers data - TODO: Move to separate config file per planet
+// Convert imported markers to MarkerData format
+const convertMarkers = (markers: Partial<MarkerData>[]): MarkerData[] => {
+  return markers.map((m) => ({
+    ...m,
+    label: m.name,
+    position: m.position as [number, number, number],
+  })) as MarkerData[];
+};
+
+// Planet markers data from centralized config
 const planetMarkersData: Record<string, MarkerData[]> = {
-  mars: [
-    {
-      id: 1,
-      label: "Olympus Mons",
-      position: [2, 2, 0] as [number, number, number],
-      description: "Largest volcano in the solar system - 21km high!",
-    },
-    {
-      id: 2,
-      label: "Valles Marineris",
-      position: [-2, 1, 0] as [number, number, number],
-      description: "A vast canyon system over 4000km long.",
-    },
-    {
-      id: 3,
-      label: "Polar Ice Caps",
-      position: [0, -2, 0] as [number, number, number],
-      description: "Frozen water and CO2 at the poles.",
-    },
-    {
-      id: 4,
-      label: "Tharsis Region",
-      position: [3, -1, 0] as [number, number, number],
-      description: "Massive volcanic plateau.",
-    },
-  ],
-  mercury: [
-    {
-      id: 1,
-      label: "Caloris Basin",
-      position: [2, 0, 0] as [number, number, number],
-      description: "One of the largest impact craters in the solar system.",
-    },
-  ],
-  venus: [
-    {
-      id: 1,
-      label: "Maxwell Montes",
-      position: [0, 2, 0] as [number, number, number],
-      description: "Highest mountain on Venus - 11km tall.",
-    },
-  ],
-  earth: [
-    {
-      id: 1,
-      label: "Mount Everest",
-      position: [0, 2, 0] as [number, number, number],
-      description: "Highest mountain on Earth - 8.8km above sea level.",
-    },
-    {
-      id: 2,
-      label: "Pacific Ocean",
-      position: [-2, 0, 0] as [number, number, number],
-      description: "Largest ocean covering 46% of Earth's water surface.",
-    },
-  ],
-  jupiter: [
-    {
-      id: 1,
-      label: "Great Red Spot",
-      position: [0, 0, 2] as [number, number, number],
-      description: "Giant storm larger than Earth!",
-    },
-  ],
-  saturn: [
-    {
-      id: 1,
-      label: "Ring System",
-      position: [0, 0, 3] as [number, number, number],
-      description: "Spectacular ring system made of ice and rock.",
-    },
-  ],
-  uranus: [
-    {
-      id: 1,
-      label: "Polar Region",
-      position: [0, 2, 0] as [number, number, number],
-      description: "Unique tilted rotation axis at 98 degrees.",
-    },
-  ],
-  neptune: [
-    {
-      id: 1,
-      label: "Great Dark Spot",
-      position: [0, 1, 2] as [number, number, number],
-      description: "Massive storm system similar to Jupiter's.",
-    },
-  ],
+  mars: convertMarkers(marsMarkers),
+  earth: convertMarkers(earthMarkers),
+  venus: convertMarkers(venusMarkers),
+  jupiter: convertMarkers(jupiterMarkers),
+  saturn: convertMarkers(saturnMarkers),
+  uranus: convertMarkers(uranusMarkers),
+  neptune: convertMarkers(neptuneMarkers),
+  mercury: convertMarkers(mercuryMarkers),
+  sun: convertMarkers(sunMarkers),
 };
 
 // Planet textures - TODO: Move to config
@@ -329,8 +281,15 @@ function AtmosphereGlow({ color }: { color: string }) {
 function RotatingPlanet({ textureUrl }: { textureUrl: string }) {
   const meshRef = useRef<THREE.Mesh>(null);
 
-  // Cache texture to avoid reloading on every render
+  // 🚀 Try cached texture first (instant if preloaded), fallback to loading
   const texture = useMemo(() => {
+    const cached = getCachedTexture(textureUrl);
+    if (cached) {
+      console.log(`✅ Planet: Using cached texture for ${textureUrl}`);
+      return cached;
+    }
+
+    console.log(`🔄 Planet: Loading texture ${textureUrl}`);
     return new THREE.TextureLoader().load(textureUrl);
   }, [textureUrl]);
 
@@ -366,6 +325,7 @@ function CameraController({
   onAnimationComplete,
 }: CameraControllerProps) {
   useFrame((state) => {
+    // CHỈ animate khi isAnimating = true (giống isManualCamera logic)
     if (!isAnimating || targetMarkerId === null || !controlsRef.current) return;
 
     const camera = state.camera;
@@ -374,23 +334,30 @@ function CameraController({
 
     if (!markerObject) return;
 
-    // Lấy vị trí thực tế của marker object - GIỐNG PLANETSCENE1
+    // Lấy vị trí thực tế của marker object
     const markerPosition = new THREE.Vector3();
     markerObject.getWorldPosition(markerPosition);
 
-    // Tính toán vị trí camera - GIỐNG PLANETSCENE1
-    const offsetDistance = 3; // Khoảng cách phù hợp cho marker
-    const targetCameraPosition = new THREE.Vector3()
-      .copy(markerPosition)
-      .add(new THREE.Vector3(0, 1, offsetDistance));
+    // Tính vector từ tâm hành tinh đến marker (radial direction)
+    const direction = markerPosition.clone().normalize();
 
-    // Smooth lerp - GIỐNG PLANETSCENE1
+    // Tính toán vị trí camera: đẩy ra ngoài theo hướng radial
+    const cameraDistance = 1.5; // Khoảng cách từ marker đến camera
+
+    // Vị trí camera: từ marker, đẩy ra ngoài theo hướng radial + offset nhỏ để góc nhìn đẹp hơn
+    const targetCameraPosition = markerPosition
+      .clone()
+      .add(direction.clone().multiplyScalar(cameraDistance)) // Đẩy camera ra theo hướng từ tâm
+      .add(new THREE.Vector3(0, 0.3, 0)); // Nâng camera lên một chút để góc nhìn đẹp hơn
+
+    // Smooth lerp - GIỐNG PLANETSCENE1 (0.05 cho mượt mà)
     camera.position.lerp(targetCameraPosition, 0.05);
     controls.target.lerp(markerPosition, 0.05);
 
     // Check completion - GIỐNG PLANETSCENE1
     const distance = camera.position.distanceTo(targetCameraPosition);
     if (distance < 0.1) {
+      // Animation hoàn thành - CHO PHÉP user tự do điều khiển
       onAnimationComplete();
     }
   });
@@ -410,8 +377,6 @@ export default function PlanetDetail() {
   const [visitedMarkers, setVisitedMarkers] = useState<Set<number>>(new Set());
   const [planetInfo, setPlanetInfo] = useState<PlanetInfo | null>(null);
   const [isLoadingPlanetInfo, setIsLoadingPlanetInfo] = useState(false);
-  const [nasaMarkers, setNasaMarkers] = useState<PlanetaryFeature[]>([]);
-  const [isLoadingMarkers, setIsLoadingMarkers] = useState(false);
   const [showImageGallery, setShowImageGallery] = useState(false);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
   const [marsRoverImage, setMarsRoverImage] = useState<string | null>(null);
@@ -443,10 +408,8 @@ export default function PlanetDetail() {
     }
   }, [planetId, profile]);
 
-  const markers =
-    nasaMarkers.length > 0
-      ? nasaMarkers
-      : planetMarkersData[planetId] || planetMarkersData.mars;
+  // Always use planetMarkersData for accurate NASA-verified positions
+  const markers = planetMarkersData[planetId] || planetMarkersData.mars;
   const textureUrl = planetTextures[planetId] || planetTextures.mars;
   const atmosphereColor = planetAtmosphereColors[planetId] || "#ffffff";
   const stats = planetStats[planetId];
@@ -455,26 +418,24 @@ export default function PlanetDetail() {
   useEffect(() => {
     async function fetchPlanetData() {
       setIsLoadingPlanetInfo(true);
-      setIsLoadingMarkers(true);
       try {
-        // Fetch planet info
+        // 🚀 Try to get cached data first (instant if preloaded by VictorySequence)
+        const cached = getCachedPlanetData(planetId);
+        if (cached) {
+          console.log(`✅ PlanetDetail: Using cached data for ${planetId}`);
+          setPlanetInfo(cached);
+          setIsLoadingPlanetInfo(false);
+          return;
+        }
+
+        // Fallback to API if not cached
+        console.log(`🔄 PlanetDetail: Fetching data for ${planetId}`);
         const data = await getPlanetInfo(planetId);
         setPlanetInfo(data);
-
-        // Fetch NASA planetary features/markers
-        const features = await getPlanetaryFeatures(planetId);
-        if (features && features.length > 0) {
-          setNasaMarkers(features);
-          console.log(
-            `✅ Loaded ${features.length} NASA-verified features for ${planetId}:`,
-            features
-          );
-        }
       } catch (error) {
         console.error("Error fetching planet data:", error);
       } finally {
         setIsLoadingPlanetInfo(false);
-        setIsLoadingMarkers(false);
       }
     }
 
@@ -483,6 +444,12 @@ export default function PlanetDetail() {
 
   const handleMarkerClick = useCallback(
     async (id: number) => {
+      // Reset animation state trước khi bắt đầu animation mới
+      setIsAnimating(false);
+
+      // Chờ một frame để đảm bảo animation cũ đã dừng
+      await new Promise((resolve) => setTimeout(resolve, 16));
+
       setActiveMarker(id);
       setIsAnimating(true);
       const newVisitedMarkers = new Set(visitedMarkers).add(id);
@@ -497,7 +464,26 @@ export default function PlanetDetail() {
       // Fetch marker image
       const marker = markers.find((m) => m.id === id);
       if (marker) {
-        const markerName = "name" in marker ? marker.name : marker.label;
+        const markerName = marker.name;
+
+        // 🚀 Try to get cached marker imagery first
+        const cached = getCachedMarkerImagery(markerName, planetId);
+        if (cached) {
+          console.log(`✅ Using cached marker imagery: ${markerName}`);
+          setMarkerImage({
+            imageUrl: cached.imageUrl,
+            title: cached.title,
+            explanation: cached.explanation,
+          });
+
+          // Unlock Photographer badge if profile exists
+          if (profile) {
+            unlockBadge(planetId, "📸 Photographer");
+          }
+          return;
+        }
+
+        // Fallback to API if not cached
         setIsLoadingMarkerImage(true);
         try {
           const imagery = await getMarkerImagery(markerName, planetId);
@@ -746,9 +732,6 @@ export default function PlanetDetail() {
             <h1 className="text-2xl font-bold text-white capitalize">
               {planetId}
             </h1>
-            {isLoadingMarkers && (
-              <Loader2 className="w-4 h-4 text-yellow-400 animate-spin" />
-            )}
           </div>
           <button
             onClick={() => setShowImageGallery(!showImageGallery)}
@@ -1216,7 +1199,7 @@ export default function PlanetDetail() {
             <Marker
               key={marker.id}
               id={marker.id}
-              label={"name" in marker ? marker.name : marker.label}
+              label={marker.name}
               position={marker.position}
               onClick={handleMarkerClick}
               markerRef={(el) => {
@@ -1261,7 +1244,7 @@ export default function PlanetDetail() {
             <h2 className="text-base font-bold flex items-center gap-2">
               {(() => {
                 const marker = markers.find((m) => m.id === activeMarker);
-                return "name" in marker! ? marker!.name : marker!.label;
+                return marker?.name || "";
               })()}
               {isLoadingMarkerImage && (
                 <Loader2 className="w-3 h-3 text-blue-400 animate-spin" />
@@ -1328,72 +1311,88 @@ export default function PlanetDetail() {
             {markers.find((m) => m.id === activeMarker)?.description}
           </p>
 
-          {/* NASA verified feature details */}
+          {/* Detailed marker information */}
           {(() => {
             const marker = markers.find((m) => m.id === activeMarker);
-            if (marker && "type" in marker) {
-              const feature = marker as PlanetaryFeature;
-              return (
-                <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
+            if (!marker) return null;
+
+            const hasDetails =
+              marker.type ||
+              marker.height ||
+              marker.depth ||
+              marker.diameter ||
+              marker.coordinates ||
+              marker.namedAfter;
+
+            if (!hasDetails) return null;
+
+            return (
+              <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
+                {marker.type && (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-400">Type:</span>
                     <span className="text-xs text-white font-semibold capitalize">
-                      {feature.type}
+                      {marker.type}
                     </span>
                   </div>
-                  {feature.height && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400">Height:</span>
-                      <span className="text-xs text-white font-semibold">
-                        {feature.height}
-                      </span>
-                    </div>
-                  )}
-                  {feature.diameter && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400">Diameter:</span>
-                      <span className="text-xs text-white font-semibold">
-                        {feature.diameter}
-                      </span>
-                    </div>
-                  )}
-                  {feature.depth && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400">Depth:</span>
-                      <span className="text-xs text-white font-semibold">
-                        {feature.depth}
-                      </span>
-                    </div>
-                  )}
-                  {feature.coordinates && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400">
-                        Coordinates:
-                      </span>
-                      <span className="text-xs text-white font-semibold">
-                        {feature.coordinates.latitude.toFixed(2)}°,{" "}
-                        {feature.coordinates.longitude.toFixed(2)}°
-                      </span>
-                    </div>
-                  )}
-                  {feature.namedAfter && (
-                    <div className="mt-3 pt-3 border-t border-white/10">
-                      <p className="text-xs text-gray-400">
-                        Named after:{" "}
-                        <span className="text-white">{feature.namedAfter}</span>
-                      </p>
-                    </div>
-                  )}
+                )}
+                {marker.height && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400">Height:</span>
+                    <span className="text-xs text-white font-semibold">
+                      {marker.height}
+                    </span>
+                  </div>
+                )}
+                {marker.depth && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400">Depth:</span>
+                    <span className="text-xs text-white font-semibold">
+                      {marker.depth}
+                    </span>
+                  </div>
+                )}
+                {marker.diameter && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400">Diameter:</span>
+                    <span className="text-xs text-white font-semibold">
+                      {marker.diameter}
+                    </span>
+                  </div>
+                )}
+                {marker.coordinates && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400">Coordinates:</span>
+                    <span className="text-xs text-white font-semibold">
+                      {marker.coordinates.latitude.toFixed(2)}°,{" "}
+                      {marker.coordinates.longitude.toFixed(2)}°
+                    </span>
+                  </div>
+                )}
+                {marker.namedAfter && (
                   <div className="mt-3 pt-3 border-t border-white/10">
-                    <p className="text-xs text-gray-500 flex items-center gap-1">
-                      <span>🛰️</span>
-                      <span>NASA-verified planetary feature</span>
+                    <p className="text-xs text-gray-400">
+                      Named after:{" "}
+                      <span className="text-white">{marker.namedAfter}</span>
                     </p>
                   </div>
+                )}
+                {marker.discoveryDate && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400">Discovery:</span>
+                    <span className="text-xs text-white font-semibold">
+                      {marker.discoveryDate}
+                    </span>
+                  </div>
+                )}
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                    <span>🛰️</span>
+                    <span>NASA-verified planetary feature</span>
+                  </p>
                 </div>
-              );
-            }
-            return null;
+              </div>
+            );
           })()}
 
           {isTourMode && (

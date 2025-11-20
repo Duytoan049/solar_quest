@@ -6,6 +6,8 @@ import type {
   AICompanionData,
 } from "@/types/victory";
 import AICompanion from "./AICompanion";
+import { usePreloadPlanet } from "@/hooks/usePreloadPlanet";
+import { getPlanetMarkers } from "@/features/planet-info/planetMarkers";
 
 interface Props {
   planetId: string;
@@ -29,6 +31,23 @@ export default function VictorySequence({
   const [planetScale, setPlanetScale] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | undefined>(undefined);
+
+  // 🚀 Preload PlanetDetail resources during travel/arrival phase
+  // This ensures instant scene load when user transitions to planet exploration
+  const markers = getPlanetMarkers(planetId);
+  const { isPreloaded } = usePreloadPlanet(
+    planetId,
+    phase === "travel" || phase === "arrival" || phase === "ai-intro",
+    markers
+  );
+
+  useEffect(() => {
+    if (isPreloaded) {
+      console.log(
+        `✅ VictorySequence: Planet ${planetId} preloaded and ready!`
+      );
+    }
+  }, [isPreloaded, planetId]);
 
   // Auto-progress through phases
   useEffect(() => {

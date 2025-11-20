@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Volume2, VolumeX, Play, Pause } from "lucide-react";
 import QuizPanel from "@/features/quiz/QuizPanel";
 import ProfileCreation from "@/features/profile/ProfileCreation";
 import type { AICompanionData } from "@/types/victory";
 import type { QuizResult } from "@/types/quiz";
+import { ttsService, detectLanguage } from "@/services/textToSpeech";
 
 interface Props {
   ai: AICompanionData;
@@ -30,6 +32,9 @@ export default function AICompanion({
   const [currentDialogue, setCurrentDialogue] = useState(0);
   const [displayedText, setDisplayedText] = useState("");
   const [isTyping, setIsTyping] = useState(true);
+  const [isTTSEnabled, setIsTTSEnabled] = useState(true);
+  const [isTTSPlaying, setIsTTSPlaying] = useState(false);
+  const [isTTSPaused, setIsTTSPaused] = useState(false);
 
   const fullText = ai.dialogues.intro[currentDialogue] || "";
 
@@ -42,44 +47,146 @@ export default function AICompanion({
     }
   }, [phase, onComplete]);
 
-  // Typing effect
+  // Typing effect with synchronized TTS
   useEffect(() => {
-    if (phase !== "intro" || !isTyping) return;
+    if (phase !== "intro") return;
 
-    let index = 0;
     setDisplayedText("");
+    setIsTyping(true);
 
-    const interval = setInterval(() => {
-      if (index < fullText.length) {
-        setDisplayedText((prev) => prev + fullText[index]);
-        index++;
+    // Capture TTS enabled state at the moment dialogue starts
+    const shouldPlayTTS = isTTSEnabled;
+
+    console.log(
+      "AICompanion: Starting dialogue",
+      currentDialogue,
+      "TTS enabled:",
+      shouldPlayTTS
+    );
+    console.log("AICompanion: Full text:", fullText);
+
+    // Start TTS immediately with full text if enabled
+    if (shouldPlayTTS) {
+      const lang = detectLanguage(fullText);
+      console.log("AICompanion: Detected language:", lang);
+
+      setIsTTSPlaying(true);
+      setIsTTSPaused(false);
+
+      ttsService.speak(
+        fullText,
+        { lang, rate: 0.9, pitch: 1.0, volume: 1.0 }, // Slightly slower for better sync
+        () => {
+          // On TTS complete
+          console.log("AICompanion: TTS completed");
+          setIsTTSPlaying(false);
+          setIsTTSPaused(false);
+        },
+        (error) => {
+          // On TTS error
+          console.error("AICompanion: TTS Error:", error);
+          setIsTTSPlaying(false);
+          setIsTTSPaused(false);
+        }
+      );
+    } else {
+      console.log("AICompanion: TTS is disabled, skipping");
+    }
+
+    let currentIndex = 0;
+    const typingSpeed = 50; // milliseconds per character
+    const isExploreMessage = currentDialogue >= ai.dialogues.intro.length;
+
+    const typingInterval = setInterval(() => {
+      if (currentIndex < fullText.length) {
+        setDisplayedText(fullText.slice(0, currentIndex + 1));
+        currentIndex++;
       } else {
-        setIsTyping(false);
-        clearInterval(interval);
+        // For explore message, don't set isTyping to false
+        // to keep the quiz button visible
+        if (!isExploreMessage) {
+          setIsTyping(false);
+        } else {
+          setIsTyping(false); // Allow quiz button to show
+        }
+        clearInterval(typingInterval);
 
-        // Auto-advance to next dialogue after 2s
-        setTimeout(() => {
-          if (currentDialogue < ai.dialogues.intro.length - 1) {
-            setCurrentDialogue((prev) => prev + 1);
-            setIsTyping(true);
-          } else {
-            // Show explore message
-            setTimeout(() => {
-              setCurrentDialogue(ai.dialogues.intro.length);
-              setIsTyping(true);
-            }, 1500);
-          }
-        }, 2000);
+        // Auto-advance only for intro dialogues
+        if (!isExploreMessage) {
+          setTimeout(() => {
+            if (currentDialogue < ai.dialogues.intro.length - 1) {
+              setCurrentDialogue((prev) => prev + 1);
+            } else {
+              // Show explore message
+              setTimeout(() => {
+                setCurrentDialogue(ai.dialogues.intro.length);
+              }, 1500);
+            }
+          }, 2000);
+        }
       }
-    }, 50); // Typing speed
+    }, typingSpeed);
 
-    return () => clearInterval(interval);
-  }, [currentDialogue, isTyping, fullText, ai.dialogues.intro.length, phase]);
+    return () => {
+      clearInterval(typingInterval);
+      ttsService.cancel(); // Cancel TTS when changing dialogue
+      setIsTTSPlaying(false);
+      setIsTTSPaused(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentDialogue, fullText, phase, ai.dialogues.intro.length]);
+  // Intentionally not including isTTSEnabled to prevent re-triggering typing effect when mute/unmute
 
   const skipToEnd = () => {
+    ttsService.cancel(); // Cancel TTS when skipping
     setDisplayedText(fullText);
     setIsTyping(false);
+    setIsTTSPlaying(false);
+    setIsTTSPaused(false);
   };
+
+  const handleTTSToggle = () => {
+    if (isTTSPlaying) {
+      if (isTTSPaused) {
+        ttsService.resume();
+        setIsTTSPaused(false);
+      } else {
+        ttsService.pause();
+        setIsTTSPaused(true);
+      }
+    }
+  };
+
+  const handleTTSMute = () => {
+    setIsTTSEnabled(!isTTSEnabled);
+    if (isTTSPlaying) {
+      ttsService.cancel();
+      setIsTTSPlaying(false);
+      setIsTTSPaused(false);
+    }
+  };
+
+  // ESC key handler
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (phase === "intro") {
+          // Cancel TTS and skip to explore phase
+          ttsService.cancel();
+          setIsTTSPlaying(false);
+          setIsTTSPaused(false);
+          setCurrentDialogue(ai.dialogues.intro.length);
+          setIsTyping(false);
+        } else if (phase === "quiz" || phase === "profile") {
+          // Skip to complete
+          setPhase("complete");
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [phase, ai.dialogues.intro.length]);
 
   const isExplorePhase = currentDialogue >= ai.dialogues.intro.length;
   const exploreText = ai.dialogues.explore;
@@ -211,13 +318,58 @@ export default function AICompanion({
               boxShadow: `0 0 30px ${ai.color}10`,
             }}
           >
+            {/* TTS Controls */}
+            <div className="absolute top-4 right-4 flex items-center gap-2">
+              {/* Play/Pause Button - show first when playing */}
+              {isTTSPlaying && (
+                <motion.button
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  onClick={handleTTSToggle}
+                  className="w-9 h-9 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 
+                    hover:border-white/40 hover:bg-black/80 transition-all hover:scale-105
+                    flex items-center justify-center"
+                  title={isTTSPaused ? "Tiếp tục" : "Tạm dừng"}
+                >
+                  {isTTSPaused ? (
+                    <Play
+                      className="w-4 h-4 text-white/90"
+                      fill="currentColor"
+                    />
+                  ) : (
+                    <Pause className="w-4 h-4 text-white/90" />
+                  )}
+                </motion.button>
+              )}
+
+              {/* Mute/Unmute Button */}
+              <button
+                onClick={handleTTSMute}
+                className={`w-9 h-9 rounded-lg backdrop-blur-md border transition-all hover:scale-105
+                  flex items-center justify-center
+                  ${
+                    isTTSEnabled
+                      ? "bg-black/60 border-white/20 hover:border-white/40 hover:bg-black/80"
+                      : "bg-red-500/20 border-red-500/30 hover:border-red-500/50 hover:bg-red-500/30"
+                  }`}
+                title={isTTSEnabled ? "Tắt giọng nói" : "Bật giọng nói"}
+              >
+                {isTTSEnabled ? (
+                  <Volume2 className="w-4 h-4 text-white/90" />
+                ) : (
+                  <VolumeX className="w-4 h-4 text-red-400" />
+                )}
+              </button>
+            </div>
+
             <AnimatePresence mode="wait">
               <motion.p
                 key={currentDialogue}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="text-lg text-gray-100 min-h-[60px] leading-relaxed"
+                className="text-lg text-gray-100 min-h-[60px] leading-relaxed pr-20"
                 onClick={skipToEnd}
                 style={{ cursor: isTyping ? "pointer" : "default" }}
               >

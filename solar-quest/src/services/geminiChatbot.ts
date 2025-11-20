@@ -201,7 +201,7 @@ export function getSuggestedQuestions(
         `${planetId} khác Trái Đất như thế nào?`,
     ];
 
-    // 💬 CHỈNH CÂU HỎI THEO TỪNG ROLE Ở ĐÂY
+
     const roleSuggestions: Record<string, string[]> = {
         scientist: [
             `Khí quyển của ${planetId} như thế nào?`,
