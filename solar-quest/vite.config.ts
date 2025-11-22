@@ -9,4 +9,14 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    proxy: {
+      '/api/solar-system': {
+        target: 'https://api.le-systeme-solaire.net',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/solar-system/, ''),
+        secure: false,
+      }
+    }
+  }
 })

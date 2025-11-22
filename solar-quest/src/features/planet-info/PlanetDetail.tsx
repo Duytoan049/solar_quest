@@ -11,6 +11,7 @@ import {
   Award,
   Loader2,
   Camera,
+  BookOpen,
 } from "lucide-react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import {
@@ -36,6 +37,14 @@ import {
 import ChatbotPanel from "@/features/chatbot/ChatbotPanel";
 import QuizPanel from "@/features/quiz/QuizPanel";
 import { aiCompanions } from "@/data/aiCompanions";
+import {
+  getPlanetHistory,
+  formatMass,
+  formatVolume,
+  kelvinToCelsius,
+  formatNumber,
+  type PlanetHistoryData,
+} from "@/services/solarSystemApi";
 import {
   marsMarkers,
   earthMarkers,
@@ -391,6 +400,11 @@ export default function PlanetDetail() {
   const [showProfileCard, setShowProfileCard] = useState(true);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [planetHistory, setPlanetHistory] = useState<PlanetHistoryData | null>(
+    null
+  );
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const markerRefs = useRef<Record<number, THREE.Mesh>>({});
   const tourIndexRef = useRef(0);
@@ -441,6 +455,24 @@ export default function PlanetDetail() {
 
     fetchPlanetData();
   }, [planetId]);
+
+  // Fetch planet history when History panel is opened
+  useEffect(() => {
+    if (showHistory && !planetHistory) {
+      async function fetchHistory() {
+        setIsLoadingHistory(true);
+        try {
+          const history = await getPlanetHistory(planetId);
+          setPlanetHistory(history);
+        } catch (error) {
+          console.error("Error fetching planet history:", error);
+        } finally {
+          setIsLoadingHistory(false);
+        }
+      }
+      fetchHistory();
+    }
+  }, [showHistory, planetId, planetHistory]);
 
   const handleMarkerClick = useCallback(
     async (id: number) => {
@@ -734,6 +766,14 @@ export default function PlanetDetail() {
             </h1>
           </div>
           <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="px-4 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg 
+            text-white transition-all duration-300 border border-white/20 hover:border-white/40"
+            title="Planet History"
+          >
+            <BookOpen className="w-5 h-5" />
+          </button>
+          <button
             onClick={() => setShowImageGallery(!showImageGallery)}
             className="px-4 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg 
             text-white transition-all duration-300 border border-white/20 hover:border-white/40"
@@ -750,6 +790,276 @@ export default function PlanetDetail() {
           </button>
         </div>
       )}
+
+      {/* History Panel */}
+      <AnimatePresence mode="wait">
+        {showHistory && (
+          <motion.div
+            initial={{ x: 100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 100, opacity: 0 }}
+            transition={{ type: "tween", duration: 0.2 }}
+            className="absolute top-20 right-4 z-50 w-80 bg-black/80 backdrop-blur-md rounded-lg p-4 
+          border border-white/20 max-h-[75vh] overflow-y-auto scrollbar-thin"
+          >
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <BookOpen className="w-5 h-5" />
+                  Planet History
+                </h3>
+                <div className="flex items-center gap-2">
+                  {isLoadingHistory && (
+                    <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                  )}
+                  <button
+                    onClick={() => setShowHistory(false)}
+                    className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                    title="Đóng"
+                  >
+                    <svg
+                      className="w-4 h-4 text-gray-400 hover:text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              {/* Planet Name Display */}
+              <div className="px-3 py-2 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-lg">
+                <h4 className="text-2xl font-bold text-white capitalize text-center">
+                  {planetHistory?.englishName || planetId}
+                </h4>
+                {planetHistory?.name &&
+                  planetHistory.name !== planetHistory.englishName && (
+                    <p className="text-xs text-gray-400 text-center mt-1">
+                      {planetHistory.name}
+                    </p>
+                  )}
+              </div>
+            </div>
+
+            {/* Loading State */}
+            {isLoadingHistory && (
+              <div className="text-center py-8">
+                <Loader2 className="w-12 h-12 text-blue-400 mx-auto mb-4 animate-spin" />
+                <p className="text-gray-400 text-sm">
+                  Loading planet history...
+                </p>
+              </div>
+            )}
+
+            {/* History Data */}
+            {!isLoadingHistory && planetHistory && (
+              <div className="space-y-4">
+                {/* Discovery Information */}
+                <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg p-4">
+                  <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                    <span>🔭</span>
+                    Discovery
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Discovered by:</span>
+                      <span className="text-white font-semibold">
+                        {planetHistory.discoveredBy}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Discovery date:</span>
+                      <span className="text-white font-semibold">
+                        {planetHistory.discoveryDate}
+                      </span>
+                    </div>
+                    {planetHistory.alternativeName && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Alternative name:</span>
+                        <span className="text-white font-semibold">
+                          {planetHistory.alternativeName}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Body type:</span>
+                      <span className="text-white font-semibold">
+                        {planetHistory.bodyType}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Physical Characteristics */}
+                <div className="bg-white/5 rounded-lg p-4">
+                  <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                    <span>⚖️</span>
+                    Physical Characteristics
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Mass:</span>
+                      <span className="text-white font-semibold text-xs">
+                        {formatMass(planetHistory.mass)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Volume:</span>
+                      <span className="text-white font-semibold text-xs">
+                        {formatVolume(planetHistory.volume)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Density:</span>
+                      <span className="text-white font-semibold">
+                        {planetHistory.density.toFixed(2)} g/cm³
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Surface gravity:</span>
+                      <span className="text-white font-semibold">
+                        {planetHistory.gravity.toFixed(2)} m/s²
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Mean radius:</span>
+                      <span className="text-white font-semibold">
+                        {formatNumber(planetHistory.meanRadius)} km
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Avg temperature:</span>
+                      <span className="text-white font-semibold">
+                        {kelvinToCelsius(planetHistory.avgTemp)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Axial tilt:</span>
+                      <span className="text-white font-semibold">
+                        {planetHistory.axialTilt.toFixed(2)}°
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Orbital Parameters */}
+                <div className="bg-white/5 rounded-lg p-4">
+                  <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                    <span>🌌</span>
+                    Orbital Parameters
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Semimajor axis:</span>
+                      <span className="text-white font-semibold text-xs">
+                        {formatNumber(planetHistory.semimajorAxis)} km
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Perihelion:</span>
+                      <span className="text-white font-semibold text-xs">
+                        {formatNumber(planetHistory.perihelion)} km
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Aphelion:</span>
+                      <span className="text-white font-semibold text-xs">
+                        {formatNumber(planetHistory.aphelion)} km
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Eccentricity:</span>
+                      <span className="text-white font-semibold">
+                        {planetHistory.eccentricity.toFixed(4)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Inclination:</span>
+                      <span className="text-white font-semibold">
+                        {planetHistory.inclination.toFixed(2)}°
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Orbital period:</span>
+                      <span className="text-white font-semibold">
+                        {planetHistory.sideralOrbit.toFixed(2)} days
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Rotation period:</span>
+                      <span className="text-white font-semibold">
+                        {planetHistory.sideralRotation.toFixed(2)} hours
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Moons */}
+                {planetHistory.moons && planetHistory.moons.length > 0 && (
+                  <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg p-4">
+                    <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                      <span>🌙</span>
+                      Moons ({planetHistory.moons.length})
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {planetHistory.moons.slice(0, 10).map((moon, i) => (
+                        <span
+                          key={i}
+                          className="px-2 py-1 bg-white/10 rounded-md text-xs text-white border border-white/20"
+                        >
+                          {moon.moon}
+                        </span>
+                      ))}
+                      {planetHistory.moons.length > 10 && (
+                        <span className="px-2 py-1 bg-white/10 rounded-md text-xs text-gray-400 border border-white/20">
+                          +{planetHistory.moons.length - 10} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Data Source */}
+                <div className="pt-3 border-t border-white/10">
+                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                    <span>🌐</span>
+                    <span>Data from Solar System OpenData API</span>
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Error State */}
+            {!isLoadingHistory && !planetHistory && (
+              <div className="text-center py-8">
+                <BookOpen className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <h4 className="text-white font-semibold mb-2">
+                  Unable to load history
+                </h4>
+                <p className="text-gray-400 text-sm mb-4">
+                  Failed to fetch data from Solar System OpenData API
+                </p>
+                <button
+                  onClick={() => {
+                    setPlanetHistory(null);
+                    setShowHistory(true);
+                  }}
+                  className="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-400/30 
+                    rounded-lg text-white text-sm transition-all"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Stats Panel */}
       <AnimatePresence mode="wait">
