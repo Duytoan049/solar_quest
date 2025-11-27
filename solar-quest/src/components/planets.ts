@@ -3,6 +3,7 @@
 
 export const planets = [
     {
+        id: 'sun',
         name: 'Sun',
         texture: '/texture/sun-min.webp',
         description: 'Ngôi sao trung tâm của hệ mặt trời, cung cấp ánh sáng và năng lượng.',
@@ -13,6 +14,7 @@ export const planets = [
         hasAtmosphere: false,
     },
     {
+        id: 'mercury',
         name: 'Mercury',
         texture: '/texture/mercury-min.webp',
         description: 'Hành tinh gần Mặt Trời nhất, nhỏ nhất trong hệ mặt trời.',
@@ -22,6 +24,7 @@ export const planets = [
         hasAtmosphere: false,
     },
     {
+        id: 'venus',
         name: 'Venus',
         texture: '/texture/venus-min.webp',
         description: 'Hành tinh giống Trái Đất nhưng có khí hậu cực kỳ khắc nghiệt.',
@@ -32,6 +35,7 @@ export const planets = [
         atmosphereColor: "#ffc46e",
     },
     {
+        id: 'earth',
         name: 'Earth',
         texture: '/texture/Albedo-min.webp',
         description: 'Hành tinh xanh - nơi con người đang sinh sống.',
@@ -42,6 +46,7 @@ export const planets = [
         atmosphereColor: "#87ceeb",
     },
     {
+        id: 'moon',
         name: 'Moon',
         texture: '/texture/moon-min.webp',
         description: 'Vệ tinh tự nhiên duy nhất của Trái Đất.',
@@ -52,6 +57,7 @@ export const planets = [
         hasAtmosphere: false,
     },
     {
+        id: 'mars',
         name: 'Mars',
         texture: '/texture/mars-min.webp',
         description: 'Hành tinh đỏ, có thể là tương lai của nhân loại.',
@@ -62,6 +68,7 @@ export const planets = [
         atmosphereColor: "#c1440e",
     },
     {
+        id: 'jupiter',
         name: 'Jupiter',
         texture: '/texture/jupiter-min.webp',
         description: 'Hành tinh khí khổng lồ với cơn bão Great Red Spot.',
@@ -72,6 +79,7 @@ export const planets = [
         atmosphereColor: "#bcaea1",
     },
     {
+        id: 'saturn',
         name: "Saturn",
         // FIX: Sử dụng các biến đã import thay vì chuỗi ký tự
         texture: '/texture/Saturno-min.webp',
@@ -85,6 +93,7 @@ export const planets = [
         atmosphereColor: "#f0e68c",
     },
     {
+        id: 'uranus',
         name: 'Uranus',
         texture: '/texture/Uranus-min.webp',
         description: 'Hành tinh nghiêng 98 độ, có màu xanh lam đặc trưng.',
@@ -95,6 +104,7 @@ export const planets = [
         atmosphereColor: "#aee5d8",
     },
     {
+        id: 'neptune',
         name: 'Neptune',
         texture: '/texture/neptune-min.webp',
         description: 'Hành tinh xa nhất trong hệ mặt trời, với màu xanh đặc trưng.',

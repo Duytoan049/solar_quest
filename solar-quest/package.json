@@ -20,6 +20,7 @@
     "@types/three": "^0.180.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "firebase": "^12.6.0",
     "framer-motion": "^12.23.18",
     "gsap": "^3.13.0",
     "lucide-react": "^0.544.0",
@@ -28,7 +29,7 @@
     "postprocessing": "^6.37.8",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^7.9.1",
+    "react-router-dom": "^7.9.6",
     "tailwind-merge": "^3.3.1",
     "three": "^0.180.0",
     "zustand": "^5.0.8"

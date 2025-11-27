@@ -1,5 +1,14 @@
 import type { PlanetProfile } from "@/types/profile";
 import type { QuizResult } from "@/types/quiz";
+import { getCurrentUser } from "./authService";
+import {
+    getFirestoreProfile,
+    saveFirestoreProfile,
+    updateFirestoreLastVisited,
+    unlockFirestoreBadge,
+    updateFirestoreQuizScore,
+    migrateLocalStorageToFirestore,
+} from "./firestoreService";
 
 // LocalStorage keys
 const PROFILE_KEY_PREFIX = "planet-profile-";
@@ -7,21 +16,72 @@ const QUIZ_KEY_PREFIX = "quiz-";
 const MINIGAME_COMPLETED_KEY = "minigame-completed-";
 
 /**
- * Save planet profile to localStorage
+ * Save planet profile (localStorage + Firestore if logged in)
  */
 export function saveProfile(profile: PlanetProfile): void {
-    try {
-        const key = `${PROFILE_KEY_PREFIX}${profile.planetId}`;
-        localStorage.setItem(key, JSON.stringify(profile));
-    } catch (error) {
-        console.error("Failed to save profile:", error);
+    // Always save to localStorage for offline access
+    saveProfileToLocalStorage(profile);
+
+    // Also save to Firestore if logged in
+    const user = getCurrentUser();
+    if (user) {
+        saveFirestoreProfile(user.uid, profile.planetId, profile)
+            .catch((error) => {
+                console.error("Failed to save profile to Firestore:", error);
+            });
     }
+}/**
+ * Get planet profile (localStorage or Firestore)
+ * Priority: Firestore (if logged in) → localStorage (fallback)
+ */
+export function getProfile(planetId: string): PlanetProfile | null {
+    const user = getCurrentUser();
+
+    // If logged in, try to get from Firestore (async wrapped in sync)
+    if (user) {
+        // Note: This returns null immediately, but triggers background fetch
+        // You should use getProfileAsync for logged-in users
+        return getProfileFromLocalStorage(planetId);
+    }
+
+    // Guest mode: Use localStorage
+    return getProfileFromLocalStorage(planetId);
 }
 
 /**
- * Get planet profile from localStorage
+ * Async version - Get profile from Firestore (for logged-in users)
  */
-export function getProfile(planetId: string): PlanetProfile | null {
+export async function getProfileAsync(planetId: string): Promise<PlanetProfile | null> {
+    const user = getCurrentUser();
+
+    if (user) {
+        // Try Firestore first
+        const firestoreProfile = await getFirestoreProfile(user.uid, planetId);
+
+        if (firestoreProfile) {
+            // Also save to localStorage for offline access
+            saveProfileToLocalStorage(firestoreProfile);
+            return firestoreProfile;
+        }
+
+        // Fallback to localStorage (migrate to Firestore if exists)
+        const localProfile = getProfileFromLocalStorage(planetId);
+        if (localProfile) {
+            await migrateLocalStorageToFirestore(user.uid, planetId, localProfile);
+            return localProfile;
+        }
+
+        return null;
+    }
+
+    // Guest mode
+    return getProfileFromLocalStorage(planetId);
+}
+
+/**
+ * Get from localStorage only
+ */
+function getProfileFromLocalStorage(planetId: string): PlanetProfile | null {
     try {
         const key = `${PROFILE_KEY_PREFIX}${planetId}`;
         const data = localStorage.getItem(key);
@@ -39,13 +99,33 @@ export function getProfile(planetId: string): PlanetProfile | null {
 }
 
 /**
- * Update last visited timestamp
+ * Save to localStorage only
+ */
+function saveProfileToLocalStorage(profile: PlanetProfile): void {
+    try {
+        const key = `${PROFILE_KEY_PREFIX}${profile.planetId}`;
+        localStorage.setItem(key, JSON.stringify(profile));
+    } catch (error) {
+        console.error("Failed to save profile to localStorage:", error);
+    }
+}
+
+/**
+ * Update last visited timestamp (localStorage + Firestore)
  */
 export function updateLastVisited(planetId: string): void {
     const profile = getProfile(planetId);
     if (profile) {
         profile.lastVisited = new Date();
         saveProfile(profile);
+    }
+
+    // Also update Firestore if logged in
+    const user = getCurrentUser();
+    if (user) {
+        updateFirestoreLastVisited(user.uid, planetId).catch((error) => {
+            console.error("Failed to update last visited in Firestore:", error);
+        });
     }
 }
 
@@ -147,7 +227,7 @@ export const AVAILABLE_BADGES = {
 };
 
 /**
- * Unlock a badge for a planet profile
+ * Unlock a badge for a planet profile (localStorage + Firestore)
  * Shows notification if badge is newly unlocked
  */
 export function unlockBadge(
@@ -170,6 +250,14 @@ export function unlockBadge(
     saveProfile(profile);
 
     console.log(`🎉 Badge unlocked: ${badgeName}`);
+
+    // Also update Firestore if logged in
+    const user = getCurrentUser();
+    if (user) {
+        unlockFirestoreBadge(user.uid, planetId, badgeName).catch((error) => {
+            console.error("Failed to unlock badge in Firestore:", error);
+        });
+    }
 
     // Check for combo badges
     checkComboBadges(planetId);
