@@ -2,6 +2,7 @@
 import { useState, memo, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGameManager } from "@/core/engine/GameContext";
 import { Loader2, Rocket, Mail, Lock, User, AlertCircle } from "lucide-react";
 import Galaxy from "@/ui/Galaxy";
 
@@ -17,6 +18,7 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const { login, register, loginWithGoogle } = useAuth();
+  const { setScene } = useGameManager();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -330,8 +332,8 @@ export default function AuthPage() {
                 Hoặc{" "}
                 <button
                   onClick={() => {
-                    // TODO: Navigate to game without login
-                    window.location.href = "/";
+                    // Chơi với chế độ khách - vào MainMenu không cần đăng nhập
+                    setScene("menu");
                   }}
                   className="text-cyan-400 hover:text-cyan-300 underline transition-colors"
                 >

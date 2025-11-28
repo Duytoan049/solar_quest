@@ -29,8 +29,8 @@ function SceneController() {
     );
   }
 
-  // Redirect to auth if not logged in (except for demo)
-  if (!user && scene !== "demo") {
+  // Redirect to auth if not logged in (except for demo and menu - guest mode)
+  if (!user && scene !== "demo" && scene !== "menu") {
     return <AuthPage />;
   }
 
