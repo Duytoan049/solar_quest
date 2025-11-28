@@ -332,8 +332,8 @@ export default function AuthPage() {
                 Hoặc{" "}
                 <button
                   onClick={() => {
-                    // Chơi với chế độ khách - vào MainMenu không cần đăng nhập
-                    setScene("menu");
+                    // Chơi với chế độ khách - vào MainMenu
+                    setScene("menu", { guestMode: true });
                   }}
                   className="text-cyan-400 hover:text-cyan-300 underline transition-colors"
                 >

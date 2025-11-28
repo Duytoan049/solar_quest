@@ -8,15 +8,18 @@ import { motion } from "framer-motion";
 // FIX 2: Import type từ file types.ts
 import type { SceneType } from "@/core/engine/types";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, User, Trophy, Rocket } from "lucide-react";
+import { LogOut, User, Trophy, Rocket, LogIn } from "lucide-react";
 
 export default function MainMenu() {
   const [exit, setExit] = useState(false);
   const [nextScene, setNextScene] = useState<SceneType | null>(null);
-  const { setScene, preloadSolarSystem, isSolarSystemLoaded } =
+  const { setScene, preloadSolarSystem, isSolarSystemLoaded, sceneParams } =
     useGameManager();
   const { user, logout } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Kiểm tra chế độ khách
+  const isGuestMode = !user && sceneParams?.guestMode === true;
 
   const handleLogout = async () => {
     if (confirm("Bạn có chắc muốn đăng xuất?")) {
@@ -66,15 +69,16 @@ export default function MainMenu() {
         />
       </div>
 
-      {/* User Profile Card - Top Right */}
+      {/* User Profile Card - Top Right (Compact with Hover Expand) */}
       {user && (
         <motion.div
           initial={{ opacity: 0, x: 100 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
-          className="absolute top-6 right-6 z-20 bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-4 min-w-[280px]"
+          className="absolute top-6 right-6 z-20 bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-4 w-auto  transition-all duration-2000 overflow-hidden group"
         >
-          <div className="flex items-start gap-3 mb-3">
+          {/* Compact View - Avatar + Name */}
+          <div className="flex items-center gap-3 whitespace-nowrap">
             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
               {user.photoURL ? (
                 <img
@@ -90,11 +94,14 @@ export default function MainMenu() {
               <h3 className="text-white font-semibold text-sm truncate">
                 {user.displayName || "Astronaut"}
               </h3>
-              <p className="text-gray-400 text-xs truncate">{user.email}</p>
+              <p className="text-gray-400 text-xs truncate opacity-0 group-hover:opacity-100 transition-opacity duration-2000">
+                {user.email}
+              </p>
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
+          {/* Expanded View - Action Buttons (Show on Hover) */}
+          <div className="flex flex-col gap-2 mt-0 max-h-0 opacity-0 group-hover:mt-3 group-hover:max-h-40 group-hover:opacity-100 transition-all duration-2000 overflow-hidden">
             <button
               onClick={() => handleStart("profile")}
               className="w-full flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-white text-sm"
@@ -118,6 +125,29 @@ export default function MainMenu() {
               <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
             </button>
           </div>
+        </motion.div>
+      )}
+
+      {/* Guest Mode - Login Button */}
+      {isGuestMode && (
+        <motion.div
+          initial={{ opacity: 0, x: 100 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          className="absolute top-6 right-6 z-20"
+        >
+          <motion.button
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setScene("menu")} // Reset về trang auth
+            className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 rounded-xl text-white font-semibold shadow-lg shadow-cyan-500/50 transition-all border border-white/20"
+          >
+            <LogIn className="w-5 h-5" />
+            <div className="text-left">
+              <div className="text-sm font-bold">Đăng nhập</div>
+              <div className="text-xs opacity-90">Lưu tiến độ của bạn</div>
+            </div>
+          </motion.button>
         </motion.div>
       )}
 

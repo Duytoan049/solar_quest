@@ -29,8 +29,21 @@ function SceneController() {
     );
   }
 
-  // Redirect to auth if not logged in (except for demo and menu - guest mode)
-  if (!user && scene !== "demo" && scene !== "menu") {
+  // If user not logged in and on menu scene without guest mode, show auth first
+  const isGuestMode = sceneParams?.guestMode === true;
+  if (!user && scene === "menu" && !isGuestMode) {
+    return <AuthPage />;
+  }
+
+  // Redirect to auth if not logged in (except for demo and other guest-allowed scenes)
+  if (
+    !user &&
+    scene !== "demo" &&
+    scene !== "menu" &&
+    scene !== "solar_system" &&
+    scene !== "game" &&
+    scene !== "planet_detail"
+  ) {
     return <AuthPage />;
   }
 
