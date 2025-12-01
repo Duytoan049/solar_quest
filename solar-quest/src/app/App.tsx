@@ -40,6 +40,7 @@ function SceneController() {
     !user &&
     scene !== "demo" &&
     scene !== "menu" &&
+    scene !== "warp" &&
     scene !== "solar_system" &&
     scene !== "game" &&
     scene !== "planet_detail"

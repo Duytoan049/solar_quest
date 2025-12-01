@@ -53,7 +53,14 @@ export default function MainMenu() {
       animate={{ opacity: exit ? 0 : 1 }}
       transition={{ duration: 1 }}
       onAnimationComplete={() => {
-        if (exit && nextScene) setScene(nextScene);
+        if (exit && nextScene) {
+          // Truyền tiếp guestMode nếu đang ở chế độ khách
+          if (isGuestMode) {
+            setScene(nextScene, { guestMode: true });
+          } else {
+            setScene(nextScene);
+          }
+        }
       }}
       className="relative flex justify-center h-screen w-screen overflow-hidden bg-gradient-to-b from-black to-gray-900 text-white"
     >

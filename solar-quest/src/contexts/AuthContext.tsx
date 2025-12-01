@@ -18,6 +18,8 @@ import {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  authError: string;
+  clearAuthError: () => void;
   register: (
     email: string,
     password: string,
@@ -33,18 +35,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
+
+  const clearAuthError = () => setAuthError("");
 
   useEffect(() => {
     // Listen to auth state changes
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
-
-      if (user) {
-        console.log("✅ User logged in:", user.email);
-      } else {
-        console.log("❌ User logged out");
-      }
     });
 
     return unsubscribe;
@@ -56,8 +55,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     displayName: string
   ) => {
     setLoading(true);
+    setAuthError("");
     try {
       await registerWithEmail(email, password, displayName);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Đã xảy ra lỗi";
+      setAuthError(errorMessage);
+      throw error; // Throw lỗi lên để AuthPage có thể bắt
     } finally {
       setLoading(false);
     }
@@ -65,8 +70,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     setLoading(true);
+    setAuthError("");
     try {
       await loginWithEmail(email, password);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Đã xảy ra lỗi";
+      setAuthError(errorMessage);
+      throw error; // Throw lỗi lên để AuthPage có thể bắt
     } finally {
       setLoading(false);
     }
@@ -74,8 +85,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithGoogleHandler = async () => {
     setLoading(true);
+    setAuthError("");
     try {
       await loginWithGoogle();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Đăng nhập Google thất bại";
+      setAuthError(errorMessage);
+      throw error; // Throw lỗi lên để AuthPage có thể bắt
     } finally {
       setLoading(false);
     }
@@ -93,6 +110,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value: AuthContextType = {
     user,
     loading,
+    authError,
+    clearAuthError,
     register,
     login,
     loginWithGoogle: loginWithGoogleHandler,

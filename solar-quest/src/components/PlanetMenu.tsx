@@ -7,7 +7,7 @@ interface PlanetMenuProps {
 
 export default function PlanetMenu({ onSelectPlanet }: PlanetMenuProps) {
   return (
-    <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md p-4 rounded-lg shadow-lg text-white space-y-2 max-h-[90vh] overflow-y-auto z-20">
+    <div className="absolute top-20 left-4 bg-black/60 backdrop-blur-md p-4 rounded-lg shadow-lg text-white space-y-2 max-h-[calc(90vh-5rem)] overflow-y-auto z-20">
       <h2 className="text-lg font-semibold mb-2 text-cyan-300">Hệ Mặt Trời</h2>
       {planets.map((planet) => (
         <button

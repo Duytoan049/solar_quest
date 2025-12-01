@@ -11,6 +11,7 @@ import AsteroidBelt from "./AsteroidBelt"; // <-- Import Vành đai Tiểu hành
 import PlanetInfoPanel from "./PlanetInfoPanel";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import { ArrowLeft } from "lucide-react";
 
 // This type is now simpler as position is calculated dynamically
 export type PlanetData = (typeof planetData)[0];
@@ -241,7 +242,7 @@ function SpaceDust() {
 }
 
 export default function PlanetScene() {
-  const { setScene } = useGameManager();
+  const { setScene, sceneParams } = useGameManager();
   const [selectedPlanet, setSelectedPlanet] = useState<PlanetData | null>(null);
   const [hoveredPlanet, setHoveredPlanet] = useState<PlanetData | null>(null);
   const [isManualCamera, setIsManualCamera] = useState(true);
@@ -260,8 +261,11 @@ export default function PlanetScene() {
 
   const handleStartMission = () => {
     if (selectedPlanet) {
-      // Truyền planetId vào params
-      setScene("game", { planetId: selectedPlanet.name.toLowerCase() });
+      // Truyền planetId vào params và giữ lại guestMode nếu có
+      setScene("game", {
+        planetId: selectedPlanet.name.toLowerCase(),
+        ...(sceneParams?.guestMode ? { guestMode: true } : {}),
+      });
     }
   };
 
@@ -290,6 +294,20 @@ export default function PlanetScene() {
 
   return (
     <div className="w-full h-screen bg-black relative font-sans">
+      <button
+        onClick={() =>
+          setScene(
+            "menu",
+            sceneParams?.guestMode ? { guestMode: true } : undefined
+          )
+        }
+        className="absolute top-4 left-4 z-50 px-4 py-2 bg-white/10 hover:bg-white/20 
+          backdrop-blur-md rounded-lg text-white font-semibold transition-all duration-300
+          border border-white/20 hover:border-white/40 flex items-center gap-2"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        Main Menu
+      </button>
       {/* Overlay loading - Nhanh hơn */}
       {isLoading && (
         <div className="absolute inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">

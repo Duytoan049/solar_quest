@@ -57,18 +57,29 @@ function WarpTunnel({
 }
 
 export default function WarpScreen() {
-  const { setScene, isSolarSystemLoaded, preloadSolarSystem, loadingProgress } =
-    useGameManager();
+  const {
+    setScene,
+    isSolarSystemLoaded,
+    preloadSolarSystem,
+    loadingProgress,
+    sceneParams,
+  } = useGameManager();
   const [isAnimationDone, setIsAnimationDone] = useState(false);
 
   useEffect(() => {
     preloadSolarSystem();
     // Logic chuyển cảnh: chỉ chạy khi cả 2 điều kiện đều đúng
     if (isSolarSystemLoaded && isAnimationDone) {
-      // FIX 3: Chuyển đến đúng scene hệ mặt trời
-      setScene("solar_system");
+      // FIX 3: Chuyển đến đúng scene hệ mặt trời, truyền tiếp guestMode
+      setScene("solar_system", sceneParams);
     }
-  }, [isSolarSystemLoaded, isAnimationDone, preloadSolarSystem, setScene]);
+  }, [
+    isSolarSystemLoaded,
+    isAnimationDone,
+    preloadSolarSystem,
+    setScene,
+    sceneParams,
+  ]);
 
   return (
     <div className="warp-container">

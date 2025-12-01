@@ -14,15 +14,17 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login, register, loginWithGoogle } = useAuth();
+  const { login, register, loginWithGoogle, authError, clearAuthError } =
+    useAuth();
   const { setScene } = useGameManager();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    e.stopPropagation();
+
+    clearAuthError();
     setIsLoading(true);
 
     try {
@@ -30,26 +32,26 @@ export default function AuthPage() {
         await login(email, password);
       } else {
         if (!displayName.trim()) {
-          setError("Vui lòng nhập tên hiển thị");
+          alert("Vui lòng nhập tên hiển thị");
           setIsLoading(false);
           return;
         }
         await register(email, password, displayName);
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch {
+      // Error đã được set trong AuthContext
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    setError("");
+    clearAuthError();
     setIsLoading(true);
     try {
       await loginWithGoogle();
-    } catch (err: any) {
-      setError(err.message);
+    } catch {
+      // Error đã được set trong AuthContext
     } finally {
       setIsLoading(false);
     }
@@ -61,7 +63,7 @@ export default function AuthPage() {
       density: 0.5,
       speed: 0.3,
       glowIntensity: 0.8,
-      disableMouseMove: true, // Tắt mouse interaction để tăng performance
+      mouseInteraction: false, // Tắt mouse interaction để tăng performance
     }),
     []
   );
@@ -103,7 +105,7 @@ export default function AuthPage() {
           </motion.div>
 
           <div>
-            <h1 className="text-5xl font-bold text-white mb-3 bg-gradient-to-r from-cyan-400 via-blue-400 to-blue-500 bg-clip-text text-transparent">
+            <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-cyan-400 via-blue-400 to-blue-500 bg-clip-text text-transparent">
               Solar Quest
             </h1>
             <p className="text-lg text-gray-300 leading-relaxed">
@@ -157,7 +159,7 @@ export default function AuthPage() {
               <button
                 onClick={() => {
                   setIsLogin(true);
-                  setError("");
+                  clearAuthError();
                 }}
                 className={`flex-1 py-2.5 rounded-lg font-semibold transition-all duration-300 ${
                   isLogin
@@ -170,7 +172,7 @@ export default function AuthPage() {
               <button
                 onClick={() => {
                   setIsLogin(false);
-                  setError("");
+                  clearAuthError();
                 }}
                 className={`flex-1 py-2.5 rounded-lg font-semibold transition-all duration-300 ${
                   !isLogin
@@ -184,15 +186,26 @@ export default function AuthPage() {
 
             {/* Error Message */}
             <AnimatePresence>
-              {error && (
+              {authError && (
                 <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg flex items-center gap-2 text-red-400 text-sm"
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  className="mb-4 p-4 bg-red-500/20 border-2 border-red-500/50 rounded-xl flex items-start gap-3 text-red-300"
                 >
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>{error}</span>
+                  <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 animate-pulse" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-red-200 text-sm mb-1">
+                      Đăng nhập thất bại
+                    </p>
+                    <p className="text-sm leading-relaxed">{authError}</p>
+                  </div>
+                  <button
+                    onClick={() => clearAuthError()}
+                    className="text-red-300 hover:text-red-100 transition-colors"
+                  >
+                    <span className="text-lg leading-none">×</span>
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>

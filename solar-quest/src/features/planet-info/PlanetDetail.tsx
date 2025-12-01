@@ -598,7 +598,12 @@ export default function PlanetDetail() {
       {/* Back button - Hide when Quiz is open */}
       {!showQuiz && (
         <button
-          onClick={() => setScene("solar_system")}
+          onClick={() =>
+            setScene(
+              "solar_system",
+              sceneParams?.guestMode ? { guestMode: true } : undefined
+            )
+          }
           className="absolute top-4 left-4 z-50 px-4 py-2 bg-white/10 hover:bg-white/20 
             backdrop-blur-md rounded-lg text-white font-semibold transition-all duration-300
             border border-white/20 hover:border-white/40 flex items-center gap-2"
