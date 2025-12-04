@@ -13,6 +13,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { MessageCircle, Send, X, Sparkles } from "lucide-react";
 import type { AICompanionData } from "@/types/victory";
 import type { PlanetProfile } from "@/types/profile";
@@ -41,6 +42,7 @@ export default function ChatbotPanel({
   isOpen,
   onToggle,
 }: ChatbotPanelProps) {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -218,7 +220,7 @@ export default function ChatbotPanel({
           >
             <div className="bg-white/20 text-white p-2.5 rounded-2xl flex items-center gap-2 text-sm">
               <Sparkles className="w-4 h-4 animate-pulse" />
-              <span>Đang suy nghĩ...</span>
+              <span>{t('chatbot.thinking')}</span>
             </div>
           </motion.div>
         )}
@@ -228,7 +230,7 @@ export default function ChatbotPanel({
       {/* Suggested Questions */}
       {messages.length === 1 && (
         <div className="px-3 pb-2 flex-shrink-0">
-          <div className="text-xs text-white/60 mb-2">💡 Gợi ý câu hỏi:</div>
+          <div className="text-xs text-white/60 mb-2">{t('chatbot.suggestedQuestions')}</div>
           <div className="flex flex-wrap gap-1.5">
             {suggestedQuestions.slice(0, 3).map((question, index) => (
               <button

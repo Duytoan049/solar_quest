@@ -49,6 +49,7 @@ export interface Artifact {
 
   // Visual
   modelUrl?: string; // Path to 3D model
+  imageUrl?: string; // Path to artifact photo/image
   iconUrl?: string;
   glowColor?: string; // For space artifacts
   scale?: number;

@@ -4,6 +4,7 @@ import { ROLE_INFO, AVATAR_OPTIONS, type PlanetProfile } from "@/types/profile";
 import type { AICompanionData } from "@/types/victory";
 import type { QuizResult } from "@/types/quiz";
 import { saveProfile, getQuizResult } from "@/services/profileStorage";
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   planetId: string;
@@ -20,6 +21,7 @@ export default function ProfileCreation({
   onComplete,
   onSkip,
 }: Props) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<"name" | "role" | "avatar" | "complete">(
     "name"
   );
@@ -117,10 +119,10 @@ export default function ProfileCreation({
               WebkitTextFillColor: "transparent",
             }}
           >
-            Tạo Profile Công Dân
+            {t('profileCreation.title')}
           </h2>
           <p className="text-gray-400">
-            Tạo nhân vật của bạn trên {planetName}
+            {t('profileCreation.subtitle', { planetName })}
           </p>
         </motion.div>
 
@@ -133,10 +135,10 @@ export default function ProfileCreation({
             className="bg-white/5 backdrop-blur-xl rounded-2xl p-8 border border-white/10"
           >
             <h3 className="text-2xl font-bold text-white mb-4">
-              Bạn tên là gì?
+              {t('profileCreation.enterName')}
             </h3>
             <p className="text-gray-400 mb-6">
-              Đặt tên cho công dân của bạn trên {planetName}
+              {t('profileCreation.subtitle', { planetName })}
             </p>
 
             <input
@@ -144,7 +146,7 @@ export default function ProfileCreation({
               value={citizenName}
               onChange={(e) => setCitizenName(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && handleNameSubmit()}
-              placeholder="Nhập tên của bạn..."
+              placeholder={t('profileCreation.namePlaceholder')}
               maxLength={20}
               autoFocus
               className="w-full px-6 py-4 bg-white/10 border-2 border-white/20 rounded-xl
@@ -160,14 +162,14 @@ export default function ProfileCreation({
                   bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700
                   disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                Tiếp tục →
+                {t('profileCreation.continue')}
               </button>
               <button
                 onClick={onSkip}
                 className="px-6 py-4 rounded-xl font-bold text-gray-400 hover:text-white
                   bg-white/5 hover:bg-white/10 transition-all"
               >
-                Bỏ qua
+                {t('profileCreation.skip')}
               </button>
             </div>
           </motion.div>
@@ -181,10 +183,10 @@ export default function ProfileCreation({
             exit={{ opacity: 0, x: -50 }}
           >
             <h3 className="text-2xl font-bold text-white mb-4 text-center">
-              Chọn vai trò của bạn
+              {t('profileCreation.chooseRole')}
             </h3>
             <p className="text-gray-400 mb-6 text-center">
-              Vai trò sẽ định hình hành trình khám phá của bạn
+              {t('profileCreation.roleSubtitle')}
             </p>
 
             <div className="grid grid-cols-2 gap-4">
@@ -221,7 +223,7 @@ export default function ProfileCreation({
               className="w-full mt-6 px-6 py-3 rounded-xl font-bold text-gray-400 hover:text-white
                 bg-white/5 hover:bg-white/10 transition-all"
             >
-              Bỏ qua
+              {t('profileCreation.skip')}
             </button>
           </motion.div>
         )}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { X, Target, AlertTriangle, SkipForward } from "lucide-react";
 import {
   getPlanetConfig,
@@ -77,9 +78,11 @@ interface Star {
 
 export default function MarsGameScene({
   planetId = "mars",
-  config,
+  config: customConfig,
   onComplete,
-}: Props) {
+  onExit,
+}: GameSceneProps) {
+  const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
@@ -94,7 +97,7 @@ export default function MarsGameScene({
   const [showSkipButton, setShowSkipButton] = useState(false);
 
   // Get planet config
-  const planetConfig = config || getPlanetConfig(planetId);
+  const planetConfig = customConfig || getPlanetConfig(planetId);
   const graphicsConfig = getGraphicsConfig(planetId);
   const aiCompanion = getAICompanion(planetId);
 
@@ -1077,18 +1080,18 @@ export default function MarsGameScene({
       {/* HUD */}
       <div className="absolute top-4 left-4 text-white space-y-2 z-10">
         <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg">
-          <div className="text-2xl font-bold">Điểm: {score}</div>
+          <div className="text-2xl font-bold">{t('game.score')}{score}</div>
         </div>
         <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg">
           <div className="flex items-center gap-2">
-            <span className="font-semibold">Mạng:</span>
+            <span className="font-semibold">{t('game.lives')}</span>
             {Array.from({ length: lives }).map((_, i) => (
               <div key={i} className="w-6 h-6 bg-red-500 rounded-full" />
             ))}
           </div>
         </div>
         <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg">
-          <div className="font-semibold">Wave: {wave}</div>
+          <div className="font-semibold">{t('game.wave')}{wave}</div>
         </div>
 
         {/* Combo Display */}
@@ -1098,9 +1101,9 @@ export default function MarsGameScene({
               <Target className="w-5 h-5" />
               <div>
                 <div className="text-sm font-semibold">
-                  COMBO x{comboDisplay.multiplier}
+                  {t('game.combo', { multiplier: comboDisplay.multiplier })}
                 </div>
-                <div className="text-xs">{comboDisplay.count} hits</div>
+                <div className="text-xs">{t('game.hits', { count: comboDisplay.count })}</div>
               </div>
             </div>
           </div>
@@ -1112,8 +1115,8 @@ export default function MarsGameScene({
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" />
               <div>
-                <div className="text-xs font-bold">HEAT DAMAGE!</div>
-                <div className="text-xs">Keep moving!</div>
+                <div className="text-xs font-bold">{t('game.heatDamage')}</div>
+                <div className="text-xs">{t('game.keepMoving')}</div>
               </div>
             </div>
             <div className="mt-1 w-full bg-black/40 rounded-full h-2">
@@ -1132,9 +1135,9 @@ export default function MarsGameScene({
           className="text-xl font-bold mb-2"
           style={{ color: planetConfig.particleColor }}
         >
-          {planetConfig.displayName.toUpperCase()}
+          {t(`planets.${planetId}.name`).toUpperCase()}
         </h3>
-        <p className="text-sm mb-2">{planetConfig.description}</p>
+        <p className="text-sm mb-2">{t(`planets.${planetId}.description`)}</p>
 
         {/* Warning before effect starts */}
         {/* {effectWarning && planetConfig.specialEffectType && (
@@ -1164,17 +1167,17 @@ export default function MarsGameScene({
             <AlertTriangle className="w-4 h-4" />
             <span className="font-bold">
               {planetConfig.specialEffectType === "dust_storm" &&
-                "BÃO CÁT ĐANG HOẠT ĐỘNG!"}
+                t('game.activeEffects.dustStorm')}
               {planetConfig.specialEffectType === "acid_rain" &&
-                "MƯA AXIT NGUY HIỂM!"}
+                t('game.activeEffects.acidRain')}
               {planetConfig.specialEffectType === "heat_wave" &&
-                "SÓNG NHIỆT CỰC MẠNH!"}
+                t('game.activeEffects.heatWave')}
               {planetConfig.specialEffectType === "ice_storm" &&
-                "BÃO BĂNG ĐANG HOẠT ĐỘNG!"}
+                t('game.activeEffects.iceStorm')}
               {planetConfig.specialEffectType === "gravity_well" &&
-                "LỰC HẤP DẪN BẤT THƯỜNG!"}
+                t('game.activeEffects.gravityWell')}
               {planetConfig.specialEffectType === "ring_navigation" &&
-                "VÀNH ĐAI NGUY HIỂM!"}
+                t('game.activeEffects.ringNavigation')}
             </span>
           </div>
         )}
@@ -1189,10 +1192,10 @@ export default function MarsGameScene({
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Target className="w-4 h-4" />
-            <span>Di chuyển chuột để điều khiển</span>
+            <span>{t('game.controls.move')}</span>
           </div>
-          <div>• Click hoặc Space để bắn</div>
-          <div>• P để tạm dừng</div>
+          <div>• {t('game.controls.shoot')}</div>
+          <div>• {t('game.controls.pause')}</div>
         </div>
       </div>
 
@@ -1205,10 +1208,10 @@ export default function MarsGameScene({
           className="absolute bottom-4 right-4 z-50 px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 
             text-white font-bold rounded-lg shadow-2xl transition-all duration-300 
             flex items-center gap-2 animate-pulse hover:animate-none hover:scale-105"
-          title="Bạn đã hoàn thành minigame này rồi!"
+          title={t('game.skipTooltip')}
         >
           <SkipForward className="w-5 h-5" />
-          <span>Bỏ qua</span>
+          <span>{t('game.skipButton')}</span>
         </button>
       )}
 
@@ -1228,17 +1231,17 @@ export default function MarsGameScene({
           <div className="flex items-center gap-2 text-2xl animate-pulse border-2 rounded px-2 py-1 text-white">
             ⚠️{" "}
             {planetConfig.specialEffectType === "dust_storm" &&
-              "BÃO CÁT SẮP ĐẾN"}
+              t('game.specialEffects.dustStorm')}
             {planetConfig.specialEffectType === "acid_rain" &&
-              "MƯA AXIT SẮP ĐẾN"}
+              t('game.specialEffects.acidRain')}
             {planetConfig.specialEffectType === "heat_wave" &&
-              "SÓNG NHIỆT SẮP ĐẾN"}
+              t('game.specialEffects.heatWave')}
             {planetConfig.specialEffectType === "ice_storm" &&
-              "BÃO BĂNG SẮP ĐẾN"}
+              t('game.specialEffects.iceStorm')}
             {planetConfig.specialEffectType === "gravity_well" &&
-              "LỰC HẤP DẪN SẮP XUẤT HIỆN"}
+              t('game.specialEffects.gravityWell')}
             {planetConfig.specialEffectType === "ring_navigation" &&
-              "VÀNH ĐAI NGUY HIỂM"}{" "}
+              t('game.specialEffects.ringNavigation')}{" "}
             ⚠️
           </div>
         </div>
@@ -1248,12 +1251,12 @@ export default function MarsGameScene({
       {isPaused && (
         <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-20">
           <div className="bg-gray-900 p-8 rounded-xl text-center">
-            <h2 className="text-3xl font-bold text-white mb-4">TẠM DỪNG</h2>
+            <h2 className="text-3xl font-bold text-white mb-4">{t('game.pause.title')}</h2>
             <button
               onClick={() => setIsPaused(false)}
               className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg"
             >
-              Tiếp tục
+              {t('game.pause.resume')}
             </button>
           </div>
         </div>
@@ -1264,16 +1267,16 @@ export default function MarsGameScene({
         <div className="absolute inset-0 bg-black/90 flex items-center justify-center z-30">
           <div className="bg-gray-900 p-8 rounded-xl text-center max-w-md">
             <X className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-4xl font-bold text-white mb-4">GAME OVER</h2>
-            <div className="text-2xl text-white mb-2">Điểm cuối: {score}</div>
+            <h2 className="text-4xl font-bold text-white mb-4">{t('game.gameOver.title')}</h2>
+            <div className="text-2xl text-white mb-2">{t('game.gameOver.finalScore')}{score}</div>
             <div className="text-lg text-gray-400 mb-6">
-              Wave đạt được: {wave}
+              {t('game.gameOver.waveReached')}{wave}
             </div>
             <button
               onClick={() => window.location.reload()}
               className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg"
             >
-              Chơi lại
+              {t('game.gameOver.restart')}
             </button>
           </div>
         </div>

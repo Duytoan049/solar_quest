@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { PlanetData } from "./PlanetScene1"; // Import the type
 
 interface PlanetInfoPanelProps {
@@ -12,6 +13,8 @@ export default function PlanetInfoPanel({
   onClose,
   onStartMission,
 }: PlanetInfoPanelProps) {
+  const { t } = useTranslation();
+  
   if (!planet) return null;
 
   // A simple fade-in animation using Tailwind classes
@@ -30,13 +33,17 @@ export default function PlanetInfoPanel({
       >
         &times; {/* A simple 'x' for closing */}
       </button>
-      <h2 className="text-3xl font-bold mb-2 text-cyan-300">{planet.name}</h2>
-      <p className="text-base text-white/80 mb-6">{planet.description}</p>
+      <h2 className="text-3xl font-bold mb-2 text-cyan-300">
+        {t(`planets.${planet.id}.name`)}
+      </h2>
+      <p className="text-base text-white/80 mb-6">
+        {t(`planets.${planet.id}.description`)}
+      </p>
       <button
         onClick={onStartMission}
         className="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105"
       >
-        Bắt đầu nhiệm vụ
+        {t('planetInfo.startMission')}
       </button>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import type {
   VictoryPhase,
   VictoryStats,
@@ -26,6 +27,7 @@ export default function VictorySequence({
   ai,
   onComplete,
 }: Props) {
+  const { t } = useTranslation();
   const [phase, setPhase] = useState<VictoryPhase>("celebration");
   const [shipY, setShipY] = useState(0);
   const [planetScale, setPlanetScale] = useState(0);
@@ -216,7 +218,7 @@ export default function VictorySequence({
                 transition={{ duration: 0.5 }}
               >
                 <h1 className="text-7xl font-bold text-white mb-4">
-                  CHIẾN THẮNG!
+                  {t('victorySequence.victory')}
                 </h1>
               </motion.div>
 
@@ -228,14 +230,14 @@ export default function VictorySequence({
                 className="space-y-3 max-w-md mx-auto"
               >
                 <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-lg border border-white/20">
-                  <span className="text-white font-semibold">Điểm: </span>
+                  <span className="text-white font-semibold">{t('victorySequence.score')}</span>
                   <span className="text-white text-2xl font-bold">
                     {stats.score}
                   </span>
                 </div>
                 <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-lg border border-white/20">
                   <span className="text-white font-semibold">
-                    Combo tối đa:{" "}
+                    {t('victorySequence.maxCombo')}
                   </span>
                   <span className="text-white text-2xl font-bold">
                     x{stats.maxCombo}
@@ -243,7 +245,7 @@ export default function VictorySequence({
                 </div>
                 <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-lg border border-white/20">
                   <span className="text-white font-semibold">
-                    Sát thương nhận:{" "}
+                    {t('victorySequence.damagesTaken')}
                   </span>
                   <span className="text-white text-2xl font-bold">
                     {stats.damagesTaken}
@@ -296,8 +298,8 @@ export default function VictorySequence({
             <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-lg border border-white/20">
               <p className="text-2xl text-white font-semibold">
                 {phase === "launch"
-                  ? "Khởi động..."
-                  : "Đang bay đến " + planetName}
+                  ? t('victorySequence.launching')
+                  : t('victorySequence.flyingTo', { planetName })}
               </p>
             </div>
           </motion.div>

@@ -9,8 +9,11 @@ import { motion } from "framer-motion";
 import type { SceneType } from "@/core/engine/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogOut, User, Trophy, Rocket, LogIn } from "lucide-react";
+import { useTranslation } from 'react-i18next';
+import LanguageToggle from "@/components/LanguageToggle";
 
 export default function MainMenu() {
+  const { t } = useTranslation();
   const [exit, setExit] = useState(false);
   const [nextScene, setNextScene] = useState<SceneType | null>(null);
   const { setScene, preloadSolarSystem, isSolarSystemLoaded, sceneParams } =
@@ -22,7 +25,7 @@ export default function MainMenu() {
   const isGuestMode = !user && sceneParams?.guestMode === true;
 
   const handleLogout = async () => {
-    if (confirm("Bạn có chắc muốn đăng xuất?")) {
+    if (confirm(t('common.confirm') + ': ' + t('auth.logout') + '?')) {
       setIsLoggingOut(true);
       try {
         await logout();
@@ -64,6 +67,9 @@ export default function MainMenu() {
       }}
       className="relative flex justify-center h-screen w-screen overflow-hidden bg-gradient-to-b from-black to-gray-900 text-white"
     >
+      {/* Language Toggle */}
+      <LanguageToggle />
+
       <div className="absolute inset-0 w-full h-full z-0">
         <Galaxy
           mouseRepulsion={true}
@@ -99,7 +105,7 @@ export default function MainMenu() {
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-white font-semibold text-sm truncate">
-                {user.displayName || "Astronaut"}
+                {user.displayName || t('userProfile.astronaut')}
               </h3>
               <p className="text-gray-400 text-xs truncate opacity-0 group-hover:opacity-100 transition-opacity duration-2000">
                 {user.email}
@@ -114,14 +120,14 @@ export default function MainMenu() {
               className="w-full flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-white text-sm"
             >
               <Rocket className="w-4 h-4" />
-              <span>My Progress</span>
+              <span>{t('mainMenu.myProgress')}</span>
             </button>
             <button
               onClick={() => handleStart("leaderboard")}
               className="w-full flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-white text-sm"
             >
               <Trophy className="w-4 h-4" />
-              <span>Leaderboard</span>
+              <span>{t('menu.leaderboard')}</span>
             </button>
             <button
               onClick={handleLogout}
@@ -129,7 +135,7 @@ export default function MainMenu() {
               className="w-full flex items-center gap-2 px-3 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-colors text-red-400 text-sm disabled:opacity-50"
             >
               <LogOut className="w-4 h-4" />
-              <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
+              <span>{isLoggingOut ? t('common.loading') : t('menu.logout')}</span>
             </button>
           </div>
         </motion.div>
@@ -151,8 +157,8 @@ export default function MainMenu() {
           >
             <LogIn className="w-5 h-5" />
             <div className="text-left">
-              <div className="text-sm font-bold">Đăng nhập</div>
-              <div className="text-xs opacity-90">Lưu tiến độ của bạn</div>
+              <div className="text-sm font-bold">{t('mainMenu.login')}</div>
+              <div className="text-xs opacity-90">{t('mainMenu.loginSubtext')}</div>
             </div>
           </motion.button>
         </motion.div>
@@ -166,14 +172,14 @@ export default function MainMenu() {
             textShadow: "0 0 15px rgba(128, 200, 255, 0.7)",
           }}
         >
-          SOLAR QUEST
+          {t('mainMenu.title')}
         </h1>
 
         <TextType
           text={[
-            "Welcome, astronaut, to your journey of conquering the universe!",
-            "Ready to explore the mysteries of the galaxy?",
-            "Start your spaceship and begin the space adventure!",
+            t('mainMenu.welcome1'),
+            t('mainMenu.welcome2'),
+            t('mainMenu.welcome3'),
           ]}
           typingSpeed={75}
           pauseDuration={2500}
@@ -190,13 +196,13 @@ export default function MainMenu() {
             style={{ fontFamily: "Sebino-Regular" }}
             onClick={() => handleStart("warp")}
           >
-            Start Explore
+            {t('mainMenu.startExplore')}
           </Button>
           <Button
             style={{ fontFamily: "Sebino-Regular" }}
             onClick={() => handleStart("3dlook")}
           >
-            Setting
+            {t('mainMenu.setting')}
           </Button>
 
           {/* <Button
@@ -210,7 +216,7 @@ export default function MainMenu() {
             style={{ fontFamily: "Sebino-Regular" }}
             onClick={() => handleStart("game")}
           >
-            About Us
+            {t('mainMenu.aboutUs')}
           </Button>
         </div>
       </div>

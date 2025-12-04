@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react"; // Xóa Suspense khỏi import
 import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber"; // Thêm useLoader
 import * as THREE from "three";
+import { useTranslation } from "react-i18next";
 import { useGameManager } from "../core/engine/GameContext";
 import { OrbitControls, Stars, Ring } from "@react-three/drei";
 import { planets as planetData } from "./planets";
@@ -242,6 +243,7 @@ function SpaceDust() {
 }
 
 export default function PlanetScene() {
+  const { t } = useTranslation();
   const { setScene, sceneParams } = useGameManager();
   const [selectedPlanet, setSelectedPlanet] = useState<PlanetData | null>(null);
   const [hoveredPlanet, setHoveredPlanet] = useState<PlanetData | null>(null);
@@ -306,7 +308,7 @@ export default function PlanetScene() {
           border border-white/20 hover:border-white/40 flex items-center gap-2"
       >
         <ArrowLeft className="w-5 h-5" />
-        Main Menu
+        {t('mainMenu.backToMenu')}
       </button>
       {/* Overlay loading - Nhanh hơn */}
       {isLoading && (

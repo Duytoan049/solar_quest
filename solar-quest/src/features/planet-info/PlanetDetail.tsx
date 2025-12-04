@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { useGameManager } from "@/core/engine/GameContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useArtifactCollection } from "@/hooks/useArtifactCollection";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   Play,
@@ -62,6 +63,7 @@ import {
   mercuryMarkers,
   sunMarkers,
 } from "./planetMarkers";
+import { getCachedTranslation, clearOldCache } from "@/services/cachedTranslation";
 
 // Marker type definition
 interface MarkerData {
@@ -387,6 +389,7 @@ function CameraController({
 export default function PlanetDetail() {
   const { sceneParams, setScene } = useGameManager();
   const { user } = useAuth();
+  const { t, i18n } = useTranslation();
   const planetId = (sceneParams?.planetId as string) || "mars";
 
   // Artifact collection hook
@@ -431,6 +434,8 @@ export default function PlanetDetail() {
     null
   );
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [translatedDescription, setTranslatedDescription] = useState<string>('');
+  const [isTranslating, setIsTranslating] = useState(false);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const markerRefs = useRef<Record<number, THREE.Mesh>>({});
   const tourIndexRef = useRef(0);
@@ -466,6 +471,44 @@ export default function PlanetDetail() {
       updateLastVisited(planetId);
     }
   }, [planetId, profile]);
+
+  // Clean old cache on mount
+  useEffect(() => {
+    clearOldCache();
+  }, []);
+
+  // Translate description when language changes or planetInfo updates
+  useEffect(() => {
+    const translateDescription = async () => {
+      if (!planetInfo?.description) {
+        setTranslatedDescription('');
+        return;
+      }
+
+      // If English, use original
+      if (i18n.language === 'en') {
+        setTranslatedDescription(planetInfo.description);
+        return;
+      }
+
+      // For Vietnamese, translate with cache
+      setIsTranslating(true);
+      try {
+        const translated = await getCachedTranslation(
+          planetInfo.description,
+          'vi'
+        );
+        setTranslatedDescription(translated);
+      } catch (error) {
+        console.error('Translation error:', error);
+        setTranslatedDescription(planetInfo.description); // Fallback to original
+      } finally {
+        setIsTranslating(false);
+      }
+    };
+
+    translateDescription();
+  }, [planetInfo?.description, i18n.language]);
 
   // Always use planetMarkersData for accurate NASA-verified positions
   const markers = planetMarkersData[planetId] || planetMarkersData.mars;
@@ -654,7 +697,7 @@ export default function PlanetDetail() {
             border border-white/20 hover:border-white/40 flex items-center gap-2"
         >
           <ArrowLeft className="w-5 h-5" />
-          Solar System
+          {t("planetDetail.backToSolarSystem")}
         </button>
       )}
 
@@ -713,7 +756,7 @@ export default function PlanetDetail() {
               {/* Quiz Score */}
               <div className="bg-white/5 rounded-lg p-2 mb-3">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-400">Quiz Score</span>
+                  <span className="text-gray-400">{t("planetDetail.quizScore")}</span>
                   <span className="font-bold text-white">
                     {profile.quizScore}/5
                   </span>
@@ -755,7 +798,7 @@ export default function PlanetDetail() {
                       d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
                     />
                   </svg>
-                  <span>Làm lại Quiz</span>
+                  <span>{t("planetDetail.retakeQuiz")}</span>
                 </motion.button>
               </div>
 
@@ -763,7 +806,7 @@ export default function PlanetDetail() {
               {profile.badges.length > 0 && (
                 <div className="space-y-2">
                   <div className="text-xs text-gray-400 font-semibold uppercase tracking-wide">
-                    Huy hiệu ({profile.badges.length})
+                    {t("planetDetail.badges")} ({profile.badges.length})
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {profile.badges.slice(0, 6).map((badge, i) => (
@@ -812,14 +855,14 @@ export default function PlanetDetail() {
         <div className="absolute top-4 right-4 z-50 flex gap-2">
           <div className="px-6 py-3 bg-black/60 backdrop-blur-md rounded-lg flex items-center gap-2">
             <h1 className="text-2xl font-bold text-white capitalize">
-              {planetId}
+              {t(`planets.${planetId}.name`)}
             </h1>
           </div>
           <button
             onClick={() => setShowHistory(!showHistory)}
             className="px-4 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg 
             text-white transition-all duration-300 border border-white/20 hover:border-white/40"
-            title="Planet History"
+            title={t("planetDetail.planetHistory")}
           >
             <BookOpen className="w-5 h-5" />
           </button>
@@ -827,7 +870,7 @@ export default function PlanetDetail() {
             onClick={() => setShowImageGallery(!showImageGallery)}
             className="px-4 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg 
             text-white transition-all duration-300 border border-white/20 hover:border-white/40"
-            title="NASA Images"
+            title={t("planetDetail.nasaImages")}
           >
             <Camera className="w-5 h-5" />
           </button>
@@ -849,14 +892,14 @@ export default function PlanetDetail() {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 100, opacity: 0 }}
             transition={{ type: "tween", duration: 0.2 }}
-            className="absolute top-20 right-4 z-50 w-80 bg-black/80 backdrop-blur-md rounded-lg p-4 
-          border border-white/20 max-h-[75vh] overflow-y-auto scrollbar-thin"
+            className="absolute top-20 right-4 z-[60] w-96 bg-black/80 backdrop-blur-md rounded-lg p-4 
+          border border-white/20 max-h-[calc(100vh-280px)] overflow-y-auto scrollbar-thin"
           >
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <BookOpen className="w-5 h-5" />
-                  Planet History
+                  {t("planetDetail.planetHistory")}
                 </h3>
                 <div className="flex items-center gap-2">
                   {isLoadingHistory && (
@@ -865,7 +908,7 @@ export default function PlanetDetail() {
                   <button
                     onClick={() => setShowHistory(false)}
                     className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
-                    title="Đóng"
+                    title={t("planetDetail.close")}
                   >
                     <svg
                       className="w-4 h-4 text-gray-400 hover:text-white"
@@ -902,7 +945,7 @@ export default function PlanetDetail() {
               <div className="text-center py-8">
                 <Loader2 className="w-12 h-12 text-blue-400 mx-auto mb-4 animate-spin" />
                 <p className="text-gray-400 text-sm">
-                  Loading planet history...
+                  {t("common.loading")}
                 </p>
               </div>
             )}
@@ -914,33 +957,33 @@ export default function PlanetDetail() {
                 <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg p-4">
                   <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
                     <span>🔭</span>
-                    Discovery
+                    {t("planetDetail.discoverySection")}
                   </h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Discovered by:</span>
+                      <span className="text-gray-400">{t("planetDetail.discoveredBy")}</span>
                       <span className="text-white font-semibold">
-                        {planetHistory.discoveredBy}
+                        {t(`discoveryData.${planetHistory.discoveredBy.toLowerCase()}`, planetHistory.discoveredBy)}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Discovery date:</span>
+                      <span className="text-gray-400">{t("planetDetail.discoveryDate")}</span>
                       <span className="text-white font-semibold">
-                        {planetHistory.discoveryDate}
+                        {t(`discoveryData.${planetHistory.discoveryDate.toLowerCase()}`, planetHistory.discoveryDate)}
                       </span>
                     </div>
                     {planetHistory.alternativeName && (
                       <div className="flex justify-between">
-                        <span className="text-gray-400">Alternative name:</span>
+                        <span className="text-gray-400">{t("planetDetail.alternativeName")}</span>
                         <span className="text-white font-semibold">
                           {planetHistory.alternativeName}
                         </span>
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Body type:</span>
+                      <span className="text-gray-400">{t("planetDetail.bodyType")}</span>
                       <span className="text-white font-semibold">
-                        {planetHistory.bodyType}
+                        {t(`discoveryData.${planetHistory.bodyType.toLowerCase()}`, planetHistory.bodyType)}
                       </span>
                     </div>
                   </div>
@@ -950,47 +993,47 @@ export default function PlanetDetail() {
                 <div className="bg-white/5 rounded-lg p-4">
                   <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
                     <span>⚖️</span>
-                    Physical Characteristics
+                    {t("planetDetail.physicalCharacteristics")}
                   </h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Mass:</span>
+                      <span className="text-gray-400">{t("planet.mass")}</span>
                       <span className="text-white font-semibold text-xs">
                         {formatMass(planetHistory.mass)}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Volume:</span>
+                      <span className="text-gray-400">{t("planetDetail.volume")}</span>
                       <span className="text-white font-semibold text-xs">
                         {formatVolume(planetHistory.volume)}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Density:</span>
+                      <span className="text-gray-400">{t("planetDetail.density")}</span>
                       <span className="text-white font-semibold">
                         {planetHistory.density.toFixed(2)} g/cm³
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Surface gravity:</span>
+                      <span className="text-gray-400">{t("planetDetail.surfaceGravity")}</span>
                       <span className="text-white font-semibold">
                         {planetHistory.gravity.toFixed(2)} m/s²
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Mean radius:</span>
+                      <span className="text-gray-400">{t("planetDetail.meanRadius")}</span>
                       <span className="text-white font-semibold">
                         {formatNumber(planetHistory.meanRadius)} km
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Avg temperature:</span>
+                      <span className="text-gray-400">{t("planetDetail.avgTemperature")}</span>
                       <span className="text-white font-semibold">
                         {kelvinToCelsius(planetHistory.avgTemp)}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Axial tilt:</span>
+                      <span className="text-gray-400">{t("planetDetail.axialTilt")}</span>
                       <span className="text-white font-semibold">
                         {planetHistory.axialTilt.toFixed(2)}°
                       </span>
@@ -1002,47 +1045,47 @@ export default function PlanetDetail() {
                 <div className="bg-white/5 rounded-lg p-4">
                   <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
                     <span>🌌</span>
-                    Orbital Parameters
+                    {t("planetDetail.orbitalParameters")}
                   </h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Semimajor axis:</span>
+                      <span className="text-gray-400">{t("planetDetail.semimajorAxis")}</span>
                       <span className="text-white font-semibold text-xs">
                         {formatNumber(planetHistory.semimajorAxis)} km
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Perihelion:</span>
+                      <span className="text-gray-400">{t("planetDetail.perihelion")}</span>
                       <span className="text-white font-semibold text-xs">
                         {formatNumber(planetHistory.perihelion)} km
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Aphelion:</span>
+                      <span className="text-gray-400">{t("planetDetail.aphelion")}</span>
                       <span className="text-white font-semibold text-xs">
                         {formatNumber(planetHistory.aphelion)} km
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Eccentricity:</span>
+                      <span className="text-gray-400">{t("planetDetail.eccentricity")}</span>
                       <span className="text-white font-semibold">
                         {planetHistory.eccentricity.toFixed(4)}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Inclination:</span>
+                      <span className="text-gray-400">{t("planetDetail.inclination")}</span>
                       <span className="text-white font-semibold">
                         {planetHistory.inclination.toFixed(2)}°
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Orbital period:</span>
+                      <span className="text-gray-400">{t("planetDetail.orbitalPeriod")}</span>
                       <span className="text-white font-semibold">
                         {planetHistory.sideralOrbit.toFixed(2)} days
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Rotation period:</span>
+                      <span className="text-gray-400">{t("planetDetail.rotationPeriod")}</span>
                       <span className="text-white font-semibold">
                         {planetHistory.sideralRotation.toFixed(2)} hours
                       </span>
@@ -1055,7 +1098,7 @@ export default function PlanetDetail() {
                   <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg p-4">
                     <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
                       <span>🌙</span>
-                      Moons ({planetHistory.moons.length})
+                      {t("planetDetail.moons")} ({planetHistory.moons.length})
                     </h4>
                     <div className="flex flex-wrap gap-2">
                       {planetHistory.moons.slice(0, 10).map((moon, i) => (
@@ -1068,7 +1111,7 @@ export default function PlanetDetail() {
                       ))}
                       {planetHistory.moons.length > 10 && (
                         <span className="px-2 py-1 bg-white/10 rounded-md text-xs text-gray-400 border border-white/20">
-                          +{planetHistory.moons.length - 10} more
+                          +{planetHistory.moons.length - 10} {t("planetDetail.more")}
                         </span>
                       )}
                     </div>
@@ -1079,7 +1122,7 @@ export default function PlanetDetail() {
                 <div className="pt-3 border-t border-white/10">
                   <p className="text-xs text-gray-500 flex items-center gap-1">
                     <span>🌐</span>
-                    <span>Data from Solar System OpenData API</span>
+                    <span>{t("planetDetail.dataFromSolarSystemApi")}</span>
                   </p>
                 </div>
               </div>
@@ -1090,10 +1133,10 @@ export default function PlanetDetail() {
               <div className="text-center py-8">
                 <BookOpen className="w-16 h-16 text-gray-600 mx-auto mb-4" />
                 <h4 className="text-white font-semibold mb-2">
-                  Unable to load history
+                  {t("planetDetail.unableToLoadHistory")}
                 </h4>
                 <p className="text-gray-400 text-sm mb-4">
-                  Failed to fetch data from Solar System OpenData API
+                  {t("planetDetail.failedToFetchData")}
                 </p>
                 <button
                   onClick={() => {
@@ -1119,11 +1162,11 @@ export default function PlanetDetail() {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 100, opacity: 0 }}
             transition={{ type: "tween", duration: 0.2 }} // Faster transition
-            className="absolute top-20 right-4 z-50 w-72 bg-black/80 backdrop-blur-md rounded-lg p-3 
-          border border-white/20 max-h-[75vh] overflow-y-auto scrollbar-thin"
+            className="absolute top-20 right-4 z-[60] w-96 bg-black/80 backdrop-blur-md rounded-lg p-3 
+          border border-white/20 max-h-[calc(100vh-280px)] overflow-y-auto scrollbar-thin"
           >
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-bold text-white">Planet Stats</h3>
+              <h3 className="text-base font-bold text-white">{t("planetDetail.planetStats")}</h3>
               <div className="flex items-center gap-2">
                 {isLoadingPlanetInfo && (
                   <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
@@ -1131,7 +1174,7 @@ export default function PlanetDetail() {
                 <button
                   onClick={() => setShowStats(false)}
                   className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
-                  title="Đóng"
+                  title={t("planetDetail.close")}
                 >
                   <svg
                     className="w-4 h-4 text-gray-400 hover:text-white"
@@ -1164,41 +1207,49 @@ export default function PlanetDetail() {
                 />
                 <p className="text-xs text-gray-500 p-1.5 bg-black/40">
                   {planetId === "mars"
-                    ? "📸 Latest from Mars Rover"
+                    ? `📸 ${t("planetDetail.latestFromMarsRover")}`
                     : planetId === "earth"
-                    ? "🌍 EPIC Satellite Imagery"
-                    : "NASA Image"}
+                    ? `🌍 ${t("planetDetail.epicSatelliteImagery")}`
+                    : t("planetDetail.nasaImage")}
                 </p>
               </div>
             )}
 
-            {planetInfo?.description && (
+            {/* Description - use translated version if available */}
+            {(translatedDescription || t(`planets.${planetId}.description`)) && (
               <p className="text-gray-300 text-xs mb-2 leading-relaxed">
-                {planetInfo.description}
+                {isTranslating ? (
+                  <span className="flex items-center gap-2 text-gray-500">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    {t("common.loading")}...
+                  </span>
+                ) : (
+                  translatedDescription || t(`planets.${planetId}.description`)
+                )}
               </p>
             )}
 
             <div className="space-y-1.5 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-400">Temperature:</span>
+                <span className="text-gray-400">{t("planet.temperature")}:</span>
                 <span className="text-white font-semibold text-xs">
                   {planetInfo?.stats.temperature || stats.temperature}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Gravity:</span>
+                <span className="text-gray-400">{t("planet.gravity")}:</span>
                 <span className="text-white font-semibold text-xs">
                   {planetInfo?.stats.gravity || stats.gravity}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Diameter:</span>
+                <span className="text-gray-400">{t("planet.diameter")}:</span>
                 <span className="text-white font-semibold">
                   {planetInfo?.stats.diameter || stats.diameter}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Day Length:</span>
+                <span className="text-gray-400">{t("planet.dayLength")}:</span>
                 <span className="text-white font-semibold text-xs">
                   {planetInfo?.stats.dayLength || stats.dayLength}
                 </span>
@@ -1207,7 +1258,7 @@ export default function PlanetDetail() {
               {/* Additional NASA data */}
               {planetInfo?.stats.mass && (
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Mass:</span>
+                  <span className="text-gray-400">{t("planet.mass")}:</span>
                   <span className="text-white font-semibold text-xs">
                     {planetInfo.stats.mass}
                   </span>
@@ -1215,7 +1266,7 @@ export default function PlanetDetail() {
               )}
               {planetInfo?.stats.distanceFromSun && (
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Distance from Sun:</span>
+                  <span className="text-gray-400">{t("planet.distanceFromSun")}:</span>
                   <span className="text-white font-semibold text-xs">
                     {planetInfo.stats.distanceFromSun}
                   </span>
@@ -1223,7 +1274,7 @@ export default function PlanetDetail() {
               )}
               {planetInfo?.stats.moons !== undefined && (
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Moons:</span>
+                  <span className="text-gray-400">{t("planet.moons")}:</span>
                   <span className="text-white font-semibold">
                     {planetInfo.stats.moons}
                   </span>
@@ -1231,7 +1282,7 @@ export default function PlanetDetail() {
               )}
               {planetInfo?.stats.atmosphere && (
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Atmosphere:</span>
+                  <span className="text-gray-400">{t("planet.atmosphere")}:</span>
                   <span className="text-white font-semibold text-xs">
                     {planetInfo.stats.atmosphere}
                   </span>
@@ -1244,11 +1295,11 @@ export default function PlanetDetail() {
               <div className="mt-3 pt-3 border-t border-white/10">
                 <p className="text-xs text-gray-500 flex items-center gap-1">
                   <span>📡</span>
-                  <span>Data from NASA</span>
+                  <span>{t("planetDetail.dataFromNasa")}</span>
                   {planetInfo.lastUpdated && (
                     <span className="text-gray-600">
                       {" "}
-                      • Updated: {planetInfo.lastUpdated}
+                      • {t("planetDetail.updated")}: {planetInfo.lastUpdated}
                     </span>
                   )}
                 </p>
@@ -1266,8 +1317,8 @@ export default function PlanetDetail() {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 100, opacity: 0 }}
             transition={{ type: "tween", duration: 0.2 }}
-            className="absolute top-20 right-4 z-50 w-80 bg-black/90 backdrop-blur-md rounded-lg p-3 
-          border border-white/20 max-h-[75vh] overflow-y-auto scrollbar-thin"
+            className="absolute top-20 right-4 z-[60] w-96 bg-black/90 backdrop-blur-md rounded-lg p-3 
+          border border-white/20 max-h-[calc(100vh-280px)] overflow-y-auto scrollbar-thin"
           >
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -1330,8 +1381,8 @@ export default function PlanetDetail() {
                   <div className="p-1.5 bg-black/60">
                     <p className="text-xs text-gray-400">
                       {planetInfo.lastUpdated
-                        ? `Updated: ${planetInfo.lastUpdated}`
-                        : "NASA Official Image"}
+                        ? `${t("planetDetail.updated")}: ${planetInfo.lastUpdated}`
+                        : t("planetDetail.nasaOfficialImage")}
                     </p>
                   </div>
                 </div>
@@ -1502,7 +1553,7 @@ export default function PlanetDetail() {
                   ? "bg-blue-600/80 text-white border border-blue-400/50"
                   : "bg-black/60 text-gray-400 border border-white/20 hover:bg-black/80"
               }`}
-              title={showMarkers ? "Ẩn địa điểm" : "Hiện địa điểm"}
+              title={showMarkers ? t("planetDetail.hideMarkers") : t("planetDetail.showMarkers")}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -1523,7 +1574,7 @@ export default function PlanetDetail() {
                   d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
                 />
               </svg>
-              {showMarkers ? "Markers" : "Markers"}
+              {t("planetDetail.markers")}
             </button>
 
             {/* Toggle Artifacts */}
@@ -1535,10 +1586,10 @@ export default function PlanetDetail() {
                     ? "bg-purple-600/80 text-white border border-purple-400/50"
                     : "bg-black/60 text-gray-400 border border-white/20 hover:bg-black/80"
                 }`}
-                title={showArtifacts ? "Ẩn đồ vật" : "Hiện đồ vật"}
+                title={showArtifacts ? t("planetDetail.hideArtifacts") : t("planetDetail.showArtifacts")}
               >
                 <Package className="w-4 h-4" />
-                {showArtifacts ? "Artifacts" : "Artifacts"}
+                {t("planetDetail.artifacts")}
               </button>
             )}
           </div>
@@ -1549,7 +1600,7 @@ export default function PlanetDetail() {
               <div className="flex items-center gap-2 mb-2">
                 <Package className="w-4 h-4 text-purple-400" />
                 <span className="text-white text-sm font-semibold">
-                  Artifacts: {collectedIds.length}/{availableArtifacts.length}
+                  {t("planetDetail.artifacts")}: {collectedIds.length}/{availableArtifacts.length}
                 </span>
               </div>
               <div className="w-[180px] h-2 bg-gray-700 rounded-full overflow-hidden">
@@ -1573,7 +1624,7 @@ export default function PlanetDetail() {
             <div className="flex items-center gap-2 mb-2">
               <Award className="w-4 h-4 text-yellow-400" />
               <span className="text-white text-sm font-semibold">
-                Explored: {visitedMarkers.size}/{markers.length}
+                {t("planetDetail.explored")}: {visitedMarkers.size}/{markers.length}
               </span>
             </div>
             <div className="w-[180px] h-2 bg-gray-700 rounded-full overflow-hidden">
@@ -1592,7 +1643,7 @@ export default function PlanetDetail() {
             >
               <div className="flex items-center gap-2">
                 <Award className="w-5 h-5 text-white" />
-                <span className="text-white font-bold">Master Explorer!</span>
+                <span className="text-white font-bold">{t("planetDetail.masterExplorer")}</span>
               </div>
             </div>
           )}
@@ -1707,14 +1758,14 @@ export default function PlanetDetail() {
                 <div className="bg-green-500/20 px-2 py-1 rounded-full flex items-center gap-1">
                   <Award className="w-3 h-3 text-green-400" />
                   <span className="text-xs text-green-400 font-semibold">
-                    Visited
+                    {t("planetDetail.visited")}
                   </span>
                 </div>
               )}
               <button
                 onClick={() => setActiveMarker(null)}
                 className="p-1.5 hover:bg-white/10 rounded-lg transition-colors ml-2"
-                title="Đóng"
+                title={t("planetDetail.close")}
               >
                 <svg
                   className="w-4 h-4 text-gray-400 hover:text-white"
@@ -1782,7 +1833,7 @@ export default function PlanetDetail() {
               <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
                 {marker.type && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">Type:</span>
+                    <span className="text-xs text-gray-400">{t("planetDetail.type")}</span>
                     <span className="text-xs text-white font-semibold capitalize">
                       {marker.type}
                     </span>
@@ -1790,7 +1841,7 @@ export default function PlanetDetail() {
                 )}
                 {marker.height && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">Height:</span>
+                    <span className="text-xs text-gray-400">{t("planetDetail.height")}</span>
                     <span className="text-xs text-white font-semibold">
                       {marker.height}
                     </span>
@@ -1798,7 +1849,7 @@ export default function PlanetDetail() {
                 )}
                 {marker.depth && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">Depth:</span>
+                    <span className="text-xs text-gray-400">{t("planetDetail.depth")}</span>
                     <span className="text-xs text-white font-semibold">
                       {marker.depth}
                     </span>
@@ -1806,7 +1857,7 @@ export default function PlanetDetail() {
                 )}
                 {marker.diameter && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">Diameter:</span>
+                    <span className="text-xs text-gray-400">{t("planetDetail.diameter")}</span>
                     <span className="text-xs text-white font-semibold">
                       {marker.diameter}
                     </span>
@@ -1814,7 +1865,7 @@ export default function PlanetDetail() {
                 )}
                 {marker.coordinates && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">Coordinates:</span>
+                    <span className="text-xs text-gray-400">{t("planetDetail.coordinates")}</span>
                     <span className="text-xs text-white font-semibold">
                       {marker.coordinates.latitude.toFixed(2)}°,{" "}
                       {marker.coordinates.longitude.toFixed(2)}°
@@ -1824,14 +1875,14 @@ export default function PlanetDetail() {
                 {marker.namedAfter && (
                   <div className="mt-3 pt-3 border-t border-white/10">
                     <p className="text-xs text-gray-400">
-                      Named after:{" "}
+                      {t("planetDetail.namedAfter")}:{" "}
                       <span className="text-white">{marker.namedAfter}</span>
                     </p>
                   </div>
                 )}
                 {marker.discoveryDate && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">Discovery:</span>
+                    <span className="text-xs text-gray-400">{t("planetDetail.discovery")}</span>
                     <span className="text-xs text-white font-semibold">
                       {marker.discoveryDate}
                     </span>
@@ -1840,7 +1891,7 @@ export default function PlanetDetail() {
                 <div className="mt-3 pt-3 border-t border-white/10">
                   <p className="text-xs text-gray-500 flex items-center gap-1">
                     <span>🛰️</span>
-                    <span>NASA-verified planetary feature</span>
+                    <span>{t("planetDetail.nasaVerified")}</span>
                   </p>
                 </div>
               </div>

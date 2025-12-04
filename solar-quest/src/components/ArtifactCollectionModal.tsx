@@ -147,6 +147,7 @@ export const ArtifactCollectionModal: React.FC<
         {/* Content */}
         <div className="px-3 pb-3 space-y-2.5">
           {/* 3D Preview placeholder */}
+          {/* Artifact Visual */}
           <div
             className="relative w-full h-32 rounded-lg overflow-hidden"
             style={{
@@ -154,16 +155,37 @@ export const ArtifactCollectionModal: React.FC<
               border: `1px solid ${rarityColor}25`,
             }}
           >
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div
-                className="text-6xl animate-float"
-                style={{
-                  filter: `drop-shadow(0 0 15px ${rarityColor})`,
+            {artifact.imageUrl ? (
+              // Show real image if available
+              <img
+                src={artifact.imageUrl}
+                alt={artifact.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Fallback to icon if image fails to load
+                  (e.target as HTMLImageElement).style.display = 'none';
+                  const parent = (e.target as HTMLImageElement).parentElement;
+                  if (parent) {
+                    const iconDiv = document.createElement('div');
+                    iconDiv.className = 'absolute inset-0 flex items-center justify-center';
+                    iconDiv.innerHTML = `<div class="text-6xl animate-float" style="filter: drop-shadow(0 0 15px ${rarityColor})">${CATEGORY_ICONS[artifact.category]}</div>`;
+                    parent.appendChild(iconDiv);
+                  }
                 }}
-              >
-                {CATEGORY_ICONS[artifact.category]}
+              />
+            ) : (
+              // Fallback to icon if no image
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div
+                  className="text-6xl animate-float"
+                  style={{
+                    filter: `drop-shadow(0 0 15px ${rarityColor})`,
+                  }}
+                >
+                  {CATEGORY_ICONS[artifact.category]}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Description */}

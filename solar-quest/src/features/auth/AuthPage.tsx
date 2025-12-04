@@ -5,11 +5,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGameManager } from "@/core/engine/GameContext";
 import { Loader2, Rocket, Mail, Lock, User, AlertCircle } from "lucide-react";
 import Galaxy from "@/ui/Galaxy";
+import { useTranslation } from 'react-i18next';
+import LanguageToggle from "@/components/LanguageToggle";
 
 // Memoize Galaxy to prevent re-renders
 const MemoizedGalaxy = memo(Galaxy);
 
 export default function AuthPage() {
+  const { t } = useTranslation();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,7 +35,7 @@ export default function AuthPage() {
         await login(email, password);
       } else {
         if (!displayName.trim()) {
-          alert("Vui lòng nhập tên hiển thị");
+          alert(t('authPage.displayName') + ' ' + t('common.error'));
           setIsLoading(false);
           return;
         }
@@ -70,6 +73,9 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-gray-900 via-black to-blue-900 relative overflow-hidden flex items-center justify-center p-4">
+      {/* Language Toggle */}
+      <LanguageToggle />
+
       {/* Animated Background - Memoized */}
       <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
         <MemoizedGalaxy {...galaxyConfig} />
@@ -106,19 +112,18 @@ export default function AuthPage() {
 
           <div>
             <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-cyan-400 via-blue-400 to-blue-500 bg-clip-text text-transparent">
-              Solar Quest
+              {t('authPage.welcomeTitle')}
             </h1>
             <p className="text-lg text-gray-300 leading-relaxed">
-              Khám phá hệ mặt trời, chinh phục các hành tinh, và trở thành nhà
-              thám hiểm vũ trụ huyền thoại!
+              {t('authPage.welcomeSubtitle')}
             </p>
           </div>
 
           <div className="grid grid-cols-3 gap-3 pt-2">
             {[
-              { icon: "🌍", label: "10 Planets" },
-              { icon: "🎯", label: "Quiz Game" },
-              { icon: "🏆", label: "Leaderboard" },
+              { icon: "🌍", label: t('authPage.feature1') },
+              { icon: "🎯", label: t('authPage.feature2') },
+              { icon: "🏆", label: t('authPage.feature3') },
             ].map((feature, idx) => (
               <motion.div
                 key={idx}
@@ -150,7 +155,7 @@ export default function AuthPage() {
                 <Rocket className="w-8 h-8 text-white" />
               </div>
               <h1 className="text-2xl font-bold text-white mb-1">
-                Solar Quest
+                {t('authPage.welcomeTitle')}
               </h1>
             </div>
 
@@ -167,7 +172,7 @@ export default function AuthPage() {
                     : "text-gray-400 hover:text-white hover:bg-white/5"
                 }`}
               >
-                Đăng nhập
+                {t('auth.login')}
               </button>
               <button
                 onClick={() => {
@@ -180,7 +185,7 @@ export default function AuthPage() {
                     : "text-gray-400 hover:text-white hover:bg-white/5"
                 }`}
               >
-                Đăng ký
+                {t('auth.register')}
               </button>
             </div>
 
@@ -196,7 +201,7 @@ export default function AuthPage() {
                   <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 animate-pulse" />
                   <div className="flex-1">
                     <p className="font-semibold text-red-200 text-sm mb-1">
-                      Đăng nhập thất bại
+                      {t('common.error')}
                     </p>
                     <p className="text-sm leading-relaxed">{authError}</p>
                   </div>
@@ -222,7 +227,7 @@ export default function AuthPage() {
                     transition={{ duration: 0.3 }}
                   >
                     <label className="block text-sm font-semibold text-gray-300 mb-2">
-                      Tên hiển thị
+                      {t('authPage.displayName')}
                     </label>
                     <div className="relative group">
                       <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-cyan-400 transition-colors" />
@@ -231,7 +236,7 @@ export default function AuthPage() {
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
                         className="w-full pl-12 pr-4 py-3 bg-white/5 border-2 border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:bg-white/10 hover:border-white/20 transition-all"
-                        placeholder="Nhập tên của bạn"
+                        placeholder={t('auth.emailPlaceholder')}
                         required={!isLogin}
                         autoComplete="name"
                       />
@@ -243,7 +248,7 @@ export default function AuthPage() {
               {/* Email */}
               <div>
                 <label className="block text-sm font-semibold text-gray-300 mb-2">
-                  Email
+                  {t('auth.email')}
                 </label>
                 <div className="relative group">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-cyan-400 transition-colors" />
@@ -262,7 +267,7 @@ export default function AuthPage() {
               {/* Password */}
               <div>
                 <label className="block text-sm font-semibold text-gray-300 mb-2">
-                  Mật khẩu
+                  {t('auth.password')}
                 </label>
                 <div className="relative group">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-cyan-400 transition-colors" />
@@ -271,9 +276,7 @@ export default function AuthPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full pl-12 pr-4 py-3 bg-white/5 border-2 border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:bg-white/10 hover:border-white/20 transition-all"
-                    placeholder={
-                      isLogin ? "Nhập mật khẩu" : "Tối thiểu 6 ký tự"
-                    }
+                    placeholder={t('auth.passwordPlaceholder')}
                     required
                     minLength={6}
                     autoComplete={isLogin ? "current-password" : "new-password"}
@@ -292,11 +295,11 @@ export default function AuthPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-6 h-6 animate-spin" />
-                    <span>Đang xử lý...</span>
+                    <span>{t('common.loading')}</span>
                   </>
                 ) : (
                   <>
-                    <span>{isLogin ? "Đăng nhập" : "Đăng ký"}</span>
+                    <span>{isLogin ? t('auth.login') : t('auth.register')}</span>
                     <Rocket className="w-5 h-5" />
                   </>
                 )}
@@ -306,7 +309,7 @@ export default function AuthPage() {
             {/* Divider */}
             <div className="flex items-center gap-4 my-4">
               <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-              <span className="text-gray-400 text-sm font-medium">hoặc</span>
+              <span className="text-gray-400 text-sm font-medium">{t('authPage.orContinue')}</span>
               <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
             </div>
 
@@ -336,13 +339,13 @@ export default function AuthPage() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              <span>Đăng nhập với Google</span>
+              <span>{t('auth.signInWithGoogle')}</span>
             </motion.button>
 
             {/* Guest Mode Link */}
             <div className="mt-4 text-center">
               <p className="text-gray-500 text-sm">
-                Hoặc{" "}
+                {t('authPage.orContinue')}{" "}
                 <button
                   onClick={() => {
                     // Chơi với chế độ khách - vào MainMenu
@@ -350,11 +353,11 @@ export default function AuthPage() {
                   }}
                   className="text-cyan-400 hover:text-cyan-300 underline transition-colors"
                 >
-                  chơi với chế độ khách
+                  {t('authPage.guestMode')}
                 </button>
               </p>
               <p className="text-gray-600 text-xs mt-2">
-                (Tiến độ sẽ không được lưu trên cloud)
+                {t('authPage.guestNote')}
               </p>
             </div>
           </div>
@@ -364,12 +367,12 @@ export default function AuthPage() {
       {/* Footer */}
       <div className="absolute bottom-4 left-0 right-0 text-center z-10">
         <p className="text-gray-500 text-sm">
-          Bằng việc đăng nhập, bạn đồng ý với{" "}
+          {t('authPage.termsPrefix')}{" "}
           <a
             href="#"
             className="text-cyan-400 hover:text-cyan-300 underline transition-colors"
           >
-            Điều khoản sử dụng
+            {t('authPage.termsLink')}
           </a>
         </p>
       </div>

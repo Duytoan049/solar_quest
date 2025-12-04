@@ -1,5 +1,6 @@
 import { GameManagerProvider } from "../core/engine/GameManager";
 import { AuthProvider } from "../contexts/AuthContext";
+import { LanguageProvider } from "../contexts/LanguageContext";
 import { useGameManager } from "../core/engine/GameContext";
 import { useAuth } from "../contexts/AuthContext";
 import MainMenu from "../features/menu/MainMenu";
@@ -11,6 +12,7 @@ import PlanetDetail from "../features/planet-info/PlanetDetail";
 import AuthPage from "../features/auth/AuthPage";
 import UserProfilePage from "../features/profile/UserProfilePage";
 import LeaderboardPage from "../features/leaderboard/LeaderboardPage";
+import LanguageToggle from "../components/LanguageToggle";
 import { Loader2 } from "lucide-react";
 
 function SceneController() {
@@ -81,11 +83,14 @@ function SceneController() {
 
 function App() {
   return (
-    <AuthProvider>
-      <GameManagerProvider>
-        <SceneController />
-      </GameManagerProvider>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <GameManagerProvider>
+          <LanguageToggle />
+          <SceneController />
+        </GameManagerProvider>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
 

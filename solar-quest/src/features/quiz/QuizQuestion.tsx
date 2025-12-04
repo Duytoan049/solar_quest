@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import type { QuizQuestion as QuizQuestionType } from "@/types/quiz";
 
 interface Props {
@@ -17,6 +18,7 @@ export default function QuizQuestion({
   onAnswer,
   aiColor,
 }: Props) {
+  const { t } = useTranslation();
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
 
@@ -45,7 +47,7 @@ export default function QuizQuestion({
       <div className="mb-6">
         <div className="flex justify-between text-sm text-gray-400 mb-2">
           <span>
-            Câu hỏi {questionNumber}/{totalQuestions}
+            {t('quizQuestion.question', { number: questionNumber, total: totalQuestions })}
           </span>
           <span className="capitalize">{question.difficulty}</span>
         </div>
@@ -167,7 +169,7 @@ export default function QuizQuestion({
             <span className="text-3xl">{isCorrect ? "🎉" : "💡"}</span>
             <div>
               <h4 className="font-bold text-lg mb-2 text-white">
-                {isCorrect ? "Chính xác!" : "Không chính xác!"}
+                {isCorrect ? t('quiz.correct') : t('quiz.incorrect')}
               </h4>
               <p className="text-gray-200 leading-relaxed">
                 {question.explanation}

@@ -1,0 +1,434 @@
+{
+  "common": {
+    "loading": "Đang tải...",
+    "error": "Lỗi",
+    "cancel": "Hủy",
+    "confirm": "Xác nhận",
+    "save": "Lưu",
+    "close": "Đóng",
+    "next": "Tiếp theo",
+    "previous": "Trước",
+    "start": "Bắt đầu",
+    "continue": "Tiếp tục",
+    "finish": "Hoàn thành"
+  },
+  "menu": {
+    "title": "Hành Trình Mặt Trời",
+    "start": "Bắt Đầu Hành Trình",
+    "collection": "Bộ Sưu Tập",
+    "leaderboard": "Bảng Xếp Hạng",
+    "profile": "Hồ Sơ",
+    "settings": "Cài Đặt",
+    "logout": "Đăng Xuất"
+  },
+  "auth": {
+    "login": "Đăng Nhập",
+    "register": "Đăng Ký",
+    "email": "Email",
+    "password": "Mật Khẩu",
+    "confirmPassword": "Xác Nhận Mật Khẩu",
+    "forgotPassword": "Quên Mật Khẩu?",
+    "noAccount": "Chưa có tài khoản?",
+    "hasAccount": "Đã có tài khoản?",
+    "signInWithGoogle": "Đăng nhập bằng Google",
+    "signInWithGithub": "Đăng nhập bằng GitHub",
+    "emailPlaceholder": "Nhập email của bạn",
+    "passwordPlaceholder": "Nhập mật khẩu"
+  },
+  "planet": {
+    "explore": "Khám phá",
+    "facts": "Sự thật thú vị",
+    "quiz": "Làm bài quiz",
+    "artifacts": "Hiện vật",
+    "distance": "Khoảng cách từ Mặt trời",
+    "diameter": "Đường kính",
+    "mass": "Khối lượng",
+    "gravity": "Trọng lực",
+    "temperature": "Nhiệt độ",
+    "moons": "Vệ tinh",
+    "dayLength": "Độ dài một ngày",
+    "yearLength": "Độ dài một năm",
+    "distanceFromSun": "Khoảng cách từ Mặt Trời",
+    "atmosphere": "Khí quyển"
+  },
+  "planetDetail": {
+    "backToSolarSystem": "Hệ Mặt Trời",
+    "planetStats": "Thông số hành tinh",
+    "planetHistory": "Lịch sử hành tinh",
+    "nasaImages": "Hình ảnh NASA",
+    "visited": "Đã ghé thăm",
+    "markers": "Địa điểm",
+    "artifacts": "Hiện vật",
+    "explored": "Đã khám phá",
+    "masterExplorer": "Bậc thầy khám phá!",
+    "loadMoreNasaImages": "Tải thêm ảnh NASA",
+    "loadingNasaImages": "Đang tải ảnh NASA...",
+    "noNasaImages": "Chưa có hình ảnh NASA nào cho {planet}.",
+    "tryLoadingImages": "Thử tải hình ảnh bằng nút bên dưới.",
+    "latestFromMarsRover": "Ảnh mới nhất từ tàu thăm dò Sao Hỏa",
+    "epicSatelliteImagery": "Ảnh vệ tinh EPIC",
+    "nasaImage": "Ảnh NASA",
+    "imagesFromNasaApi": "Hình ảnh từ NASA API",
+    "type": "Loại:",
+    "height": "Độ cao:",
+    "depth": "Độ sâu:",
+    "diameter": "Đường kính:",
+    "coordinates": "Tọa độ:",
+    "namedAfter": "Đặt tên theo",
+    "discovery": "Khám phá:",
+    "nasaVerified": "Đặc điểm được NASA xác minh",
+    "tourMode": "Chế độ tham quan",
+    "autoTour": "Tự động tham quan",
+    "stopTour": "Dừng tham quan",
+    "hideMarkers": "Ẩn địa điểm",
+    "showMarkers": "Hiện địa điểm",
+    "hideArtifacts": "Ẩn hiện vật",
+    "showArtifacts": "Hiện hiện vật",
+    "hideProfile": "Ẩn hồ sơ",
+    "showProfile": "Hiện hồ sơ",
+    "close": "Đóng",
+    "quizScore": "Điểm quiz",
+    "retakeQuiz": "Làm lại quiz",
+    "badges": "Huy hiệu",
+    "unableToLoadHistory": "Không thể tải lịch sử",
+    "failedToFetchData": "Không thể tải dữ liệu từ API",
+    "retry": "Thử lại",
+    "dataFromSolarSystemApi": "Dữ liệu từ Solar System OpenData API",
+    "physicalCharacteristics": "Đặc điểm vật lý",
+    "orbitalParameters": "Thông số quỹ đạo",
+    "semimajorAxis": "Bán trục lớn:",
+    "perihelion": "Cận nhật điểm:",
+    "aphelion": "Viễn nhật điểm:",
+    "eccentricity": "Độ lệch tâm:",
+    "inclination": "Độ nghiêng:",
+    "orbitalPeriod": "Chu kỳ quỹ đạo:",
+    "rotationPeriod": "Chu kỳ tự quay:",
+    "moons": "Vệ tinh",
+    "more": "nữa",
+    "discoveredBy": "Người phát hiện:",
+    "discoveryDate": "Thời gian:",
+    "discoverySection": "Thông tin khám phá",
+    "bodyType": "Loại:",
+    "alternativeName": "Tên khác:",
+    "volume": "Thể tích:",
+    "density": "Mật độ:",
+    "surfaceGravity": "Trọng lực bề mặt:",
+    "meanRadius": "Bán kính:",
+    "avgTemperature": "Nhiệt độ trung bình:",
+    "axialTilt": "Độ nghiêng trục:",
+    "dataFromNasa": "Dữ liệu từ NASA",
+    "updated": "Cập nhật",
+    "nasaOfficialImage": "Ảnh chính thức NASA"
+  },
+  "discoveryData": {
+    "ancient": "Cổ đại",
+    "prehistoric": "Tiền sử",
+    "planet": "Hành tinh",
+    "dwarf planet": "Hành tinh lùn",
+    "star": "Ngôi sao"
+  },
+  "artifact": {
+    "found": "Tìm Thấy Hiện Vật!",
+    "collected": "Đã Thu Thập",
+    "total": "Tổng Số Hiện Vật",
+    "name": "Tên Hiện Vật",
+    "description": "Mô Tả",
+    "rarity": "Độ Hiếm",
+    "common": "Thông Thường",
+    "rare": "Hiếm",
+    "epic": "Sử Thi",
+    "legendary": "Huyền Thoại",
+    "viewCollection": "Xem Bộ Sưu Tập",
+    "noArtifacts": "Chưa thu thập hiện vật nào"
+  },
+  "quiz": {
+    "title": "Câu Đố Hành Tinh",
+    "question": "Câu Hỏi",
+    "submit": "Gửi Câu Trả Lời",
+    "correct": "Đúng!",
+    "incorrect": "Sai",
+    "score": "Điểm",
+    "timeLeft": "Thời Gian Còn Lại",
+    "results": "Kết Quả",
+    "tryAgain": "Thử Lại",
+    "nextPlanet": "Hành Tinh Tiếp Theo",
+    "explorer": "Người khám phá",
+    "excellentMessage": "Tuyệt vời! Bạn có kiến thức vững vàng về hành tinh này! Tiếp tục khám phá nhé! 🌟",
+    "goodMessage": "Khá tốt! Bạn đã nắm được những kiến thức cơ bản. Hãy khám phá thêm để học hỏi nhiều hơn! 📚",
+    "encourageMessage": "Đừng lo! Mọi hành trình đều bắt đầu từ những bước đi đầu tiên. Hãy khám phá các markers để học thêm nhé! 🚀",
+    "explorePlanet": "Khám phá hành tinh",
+    "retake": "Thử lại"
+  },
+  "leaderboard": {
+    "title": "Bảng Xếp Hạng",
+    "rank": "Hạng",
+    "player": "Người Chơi",
+    "score": "Điểm",
+    "artifacts": "Hiện Vật",
+    "planetsVisited": "Hành Tinh Đã Thăm",
+    "yourRank": "Hạng Của Bạn",
+    "you": "(Bạn)",
+    "planetsExplored": "{{count}} hành tinh đã khám phá",
+    "planetsExplored_plural": "{{count}} hành tinh đã khám phá",
+    "badges": "Huy Hiệu"
+  },
+  "profile": {
+    "title": "Hồ Sơ",
+    "username": "Tên Người Dùng",
+    "level": "Cấp Độ",
+    "experience": "Kinh Nghiệm",
+    "achievements": "Thành Tựu",
+    "statistics": "Thống Kê",
+    "totalScore": "Tổng Điểm",
+    "planetsExplored": "Hành Tinh Đã Khám Phá",
+    "quizzesPassed": "Câu Đố Đã Hoàn Thành",
+    "editProfile": "Chỉnh Sửa Hồ Sơ"
+  },
+  "chatbot": {
+    "title": "Trợ Lý AI",
+    "placeholder": "Hỏi tôi bất cứ điều gì về vũ trụ...",
+    "send": "Gửi",
+    "thinking": "Đang suy nghĩ...",
+    "error": "Xin lỗi, tôi không thể xử lý yêu cầu đó",
+    "suggestedQuestions": "💡 Gợi ý câu hỏi:"
+  },
+  "hud": {
+    "health": "Sức Khỏe",
+    "fuel": "Nhiên Liệu",
+    "oxygen": "Oxy",
+    "speed": "Tốc Độ",
+    "altitude": "Độ Cao",
+    "coordinates": "Tọa Độ"
+  },
+  "victory": {
+    "congratulations": "Chúc Mừng!",
+    "completed": "Bạn đã hoàn thành Hành Trình Mặt Trời!",
+    "summary": "Tóm Tắt Nhiệm Vụ",
+    "timeSpent": "Thời Gian Đã Dùng",
+    "planetsVisited": "Hành Tinh Đã Thăm",
+    "artifactsCollected": "Hiện Vật Đã Thu Thập",
+    "quizScore": "Điểm Câu Đố",
+    "playAgain": "Chơi Lại",
+    "mainMenu": "Menu Chính"
+  },
+  "settings": {
+    "title": "Cài Đặt",
+    "graphics": "Đồ Họa",
+    "audio": "Âm Thanh",
+    "controls": "Điều Khiển",
+    "language": "Ngôn Ngữ",
+    "quality": "Chất Lượng",
+    "volume": "Âm Lượng",
+    "masterVolume": "Âm Lượng Chính",
+    "musicVolume": "Âm Lượng Nhạc",
+    "sfxVolume": "Âm Lượng Hiệu Ứng",
+    "fullscreen": "Toàn Màn Hình",
+    "shadows": "Bóng Đổ",
+    "antialiasing": "Khử Răng Cưa"
+  },
+  "gameMechanics": {
+    "title": "Cơ Chế Trò Chơi",
+    "movement": "Di Chuyển",
+    "camera": "Camera",
+    "interaction": "Tương Tác",
+    "moveForward": "Di Chuyển Tiến",
+    "moveBackward": "Di Chuyển Lùi",
+    "moveLeft": "Di Chuyển Trái",
+    "moveRight": "Di Chuyển Phải",
+    "jump": "Nhảy",
+    "sprint": "Chạy Nhanh",
+    "rotateCamera": "Xoay Camera",
+    "zoom": "Thu Phóng",
+    "collect": "Thu Thập Hiện Vật",
+    "openMenu": "Mở Menu",
+    "howToPlay": "Cách chơi",
+    "step1": "Di chuyển: Di chuyển chuột để điều khiển phi thuyền",
+    "step2": "Bắn: Click chuột hoặc nhấn Space để bắn đạn",
+    "step3": "Mục tiêu: Bắn hạ tất cả thiên thạch để qua wave tiếp theo",
+    "step4": "Tạm dừng: Nhấn P để tạm dừng/tiếp tục game"
+  },
+  "mainMenu": {
+    "title": "HÀNH TRÌNH MẶT TRỜI",
+    "welcome1": "Chào mừng phi hành gia đến với hành trình chinh phục vũ trụ!",
+    "welcome2": "Sẵn sàng khám phá những bí ẩn của thiên hà?",
+    "welcome3": "Khởi động phi thuyền và bắt đầu cuộc phiêu lưu vũ trụ!",
+    "startExplore": "Bắt Đầu Khám Phá",
+    "setting": "Cài Đặt",
+    "aboutUs": "Về Chúng Tôi",
+    "login": "Đăng nhập",
+    "loginSubtext": "Lưu tiến độ của bạn",
+    "myProgress": "Tiến Độ Của Tôi",
+    "backToMenu": "Quay Lại Menu"
+  },
+  "profileCreation": {
+    "title": "Tạo Profile Công Dân",
+    "subtitle": "Tạo nhân vật của bạn trên {{planetName}}",
+    "enterName": "Nhập tên công dân của bạn",
+    "namePlaceholder": "Nhà thám hiểm vũ trụ...",
+    "chooseRole": "Chọn vai trò của bạn",
+    "roleSubtitle": "Vai trò sẽ định hình hành trình khám phá của bạn",
+    "scientist": "Nhà Khoa Học",
+    "scientistDesc": "Nghiên cứu và khám phá",
+    "explorer": "Nhà Thám Hiểm",
+    "explorerDesc": "Người dũng cảm phiêu lưu",
+    "engineer": "Kỹ Sư",
+    "engineerDesc": "Xây dựng và sửa chữa",
+    "pilot": "Phi Công",
+    "pilotDesc": "Điều hướng giữa các vì sao",
+    "continue": "Tiếp tục →",
+    "skip": "Bỏ qua"
+  },
+  "aiCompanion": {
+    "suggestedQuestions": "💡 Gợi ý câu hỏi:",
+    "thinking": "Đang suy nghĩ..."
+  },
+  "userProfile": {
+    "astronaut": "Phi Hành Gia",
+    "totalPoints": "Tổng Điểm",
+    "planetsCompleted": "Hành Tinh Hoàn Thành",
+    "artifactsFound": "Hiện Vật Tìm Thấy",
+    "badgesEarned": "Huy Hiệu Đạt Được",
+    "recentAchievements": "Thành Tựu Gần Đây",
+    "noAchievements": "Chưa có thành tựu nào. Bắt đầu khám phá!",
+    "journeyProgress": "Tiến Độ Hành Trình",
+    "noPlanets": "Chưa thăm hành tinh nào",
+    "backToMenu": "Quay Lại Menu"
+  },
+  "leaderboardPage": {
+    "you": "(Bạn)",
+    "planetsExplored": "{{count}} hành tinh đã khám phá",
+    "planetsExplored_plural": "{{count}} hành tinh đã khám phá",
+    "score": "Điểm",
+    "badges": "Huy Hiệu"
+  },
+  "victoryPage": {
+    "victory": "CHIẾN THẮNG!",
+    "launching": "Khởi động...",
+    "flyingTo": "Đang bay đến {{planetName}}"
+  },
+  "authPage": {
+    "welcomeTitle": "Hành Trình Mặt Trời",
+    "welcomeSubtitle": "Khám phá hệ mặt trời, chinh phục các hành tinh, và trở thành nhà thám hiểm vũ trụ huyền thoại!",
+    "feature1": "10 Hành Tinh",
+    "feature2": "Trò Chơi Đố",
+    "feature3": "Bảng Xếp Hạng",
+    "displayName": "Tên hiển thị",
+    "orContinue": "Hoặc tiếp tục với",
+    "guestMode": "chơi với chế độ khách",
+    "guestNote": "(Tiến độ sẽ không được lưu trên cloud)",
+    "termsPrefix": "Bằng việc đăng nhập, bạn đồng ý với",
+    "termsLink": "Điều khoản sử dụng"
+  },
+  "planetInfo": {
+    "startMission": "Bắt đầu nhiệm vụ"
+  },
+  "geminiChatbot": {
+    "mostInteresting": "Điều thú vị nhất về {{planetId}} là gì?",
+    "hasWater": "Có nước trên {{planetId}} không?"
+  },
+  "victorySequence": {
+    "victory": "CHIẾN THẮNG!",
+    "score": "Điểm: ",
+    "maxCombo": "Combo tối đa: ",
+    "damagesTaken": "Sát thương nhận: ",
+    "launching": "Khởi động...",
+    "flyingTo": "Đang bay đến {{planetName}}"
+  },
+  "collection": {
+    "title": "Bộ Sưu Tập Của Tôi",
+    "totalPoints": "Tổng Điểm",
+    "artifacts": "Hiện Vật",
+    "badges": "Huy Hiệu",
+    "emptyMessage": "Hãy khám phá các hành tinh để thu thập đồ vật!",
+    "subtitle": "Khám phá và thu thập các đồ vật bí ẩn trên các hành tinh"
+  },
+  "planets": {
+    "sun": {
+      "name": "Mặt Trời",
+      "description": "Ngôi sao trung tâm của hệ mặt trời, cung cấp ánh sáng và năng lượng."
+    },
+    "mercury": {
+      "name": "Sao Thủy",
+      "description": "Hành tinh gần Mặt Trời nhất, nhỏ nhất trong hệ mặt trời."
+    },
+    "venus": {
+      "name": "Sao Kim",
+      "description": "Hành tinh giống Trái Đất nhưng có khí hậu cực kỳ khắc nghiệt."
+    },
+    "earth": {
+      "name": "Trái Đất",
+      "description": "Hành tinh xanh - nơi con người đang sinh sống."
+    },
+    "moon": {
+      "name": "Mặt Trăng",
+      "description": "Vệ tinh tự nhiên duy nhất của Trái Đất."
+    },
+    "mars": {
+      "name": "Sao Hỏa",
+      "description": "Hành tinh đỏ, có thể là tương lai của nhân loại."
+    },
+    "jupiter": {
+      "name": "Sao Mộc",
+      "description": "Hành tinh khí khổng lồ với cơn bão Great Red Spot."
+    },
+    "saturn": {
+      "name": "Sao Thổ",
+      "description": "Hành tinh với hệ thống vành đai nổi bật nhất."
+    },
+    "uranus": {
+      "name": "Sao Thiên Vương",
+      "description": "Hành tinh nghiêng 98 độ, có màu xanh lam đặc trưng."
+    },
+    "neptune": {
+      "name": "Sao Hải Vương",
+      "description": "Hành tinh xa nhất trong hệ mặt trời, với màu xanh đặc trưng."
+    }
+  },
+  "game": {
+    "score": "Điểm: ",
+    "lives": "Mạng:",
+    "wave": "Wave: ",
+    "combo": "COMBO x{{multiplier}}",
+    "hits": "{{count}} hits",
+    "heatDamage": "SÓNG NHIỆT CỰC MẠNH!",
+    "keepMoving": "Tiếp tục di chuyển!",
+    "controls": {
+      "move": "Di chuyển chuột để điều khiển",
+      "shoot": "Click hoặc Space để bắn",
+      "pause": "P để tạm dừng"
+    },
+    "pause": {
+      "title": "TẠM DỬNG",
+      "resume": "Tiếp tục"
+    },
+    "gameOver": {
+      "title": "GAME OVER",
+      "finalScore": "Điểm cuối: ",
+      "waveReached": "Wave đạt được: ",
+      "restart": "Chơi lại"
+    },
+    "specialEffects": {
+      "dustStorm": "BÃO CÁT SẮP ĐẾN",
+      "acidRain": "MƯA AXIT SẮP ĐẾN",
+      "heatWave": "SÓNG NHIỆT SẮP ĐẾN",
+      "iceStorm": "BÃO BĂNG SẮP ĐẾN",
+      "gravityWell": "LỰC HẤP DẪN SẮP XUẤT HIỆN",
+      "ringNavigation": "VÀNH ĐAI NGUY HIỂM"
+    },
+    "activeEffects": {
+      "dustStorm": "BÃO CÁT ĐANG HOẠT ĐỘNG!",
+      "acidRain": "MƯA AXIT NGUY HIỂM!",
+      "heatWave": "SÓNG NHIỆT CỰC MẠNH!",
+      "iceStorm": "BÃO BĂNG ĐANG HOẠT ĐỘNG!",
+      "gravityWell": "LỰC HẤP DẪN BẤT THƯỜNG!",
+      "ringNavigation": "VÀNH ĐAI NGUY HIỂM!"
+    },
+    "skipButton": "Bỏ qua",
+    "skipTooltip": "Bạn đã hoàn thành minigame này rồi!"
+  },
+  "quizQuestion": {
+    "question": "Câu hỏi {{number}}/{{total}}",
+    "nextQuestion": "Câu tiếp theo",
+    "viewResults": "Xem kết quả"
+  }
+}

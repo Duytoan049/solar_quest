@@ -1,0 +1,434 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "close": "Close",
+    "next": "Next",
+    "previous": "Previous",
+    "start": "Start",
+    "continue": "Continue",
+    "finish": "Finish"
+  },
+  "menu": {
+    "title": "Solar Quest",
+    "start": "Start Journey",
+    "collection": "My Collection",
+    "leaderboard": "Leaderboard",
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot Password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "signInWithGoogle": "Sign in with Google",
+    "signInWithGithub": "Sign in with GitHub",
+    "emailPlaceholder": "Enter your email",
+    "passwordPlaceholder": "Enter your password"
+  },
+  "planet": {
+    "explore": "Explore",
+    "facts": "Interesting Facts",
+    "quiz": "Take Quiz",
+    "artifacts": "Artifacts",
+    "distance": "Distance from Sun",
+    "diameter": "Diameter",
+    "mass": "Mass",
+    "gravity": "Gravity",
+    "temperature": "Temperature",
+    "moons": "Moons",
+    "dayLength": "Day Length",
+    "yearLength": "Year Length",
+    "distanceFromSun": "Distance from Sun",
+    "atmosphere": "Atmosphere"
+  },
+  "planetDetail": {
+    "backToSolarSystem": "Solar System",
+    "planetStats": "Planet Stats",
+    "planetHistory": "Planet History",
+    "nasaImages": "NASA Images",
+    "visited": "Visited",
+    "markers": "Markers",
+    "artifacts": "Artifacts",
+    "explored": "Explored",
+    "masterExplorer": "Master Explorer!",
+    "loadMoreNasaImages": "Load More NASA Images",
+    "loadingNasaImages": "Loading NASA Images...",
+    "noNasaImages": "No NASA images available for {planet} yet.",
+    "tryLoadingImages": "Try loading images using the button below.",
+    "latestFromMarsRover": "Latest from Mars Rover",
+    "epicSatelliteImagery": "EPIC Satellite Imagery",
+    "nasaImage": "NASA Image",
+    "imagesFromNasaApi": "Images from NASA API",
+    "type": "Type:",
+    "height": "Height:",
+    "depth": "Depth:",
+    "diameter": "Diameter:",
+    "coordinates": "Coordinates:",
+    "namedAfter": "Named after",
+    "discovery": "Discovery:",
+    "nasaVerified": "NASA-verified planetary feature",
+    "tourMode": "Tour Mode",
+    "autoTour": "Auto Tour",
+    "stopTour": "Stop Tour",
+    "hideMarkers": "Hide markers",
+    "showMarkers": "Show markers",
+    "hideArtifacts": "Hide artifacts",
+    "showArtifacts": "Show artifacts",
+    "hideProfile": "Hide profile",
+    "showProfile": "Show profile",
+    "close": "Close",
+    "quizScore": "Quiz Score",
+    "retakeQuiz": "Retake Quiz",
+    "badges": "Badges",
+    "unableToLoadHistory": "Unable to load history",
+    "failedToFetchData": "Failed to fetch data from Solar System OpenData API",
+    "retry": "Retry",
+    "dataFromSolarSystemApi": "Data from Solar System OpenData API",
+    "physicalCharacteristics": "Physical Characteristics",
+    "orbitalParameters": "Orbital Parameters",
+    "semimajorAxis": "Semimajor axis:",
+    "perihelion": "Perihelion:",
+    "aphelion": "Aphelion:",
+    "eccentricity": "Eccentricity:",
+    "inclination": "Inclination:",
+    "orbitalPeriod": "Orbital period:",
+    "rotationPeriod": "Rotation period:",
+    "moons": "Moons",
+    "more": "more",
+    "discoveredBy": "Discovered by:",
+    "discoveryDate": "Discovery date:",
+    "discoverySection": "Discovery",
+    "bodyType": "Body type:",
+    "alternativeName": "Alternative name:",
+    "volume": "Volume:",
+    "density": "Density:",
+    "surfaceGravity": "Surface gravity:",
+    "meanRadius": "Mean radius:",
+    "avgTemperature": "Avg temperature:",
+    "axialTilt": "Axial tilt:",
+    "dataFromNasa": "Data from NASA",
+    "updated": "Updated",
+    "nasaOfficialImage": "NASA Official Image"
+  },
+  "discoveryData": {
+    "ancient": "Ancient",
+    "prehistoric": "Prehistoric",
+    "planet": "Planet",
+    "dwarf planet": "Dwarf Planet",
+    "star": "Star"
+  },
+  "artifact": {
+    "found": "Artifact Found!",
+    "collected": "Collected",
+    "total": "Total Artifacts",
+    "name": "Artifact Name",
+    "description": "Description",
+    "rarity": "Rarity",
+    "common": "Common",
+    "rare": "Rare",
+    "epic": "Epic",
+    "legendary": "Legendary",
+    "viewCollection": "View Collection",
+    "noArtifacts": "No artifacts collected yet"
+  },
+  "quiz": {
+    "title": "Planet Quiz",
+    "question": "Question",
+    "submit": "Submit Answer",
+    "correct": "Correct!",
+    "incorrect": "Incorrect",
+    "score": "Score",
+    "timeLeft": "Time Left",
+    "results": "Quiz Results",
+    "tryAgain": "Try Again",
+    "nextPlanet": "Next Planet",
+    "explorer": "Explorer",
+    "excellentMessage": "Excellent! You have solid knowledge about this planet! Keep exploring! 🌟",
+    "goodMessage": "Pretty good! You've grasped the basics. Explore more to learn even more! 📚",
+    "encourageMessage": "Don't worry! Every journey starts with the first steps. Explore the markers to learn more! 🚀",
+    "explorePlanet": "Explore Planet",
+    "retake": "Try Again"
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "rank": "Rank",
+    "player": "Player",
+    "score": "Score",
+    "artifacts": "Artifacts",
+    "planetsVisited": "Planets Visited",
+    "yourRank": "Your Rank",
+    "you": "(You)",
+    "planetsExplored": "{{count}} planet explored",
+    "planetsExplored_plural": "{{count}} planets explored",
+    "badges": "Badges"
+  },
+  "profile": {
+    "title": "Profile",
+    "username": "Username",
+    "level": "Level",
+    "experience": "Experience",
+    "achievements": "Achievements",
+    "statistics": "Statistics",
+    "totalScore": "Total Score",
+    "planetsExplored": "Planets Explored",
+    "quizzesPassed": "Quizzes Passed",
+    "editProfile": "Edit Profile"
+  },
+  "chatbot": {
+    "title": "AI Companion",
+    "placeholder": "Ask me anything about space...",
+    "send": "Send",
+    "thinking": "Thinking...",
+    "error": "Sorry, I couldn't process that request",
+    "suggestedQuestions": "💡 Suggested questions:"
+  },
+  "hud": {
+    "health": "Health",
+    "fuel": "Fuel",
+    "oxygen": "Oxygen",
+    "speed": "Speed",
+    "altitude": "Altitude",
+    "coordinates": "Coordinates"
+  },
+  "victory": {
+    "congratulations": "Congratulations!",
+    "completed": "You've completed Solar Quest!",
+    "summary": "Mission Summary",
+    "timeSpent": "Time Spent",
+    "planetsVisited": "Planets Visited",
+    "artifactsCollected": "Artifacts Collected",
+    "quizScore": "Quiz Score",
+    "playAgain": "Play Again",
+    "mainMenu": "Main Menu"
+  },
+  "settings": {
+    "title": "Settings",
+    "graphics": "Graphics",
+    "audio": "Audio",
+    "controls": "Controls",
+    "language": "Language",
+    "quality": "Quality",
+    "volume": "Volume",
+    "masterVolume": "Master Volume",
+    "musicVolume": "Music Volume",
+    "sfxVolume": "Sound Effects Volume",
+    "fullscreen": "Fullscreen",
+    "shadows": "Shadows",
+    "antialiasing": "Anti-Aliasing"
+  },
+  "gameMechanics": {
+    "title": "Game Mechanics",
+    "movement": "Movement",
+    "camera": "Camera",
+    "interaction": "Interaction",
+    "moveForward": "Move Forward",
+    "moveBackward": "Move Backward",
+    "moveLeft": "Move Left",
+    "moveRight": "Move Right",
+    "jump": "Jump",
+    "sprint": "Sprint",
+    "rotateCamera": "Rotate Camera",
+    "zoom": "Zoom",
+    "collect": "Collect Artifact",
+    "openMenu": "Open Menu",
+    "howToPlay": "How to Play",
+    "step1": "Move: Move mouse to control spaceship",
+    "step2": "Shoot: Click mouse or press Space to shoot",
+    "step3": "Objective: Destroy all asteroids to advance to next wave",
+    "step4": "Pause: Press P to pause/resume game"
+  },
+  "mainMenu": {
+    "title": "SOLAR QUEST",
+    "welcome1": "Welcome, astronaut, to your journey of conquering the universe!",
+    "welcome2": "Ready to explore the mysteries of the galaxy?",
+    "welcome3": "Start your spaceship and begin the space adventure!",
+    "startExplore": "Start Explore",
+    "setting": "Setting",
+    "aboutUs": "About Us",
+    "login": "Login",
+    "loginSubtext": "Save your progress",
+    "myProgress": "My Progress",
+    "backToMenu": "Back to Menu"
+  },
+  "profileCreation": {
+    "title": "Create Citizen Profile",
+    "subtitle": "Create your character on {{planetName}}",
+    "enterName": "Enter your citizen name",
+    "namePlaceholder": "Space Explorer...",
+    "chooseRole": "Choose your role",
+    "roleSubtitle": "Your role will shape your exploration journey",
+    "scientist": "Scientist",
+    "scientistDesc": "Research and discover",
+    "explorer": "Explorer",
+    "explorerDesc": "Brave adventurer",
+    "engineer": "Engineer",
+    "engineerDesc": "Build and repair",
+    "pilot": "Pilot",
+    "pilotDesc": "Navigate the stars",
+    "continue": "Continue →",
+    "skip": "Skip"
+  },
+  "aiCompanion": {
+    "suggestedQuestions": "💡 Suggested questions:",
+    "thinking": "Thinking..."
+  },
+  "userProfile": {
+    "astronaut": "Astronaut",
+    "totalPoints": "Total Points",
+    "planetsCompleted": "Planets Completed",
+    "artifactsFound": "Artifacts Found",
+    "badgesEarned": "Badges Earned",
+    "recentAchievements": "Recent Achievements",
+    "noAchievements": "No achievements yet. Start exploring!",
+    "journeyProgress": "Journey Progress",
+    "noPlanets": "No planets visited yet",
+    "backToMenu": "Back to Menu"
+  },
+  "leaderboardPage": {
+    "you": "(You)",
+    "planetsExplored": "{{count}} planet explored",
+    "planetsExplored_plural": "{{count}} planets explored",
+    "score": "Score",
+    "badges": "Badges"
+  },
+  "victoryPage": {
+    "victory": "VICTORY!",
+    "launching": "Launching...",
+    "flyingTo": "Flying to {{planetName}}"
+  },
+  "authPage": {
+    "welcomeTitle": "Solar Quest",
+    "welcomeSubtitle": "Explore the solar system, conquer planets, and become a legendary space explorer!",
+    "feature1": "10 Planets",
+    "feature2": "Quiz Game",
+    "feature3": "Leaderboard",
+    "displayName": "Display Name",
+    "orContinue": "Or continue with",
+    "guestMode": "play as guest",
+    "guestNote": "(Progress will not be saved to cloud)",
+    "termsPrefix": "By logging in, you agree to",
+    "termsLink": "Terms of Service"
+  },
+  "planetInfo": {
+    "startMission": "Start Mission"
+  },
+  "geminiChatbot": {
+    "mostInteresting": "What's the most interesting thing about {{planetId}}?",
+    "hasWater": "Does {{planetId}} have water?"
+  },
+  "victorySequence": {
+    "victory": "VICTORY!",
+    "score": "Score: ",
+    "maxCombo": "Max Combo: ",
+    "damagesTaken": "Damages Taken: ",
+    "launching": "Launching...",
+    "flyingTo": "Flying to {{planetName}}"
+  },
+  "collection": {
+    "title": "My Collection",
+    "totalPoints": "Total Points",
+    "artifacts": "Artifacts",
+    "badges": "Badges",
+    "emptyMessage": "Explore planets to collect artifacts!",
+    "subtitle": "Discover and collect mysterious artifacts across the planets"
+  },
+  "planets": {
+    "sun": {
+      "name": "Sun",
+      "description": "The central star of the solar system, providing light and energy."
+    },
+    "mercury": {
+      "name": "Mercury",
+      "description": "The closest planet to the Sun, the smallest in the solar system."
+    },
+    "venus": {
+      "name": "Venus",
+      "description": "Earth-like planet but with extremely harsh climate."
+    },
+    "earth": {
+      "name": "Earth",
+      "description": "The blue planet - where humanity lives."
+    },
+    "moon": {
+      "name": "Moon",
+      "description": "Earth's only natural satellite."
+    },
+    "mars": {
+      "name": "Mars",
+      "description": "The red planet, possibly humanity's future."
+    },
+    "jupiter": {
+      "name": "Jupiter",
+      "description": "Giant gas planet with the Great Red Spot storm."
+    },
+    "saturn": {
+      "name": "Saturn",
+      "description": "Planet with the most prominent ring system."
+    },
+    "uranus": {
+      "name": "Uranus",
+      "description": "Planet tilted 98 degrees, with distinctive blue color."
+    },
+    "neptune": {
+      "name": "Neptune",
+      "description": "The farthest planet in the solar system, with characteristic blue color."
+    }
+  },
+  "game": {
+    "score": "Score: ",
+    "lives": "Lives:",
+    "wave": "Wave: ",
+    "combo": "COMBO x{{multiplier}}",
+    "hits": "{{count}} hits",
+    "heatDamage": "HEAT DAMAGE!",
+    "keepMoving": "Keep moving!",
+    "controls": {
+      "move": "Move mouse to control",
+      "shoot": "Click or Space to shoot",
+      "pause": "P to pause"
+    },
+    "pause": {
+      "title": "PAUSED",
+      "resume": "Resume"
+    },
+    "gameOver": {
+      "title": "GAME OVER",
+      "finalScore": "Final Score: ",
+      "waveReached": "Wave Reached: ",
+      "restart": "Play Again"
+    },
+    "specialEffects": {
+      "dustStorm": "DUST STORM INCOMING",
+      "acidRain": "ACID RAIN INCOMING",
+      "heatWave": "HEAT WAVE INCOMING",
+      "iceStorm": "ICE STORM INCOMING",
+      "gravityWell": "GRAVITY WELL APPEARING",
+      "ringNavigation": "DANGEROUS RINGS"
+    },
+    "activeEffects": {
+      "dustStorm": "DUST STORM ACTIVE!",
+      "acidRain": "ACID RAIN HAZARD!",
+      "heatWave": "EXTREME HEAT!",
+      "iceStorm": "ICE STORM ACTIVE!",
+      "gravityWell": "ABNORMAL GRAVITY!",
+      "ringNavigation": "DANGEROUS RINGS!"
+    },
+    "skipButton": "Skip",
+    "skipTooltip": "You've completed this minigame before!"
+  },
+  "quizQuestion": {
+    "question": "Question {{number}}/{{total}}",
+    "nextQuestion": "Next Question",
+    "viewResults": "View Results"
+  }
+}

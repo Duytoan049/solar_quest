@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import type { QuizResult as QuizResultType } from "@/types/quiz";
 import type { AICompanionData } from "@/types/victory";
 
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function QuizResult({ result, ai, onContinue }: Props) {
+  const { t } = useTranslation();
   const quiz = result;
   const percentage = quiz.percentage;
 
@@ -31,7 +33,7 @@ export default function QuizResult({ result, ai, onContinue }: Props) {
   } else {
     rewardData = {
       score: 1,
-      title: "Người khám phá",
+      title: t('quiz.explorer'),
       badges: ["🥉 Bronze Explorer"],
       message: "Bạn đã bắt đầu hành trình!",
     };
@@ -286,10 +288,10 @@ export default function QuizResult({ result, ai, onContinue }: Props) {
                     {percentage === 100
                       ? "Không thể tin được! Bạn trả lời đúng tất cả! Bạn thực sự là bậc thầy về hành tinh này! 🎉"
                       : percentage >= 80
-                      ? "Tuyệt vời! Bạn có kiến thức vững vàng về hành tinh này! Tiếp tục khám phá nhé! 🌟"
+                      ? t('quiz.excellentMessage')
                       : percentage >= 60
-                      ? "Khá tốt! Bạn đã nắm được những kiến thức cơ bản. Hãy khám phá thêm để học hỏi nhiều hơn! 📚"
-                      : "Đừng lo! Mọi hành trình đều bắt đầu từ những bước đi đầu tiên. Hãy khám phá các markers để học thêm nhé! 🚀"}
+                      ? t('quiz.goodMessage')
+                      : t('quiz.encourageMessage')}
                   </p>
                 </div>
               </div>
@@ -329,7 +331,7 @@ export default function QuizResult({ result, ai, onContinue }: Props) {
               }}
             />
             <span className="relative z-10">
-              {percentage >= 20 ? "Khám phá hành tinh" : "Thử lại"}
+              {percentage >= 20 ? t('quiz.explorePlanet') : t('quiz.retake')}
             </span>
           </motion.button>
         </motion.div>
