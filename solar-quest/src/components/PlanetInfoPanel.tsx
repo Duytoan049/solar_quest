@@ -14,7 +14,7 @@ export default function PlanetInfoPanel({
   onStartMission,
 }: PlanetInfoPanelProps) {
   const { t } = useTranslation();
-  
+
   if (!planet) return null;
 
   // A simple fade-in animation using Tailwind classes
@@ -43,7 +43,7 @@ export default function PlanetInfoPanel({
         onClick={onStartMission}
         className="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105"
       >
-        {t('planetInfo.startMission')}
+        {t("planetInfo.startMission")}
       </button>
     </div>
   );

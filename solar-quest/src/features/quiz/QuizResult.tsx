@@ -33,7 +33,7 @@ export default function QuizResult({ result, ai, onContinue }: Props) {
   } else {
     rewardData = {
       score: 1,
-      title: t('quiz.explorer'),
+      title: t("quiz.explorer"),
       badges: ["🥉 Bronze Explorer"],
       message: "Bạn đã bắt đầu hành trình!",
     };
@@ -288,10 +288,10 @@ export default function QuizResult({ result, ai, onContinue }: Props) {
                     {percentage === 100
                       ? "Không thể tin được! Bạn trả lời đúng tất cả! Bạn thực sự là bậc thầy về hành tinh này! 🎉"
                       : percentage >= 80
-                      ? t('quiz.excellentMessage')
+                      ? t("quiz.excellentMessage")
                       : percentage >= 60
-                      ? t('quiz.goodMessage')
-                      : t('quiz.encourageMessage')}
+                      ? t("quiz.goodMessage")
+                      : t("quiz.encourageMessage")}
                   </p>
                 </div>
               </div>
@@ -331,7 +331,7 @@ export default function QuizResult({ result, ai, onContinue }: Props) {
               }}
             />
             <span className="relative z-10">
-              {percentage >= 20 ? t('quiz.explorePlanet') : t('quiz.retake')}
+              {percentage >= 20 ? t("quiz.explorePlanet") : t("quiz.retake")}
             </span>
           </motion.button>
         </motion.div>

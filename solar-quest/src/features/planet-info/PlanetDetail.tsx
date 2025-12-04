@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { useGameManager } from "@/core/engine/GameContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useArtifactCollection } from "@/hooks/useArtifactCollection";
+import { useAudio } from "@/hooks/useAudio";
 import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
@@ -42,6 +43,7 @@ import ChatbotPanel from "@/features/chatbot/ChatbotPanel";
 import QuizPanel from "@/features/quiz/QuizPanel";
 import ArtifactSpawner from "@/components/ArtifactSpawner";
 import ArtifactCollectionModal from "@/components/ArtifactCollectionModal";
+import AudioSettings from "@/components/AudioSettings";
 import type { Artifact } from "@/types/artifact";
 import { aiCompanions } from "@/data/aiCompanions";
 import {
@@ -63,7 +65,11 @@ import {
   mercuryMarkers,
   sunMarkers,
 } from "./planetMarkers";
-import { getCachedTranslation, clearOldCache } from "@/services/cachedTranslation";
+import {
+  getCachedTranslation,
+  clearOldCache,
+} from "@/services/cachedTranslation";
+import { PLANET_ARTIFACTS } from "@/data/planetArtifacts";
 
 // Marker type definition
 interface MarkerData {
@@ -390,6 +396,7 @@ export default function PlanetDetail() {
   const { sceneParams, setScene } = useGameManager();
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
+  const { play, playMusic, stopMusic } = useAudio();
   const planetId = (sceneParams?.planetId as string) || "mars";
 
   // Artifact collection hook
@@ -399,6 +406,9 @@ export default function PlanetDetail() {
     handleCollect,
     loading: artifactsLoading,
   } = useArtifactCollection(planetId);
+
+  // Calculate total artifacts for this planet
+  const totalArtifacts = PLANET_ARTIFACTS[planetId]?.length || 0;
 
   const [selectedArtifact, setSelectedArtifact] = useState<Artifact | null>(
     null
@@ -434,7 +444,8 @@ export default function PlanetDetail() {
     null
   );
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [translatedDescription, setTranslatedDescription] = useState<string>('');
+  const [translatedDescription, setTranslatedDescription] =
+    useState<string>("");
   const [isTranslating, setIsTranslating] = useState(false);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const markerRefs = useRef<Record<number, THREE.Mesh>>({});
@@ -448,14 +459,8 @@ export default function PlanetDetail() {
       setSelectedArtifact(artifact);
       setShowArtifactModal(true);
 
-      // Optional: Play sound
-      try {
-        const audio = new Audio("/sounds/collect.mp3");
-        audio.volume = 0.3;
-        audio.play().catch(() => {});
-      } catch (e) {
-        // Ignore audio errors
-      }
+      // Play collect sound
+      play('collect', { volume: 0.5, category: 'ui' });
     }
   };
 
@@ -477,16 +482,26 @@ export default function PlanetDetail() {
     clearOldCache();
   }, []);
 
+  // Play planet music
+  useEffect(() => {
+    const musicKey = `${planetId}_theme`;
+    playMusic(musicKey, true);
+
+    return () => {
+      stopMusic(true);
+    };
+  }, [planetId, playMusic, stopMusic]);
+
   // Translate description when language changes or planetInfo updates
   useEffect(() => {
     const translateDescription = async () => {
       if (!planetInfo?.description) {
-        setTranslatedDescription('');
+        setTranslatedDescription("");
         return;
       }
 
       // If English, use original
-      if (i18n.language === 'en') {
+      if (i18n.language === "en") {
         setTranslatedDescription(planetInfo.description);
         return;
       }
@@ -496,11 +511,11 @@ export default function PlanetDetail() {
       try {
         const translated = await getCachedTranslation(
           planetInfo.description,
-          'vi'
+          "vi"
         );
         setTranslatedDescription(translated);
       } catch (error) {
-        console.error('Translation error:', error);
+        console.error("Translation error:", error);
         setTranslatedDescription(planetInfo.description); // Fallback to original
       } finally {
         setIsTranslating(false);
@@ -756,7 +771,9 @@ export default function PlanetDetail() {
               {/* Quiz Score */}
               <div className="bg-white/5 rounded-lg p-2 mb-3">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-400">{t("planetDetail.quizScore")}</span>
+                  <span className="text-gray-400">
+                    {t("planetDetail.quizScore")}
+                  </span>
                   <span className="font-bold text-white">
                     {profile.quizScore}/5
                   </span>
@@ -944,9 +961,7 @@ export default function PlanetDetail() {
             {isLoadingHistory && (
               <div className="text-center py-8">
                 <Loader2 className="w-12 h-12 text-blue-400 mx-auto mb-4 animate-spin" />
-                <p className="text-gray-400 text-sm">
-                  {t("common.loading")}
-                </p>
+                <p className="text-gray-400 text-sm">{t("common.loading")}</p>
               </div>
             )}
 
@@ -961,29 +976,46 @@ export default function PlanetDetail() {
                   </h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-400">{t("planetDetail.discoveredBy")}</span>
+                      <span className="text-gray-400">
+                        {t("planetDetail.discoveredBy")}
+                      </span>
                       <span className="text-white font-semibold">
-                        {t(`discoveryData.${planetHistory.discoveredBy.toLowerCase()}`, planetHistory.discoveredBy)}
+                        {t(
+                          `discoveryData.${planetHistory.discoveredBy.toLowerCase()}`,
+                          planetHistory.discoveredBy
+                        )}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">{t("planetDetail.discoveryDate")}</span>
+                      <span className="text-gray-400">
+                        {t("planetDetail.discoveryDate")}
+                      </span>
                       <span className="text-white font-semibold">
-                        {t(`discoveryData.${planetHistory.discoveryDate.toLowerCase()}`, planetHistory.discoveryDate)}
+                        {t(
+                          `discoveryData.${planetHistory.discoveryDate.toLowerCase()}`,
+                          planetHistory.discoveryDate
+                        )}
                       </span>
                     </div>
                     {planetHistory.alternativeName && (
                       <div className="flex justify-between">
-                        <span className="text-gray-400">{t("planetDetail.alternativeName")}</span>
+                        <span className="text-gray-400">
+                          {t("planetDetail.alternativeName")}
+                        </span>
                         <span className="text-white font-semibold">
                           {planetHistory.alternativeName}
                         </span>
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <span className="text-gray-400">{t("planetDetail.bodyType")}</span>
+                      <span className="text-gray-400">
+                        {t("planetDetail.bodyType")}
+                      </span>
                       <span className="text-white font-semibold">
-                        {t(`discoveryData.${planetHistory.bodyType.toLowerCase()}`, planetHistory.bodyType)}
+                        {t(
+                          `discoveryData.${planetHistory.bodyType.toLowerCase()}`,
+                          planetHistory.bodyType
+                        )}
                       </span>
                     </div>
                   </div>
@@ -1003,37 +1035,49 @@ export default function PlanetDetail() {
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">{t("planetDetail.volume")}</span>
+                      <span className="text-gray-400">
+                        {t("planetDetail.volume")}
+                      </span>
                       <span className="text-white font-semibold text-xs">
                         {formatVolume(planetHistory.volume)}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">{t("planetDetail.density")}</span>
+                      <span className="text-gray-400">
+                        {t("planetDetail.density")}
+                      </span>
                       <span className="text-white font-semibold">
                         {planetHistory.density.toFixed(2)} g/cm³
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">{t("planetDetail.surfaceGravity")}</span>
+                      <span className="text-gray-400">
+                        {t("planetDetail.surfaceGravity")}
+                      </span>
                       <span className="text-white font-semibold">
                         {planetHistory.gravity.toFixed(2)} m/s²
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">{t("planetDetail.meanRadius")}</span>
+                      <span className="text-gray-400">
+                        {t("planetDetail.meanRadius")}
+                      </span>
                       <span className="text-white font-semibold">
                         {formatNumber(planetHistory.meanRadius)} km
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">{t("planetDetail.avgTemperature")}</span>
+                      <span className="text-gray-400">
+                        {t("planetDetail.avgTemperature")}
+                      </span>
                       <span className="text-white font-semibold">
                         {kelvinToCelsius(planetHistory.avgTemp)}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">{t("planetDetail.axialTilt")}</span>
+                      <span className="text-gray-400">
+                        {t("planetDetail.axialTilt")}
+                      </span>
                       <span className="text-white font-semibold">
                         {planetHistory.axialTilt.toFixed(2)}°
                       </span>
@@ -1049,43 +1093,57 @@ export default function PlanetDetail() {
                   </h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-400">{t("planetDetail.semimajorAxis")}</span>
+                      <span className="text-gray-400">
+                        {t("planetDetail.semimajorAxis")}
+                      </span>
                       <span className="text-white font-semibold text-xs">
                         {formatNumber(planetHistory.semimajorAxis)} km
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">{t("planetDetail.perihelion")}</span>
+                      <span className="text-gray-400">
+                        {t("planetDetail.perihelion")}
+                      </span>
                       <span className="text-white font-semibold text-xs">
                         {formatNumber(planetHistory.perihelion)} km
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">{t("planetDetail.aphelion")}</span>
+                      <span className="text-gray-400">
+                        {t("planetDetail.aphelion")}
+                      </span>
                       <span className="text-white font-semibold text-xs">
                         {formatNumber(planetHistory.aphelion)} km
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">{t("planetDetail.eccentricity")}</span>
+                      <span className="text-gray-400">
+                        {t("planetDetail.eccentricity")}
+                      </span>
                       <span className="text-white font-semibold">
                         {planetHistory.eccentricity.toFixed(4)}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">{t("planetDetail.inclination")}</span>
+                      <span className="text-gray-400">
+                        {t("planetDetail.inclination")}
+                      </span>
                       <span className="text-white font-semibold">
                         {planetHistory.inclination.toFixed(2)}°
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">{t("planetDetail.orbitalPeriod")}</span>
+                      <span className="text-gray-400">
+                        {t("planetDetail.orbitalPeriod")}
+                      </span>
                       <span className="text-white font-semibold">
                         {planetHistory.sideralOrbit.toFixed(2)} days
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">{t("planetDetail.rotationPeriod")}</span>
+                      <span className="text-gray-400">
+                        {t("planetDetail.rotationPeriod")}
+                      </span>
                       <span className="text-white font-semibold">
                         {planetHistory.sideralRotation.toFixed(2)} hours
                       </span>
@@ -1111,7 +1169,8 @@ export default function PlanetDetail() {
                       ))}
                       {planetHistory.moons.length > 10 && (
                         <span className="px-2 py-1 bg-white/10 rounded-md text-xs text-gray-400 border border-white/20">
-                          +{planetHistory.moons.length - 10} {t("planetDetail.more")}
+                          +{planetHistory.moons.length - 10}{" "}
+                          {t("planetDetail.more")}
                         </span>
                       )}
                     </div>
@@ -1166,7 +1225,9 @@ export default function PlanetDetail() {
           border border-white/20 max-h-[calc(100vh-280px)] overflow-y-auto scrollbar-thin"
           >
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-bold text-white">{t("planetDetail.planetStats")}</h3>
+              <h3 className="text-base font-bold text-white">
+                {t("planetDetail.planetStats")}
+              </h3>
               <div className="flex items-center gap-2">
                 {isLoadingPlanetInfo && (
                   <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
@@ -1216,7 +1277,8 @@ export default function PlanetDetail() {
             )}
 
             {/* Description - use translated version if available */}
-            {(translatedDescription || t(`planets.${planetId}.description`)) && (
+            {(translatedDescription ||
+              t(`planets.${planetId}.description`)) && (
               <p className="text-gray-300 text-xs mb-2 leading-relaxed">
                 {isTranslating ? (
                   <span className="flex items-center gap-2 text-gray-500">
@@ -1231,7 +1293,9 @@ export default function PlanetDetail() {
 
             <div className="space-y-1.5 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-400">{t("planet.temperature")}:</span>
+                <span className="text-gray-400">
+                  {t("planet.temperature")}:
+                </span>
                 <span className="text-white font-semibold text-xs">
                   {planetInfo?.stats.temperature || stats.temperature}
                 </span>
@@ -1266,7 +1330,9 @@ export default function PlanetDetail() {
               )}
               {planetInfo?.stats.distanceFromSun && (
                 <div className="flex justify-between">
-                  <span className="text-gray-400">{t("planet.distanceFromSun")}:</span>
+                  <span className="text-gray-400">
+                    {t("planet.distanceFromSun")}:
+                  </span>
                   <span className="text-white font-semibold text-xs">
                     {planetInfo.stats.distanceFromSun}
                   </span>
@@ -1282,7 +1348,9 @@ export default function PlanetDetail() {
               )}
               {planetInfo?.stats.atmosphere && (
                 <div className="flex justify-between">
-                  <span className="text-gray-400">{t("planet.atmosphere")}:</span>
+                  <span className="text-gray-400">
+                    {t("planet.atmosphere")}:
+                  </span>
                   <span className="text-white font-semibold text-xs">
                     {planetInfo.stats.atmosphere}
                   </span>
@@ -1381,7 +1449,9 @@ export default function PlanetDetail() {
                   <div className="p-1.5 bg-black/60">
                     <p className="text-xs text-gray-400">
                       {planetInfo.lastUpdated
-                        ? `${t("planetDetail.updated")}: ${planetInfo.lastUpdated}`
+                        ? `${t("planetDetail.updated")}: ${
+                            planetInfo.lastUpdated
+                          }`
                         : t("planetDetail.nasaOfficialImage")}
                     </p>
                   </div>
@@ -1553,7 +1623,11 @@ export default function PlanetDetail() {
                   ? "bg-blue-600/80 text-white border border-blue-400/50"
                   : "bg-black/60 text-gray-400 border border-white/20 hover:bg-black/80"
               }`}
-              title={showMarkers ? t("planetDetail.hideMarkers") : t("planetDetail.showMarkers")}
+              title={
+                showMarkers
+                  ? t("planetDetail.hideMarkers")
+                  : t("planetDetail.showMarkers")
+              }
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -1586,7 +1660,11 @@ export default function PlanetDetail() {
                     ? "bg-purple-600/80 text-white border border-purple-400/50"
                     : "bg-black/60 text-gray-400 border border-white/20 hover:bg-black/80"
                 }`}
-                title={showArtifacts ? t("planetDetail.hideArtifacts") : t("planetDetail.showArtifacts")}
+                title={
+                  showArtifacts
+                    ? t("planetDetail.hideArtifacts")
+                    : t("planetDetail.showArtifacts")
+                }
               >
                 <Package className="w-4 h-4" />
                 {t("planetDetail.artifacts")}
@@ -1600,7 +1678,8 @@ export default function PlanetDetail() {
               <div className="flex items-center gap-2 mb-2">
                 <Package className="w-4 h-4 text-purple-400" />
                 <span className="text-white text-sm font-semibold">
-                  {t("planetDetail.artifacts")}: {collectedIds.length}/{availableArtifacts.length}
+                  {t("planetDetail.artifacts")}: {collectedIds.length}/
+                  {totalArtifacts}
                 </span>
               </div>
               <div className="w-[180px] h-2 bg-gray-700 rounded-full overflow-hidden">
@@ -1608,9 +1687,8 @@ export default function PlanetDetail() {
                   className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500"
                   style={{
                     width: `${
-                      availableArtifacts.length > 0
-                        ? (collectedIds.length / availableArtifacts.length) *
-                          100
+                      totalArtifacts > 0
+                        ? (collectedIds.length / totalArtifacts) * 100
                         : 0
                     }%`,
                   }}
@@ -1624,7 +1702,8 @@ export default function PlanetDetail() {
             <div className="flex items-center gap-2 mb-2">
               <Award className="w-4 h-4 text-yellow-400" />
               <span className="text-white text-sm font-semibold">
-                {t("planetDetail.explored")}: {visitedMarkers.size}/{markers.length}
+                {t("planetDetail.explored")}: {visitedMarkers.size}/
+                {markers.length}
               </span>
             </div>
             <div className="w-[180px] h-2 bg-gray-700 rounded-full overflow-hidden">
@@ -1643,7 +1722,9 @@ export default function PlanetDetail() {
             >
               <div className="flex items-center gap-2">
                 <Award className="w-5 h-5 text-white" />
-                <span className="text-white font-bold">{t("planetDetail.masterExplorer")}</span>
+                <span className="text-white font-bold">
+                  {t("planetDetail.masterExplorer")}
+                </span>
               </div>
             </div>
           )}
@@ -1833,7 +1914,9 @@ export default function PlanetDetail() {
               <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
                 {marker.type && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">{t("planetDetail.type")}</span>
+                    <span className="text-xs text-gray-400">
+                      {t("planetDetail.type")}
+                    </span>
                     <span className="text-xs text-white font-semibold capitalize">
                       {marker.type}
                     </span>
@@ -1841,7 +1924,9 @@ export default function PlanetDetail() {
                 )}
                 {marker.height && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">{t("planetDetail.height")}</span>
+                    <span className="text-xs text-gray-400">
+                      {t("planetDetail.height")}
+                    </span>
                     <span className="text-xs text-white font-semibold">
                       {marker.height}
                     </span>
@@ -1849,7 +1934,9 @@ export default function PlanetDetail() {
                 )}
                 {marker.depth && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">{t("planetDetail.depth")}</span>
+                    <span className="text-xs text-gray-400">
+                      {t("planetDetail.depth")}
+                    </span>
                     <span className="text-xs text-white font-semibold">
                       {marker.depth}
                     </span>
@@ -1857,7 +1944,9 @@ export default function PlanetDetail() {
                 )}
                 {marker.diameter && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">{t("planetDetail.diameter")}</span>
+                    <span className="text-xs text-gray-400">
+                      {t("planetDetail.diameter")}
+                    </span>
                     <span className="text-xs text-white font-semibold">
                       {marker.diameter}
                     </span>
@@ -1865,7 +1954,9 @@ export default function PlanetDetail() {
                 )}
                 {marker.coordinates && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">{t("planetDetail.coordinates")}</span>
+                    <span className="text-xs text-gray-400">
+                      {t("planetDetail.coordinates")}
+                    </span>
                     <span className="text-xs text-white font-semibold">
                       {marker.coordinates.latitude.toFixed(2)}°,{" "}
                       {marker.coordinates.longitude.toFixed(2)}°
@@ -1882,7 +1973,9 @@ export default function PlanetDetail() {
                 )}
                 {marker.discoveryDate && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">{t("planetDetail.discovery")}</span>
+                    <span className="text-xs text-gray-400">
+                      {t("planetDetail.discovery")}
+                    </span>
                     <span className="text-xs text-white font-semibold">
                       {marker.discoveryDate}
                     </span>
@@ -1986,6 +2079,9 @@ export default function PlanetDetail() {
           setSelectedArtifact(null);
         }}
       />
+
+      {/* Audio Settings - Only show when Quiz is not open */}
+      {!showQuiz && <AudioSettings />}
     </div>
   );
 }

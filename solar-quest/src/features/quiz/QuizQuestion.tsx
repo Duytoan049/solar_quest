@@ -47,7 +47,10 @@ export default function QuizQuestion({
       <div className="mb-6">
         <div className="flex justify-between text-sm text-gray-400 mb-2">
           <span>
-            {t('quizQuestion.question', { number: questionNumber, total: totalQuestions })}
+            {t("quizQuestion.question", {
+              number: questionNumber,
+              total: totalQuestions,
+            })}
           </span>
           <span className="capitalize">{question.difficulty}</span>
         </div>
@@ -169,7 +172,7 @@ export default function QuizQuestion({
             <span className="text-3xl">{isCorrect ? "🎉" : "💡"}</span>
             <div>
               <h4 className="font-bold text-lg mb-2 text-white">
-                {isCorrect ? t('quiz.correct') : t('quiz.incorrect')}
+                {isCorrect ? t("quiz.correct") : t("quiz.incorrect")}
               </h4>
               <p className="text-gray-200 leading-relaxed">
                 {question.explanation}

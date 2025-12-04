@@ -146,10 +146,9 @@ export const ArtifactCollectionModal: React.FC<
 
         {/* Content */}
         <div className="px-3 pb-3 space-y-2.5">
-          {/* 3D Preview placeholder */}
           {/* Artifact Visual */}
           <div
-            className="relative w-full h-32 rounded-lg overflow-hidden"
+            className="relative w-full h-48 rounded-lg overflow-hidden"
             style={{
               backgroundColor: `${rarityColor}08`,
               border: `1px solid ${rarityColor}25`,
@@ -163,12 +162,15 @@ export const ArtifactCollectionModal: React.FC<
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   // Fallback to icon if image fails to load
-                  (e.target as HTMLImageElement).style.display = 'none';
+                  (e.target as HTMLImageElement).style.display = "none";
                   const parent = (e.target as HTMLImageElement).parentElement;
                   if (parent) {
-                    const iconDiv = document.createElement('div');
-                    iconDiv.className = 'absolute inset-0 flex items-center justify-center';
-                    iconDiv.innerHTML = `<div class="text-6xl animate-float" style="filter: drop-shadow(0 0 15px ${rarityColor})">${CATEGORY_ICONS[artifact.category]}</div>`;
+                    const iconDiv = document.createElement("div");
+                    iconDiv.className =
+                      "absolute inset-0 flex items-center justify-center";
+                    iconDiv.innerHTML = `<div class="text-6xl animate-float" style="filter: drop-shadow(0 0 15px ${rarityColor})">${
+                      CATEGORY_ICONS[artifact.category]
+                    }</div>`;
                     parent.appendChild(iconDiv);
                   }
                 }}

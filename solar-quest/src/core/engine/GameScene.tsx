@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useAudio } from "@/hooks/useAudio";
 import { X, Target, AlertTriangle, SkipForward } from "lucide-react";
 import {
   getPlanetConfig,
@@ -14,6 +15,7 @@ import {
 import VictorySequence from "@/features/victory/VictorySequence";
 import { getAICompanion } from "@/data/aiCompanions";
 import type { VictoryStats } from "@/types/victory";
+import AudioSettings from "@/components/AudioSettings";
 import {
   setMinigameCompleted,
   hasCompletedMinigame,
@@ -83,6 +85,7 @@ export default function MarsGameScene({
   onExit,
 }: GameSceneProps) {
   const { t } = useTranslation();
+  const { play } = useAudio();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
@@ -224,6 +227,9 @@ export default function MarsGameScene({
         vy: bulletVY,
         curve: curve,
       });
+
+      // Play shoot sound
+      play('shoot', { volume: 0.3, category: 'sfx' });
     };
 
     // Create explosion particles
@@ -329,6 +335,8 @@ export default function MarsGameScene({
       const config = planetConfig.comboSystem;
       if (!config?.enabled) return 1;
 
+      const previousCombo = comboCount.current;
+
       if (hitRegistered) {
         comboCount.current++;
         comboTimer.current = config.comboWindow;
@@ -344,6 +352,10 @@ export default function MarsGameScene({
       for (let i = 0; i < config.comboThresholds.length; i++) {
         if (comboCount.current >= config.comboThresholds[i]) {
           multiplier = config.multipliers[i];
+          // Play powerup sound when reaching new combo tier (only when combo just increased)
+          if (hitRegistered && previousCombo < config.comboThresholds[i] && comboCount.current >= config.comboThresholds[i]) {
+            play('powerup', { volume: 0.4, category: 'sfx' });
+          }
         }
       }
 
@@ -728,6 +740,9 @@ export default function MarsGameScene({
           !isSpecialEffect
         ) {
           setEffectWarning(true);
+          if (dustStormTimer.current === 301) {
+            play('warning', { volume: 0.5, category: 'sfx' });
+          }
         } else if (dustStormTimer.current > 480 && !isSpecialEffect) {
           setIsSpecialEffect(true);
           setEffectWarning(false);
@@ -765,6 +780,7 @@ export default function MarsGameScene({
         !victory
       ) {
         // Victory condition: completed all asteroids
+        play('success', { volume: 0.7, category: 'achievement' });
         setVictory(true);
       }
 
@@ -819,9 +835,13 @@ export default function MarsGameScene({
         ) {
           createExplosion(ast.x + ast.size / 2, ast.y + ast.size / 2);
           asteroidsRef.current.splice(i, 1);
+          play('hit', { volume: 0.4, category: 'sfx' });
           setLives((l) => {
             const newLives = l - 1;
-            if (newLives <= 0) setGameOver(true);
+            if (newLives <= 0) {
+              play('explosion', { volume: 0.6, category: 'sfx' });
+              setGameOver(true);
+            }
             return newLives;
           });
         } else {
@@ -887,6 +907,10 @@ export default function MarsGameScene({
               createExplosion(ast.x + ast.size / 2, ast.y + ast.size / 2);
               bulletsRef.current.splice(bi, 1);
               asteroidsRef.current.splice(ai, 1);
+
+              // Play hit and explosion sounds
+              play('hit', { volume: 0.4, category: 'sfx' });
+              play('explosion', { volume: 0.3, category: 'sfx' });
 
               // Calculate score with combo multiplier
               const now = Date.now();
@@ -1080,18 +1104,24 @@ export default function MarsGameScene({
       {/* HUD */}
       <div className="absolute top-4 left-4 text-white space-y-2 z-10">
         <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg">
-          <div className="text-2xl font-bold">{t('game.score')}{score}</div>
+          <div className="text-2xl font-bold">
+            {t("game.score")}
+            {score}
+          </div>
         </div>
         <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg">
           <div className="flex items-center gap-2">
-            <span className="font-semibold">{t('game.lives')}</span>
+            <span className="font-semibold">{t("game.lives")}</span>
             {Array.from({ length: lives }).map((_, i) => (
               <div key={i} className="w-6 h-6 bg-red-500 rounded-full" />
             ))}
           </div>
         </div>
         <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg">
-          <div className="font-semibold">{t('game.wave')}{wave}</div>
+          <div className="font-semibold">
+            {t("game.wave")}
+            {wave}
+          </div>
         </div>
 
         {/* Combo Display */}
@@ -1101,9 +1131,11 @@ export default function MarsGameScene({
               <Target className="w-5 h-5" />
               <div>
                 <div className="text-sm font-semibold">
-                  {t('game.combo', { multiplier: comboDisplay.multiplier })}
+                  {t("game.combo", { multiplier: comboDisplay.multiplier })}
                 </div>
-                <div className="text-xs">{t('game.hits', { count: comboDisplay.count })}</div>
+                <div className="text-xs">
+                  {t("game.hits", { count: comboDisplay.count })}
+                </div>
               </div>
             </div>
           </div>
@@ -1115,8 +1147,8 @@ export default function MarsGameScene({
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" />
               <div>
-                <div className="text-xs font-bold">{t('game.heatDamage')}</div>
-                <div className="text-xs">{t('game.keepMoving')}</div>
+                <div className="text-xs font-bold">{t("game.heatDamage")}</div>
+                <div className="text-xs">{t("game.keepMoving")}</div>
               </div>
             </div>
             <div className="mt-1 w-full bg-black/40 rounded-full h-2">
@@ -1167,17 +1199,17 @@ export default function MarsGameScene({
             <AlertTriangle className="w-4 h-4" />
             <span className="font-bold">
               {planetConfig.specialEffectType === "dust_storm" &&
-                t('game.activeEffects.dustStorm')}
+                t("game.activeEffects.dustStorm")}
               {planetConfig.specialEffectType === "acid_rain" &&
-                t('game.activeEffects.acidRain')}
+                t("game.activeEffects.acidRain")}
               {planetConfig.specialEffectType === "heat_wave" &&
-                t('game.activeEffects.heatWave')}
+                t("game.activeEffects.heatWave")}
               {planetConfig.specialEffectType === "ice_storm" &&
-                t('game.activeEffects.iceStorm')}
+                t("game.activeEffects.iceStorm")}
               {planetConfig.specialEffectType === "gravity_well" &&
-                t('game.activeEffects.gravityWell')}
+                t("game.activeEffects.gravityWell")}
               {planetConfig.specialEffectType === "ring_navigation" &&
-                t('game.activeEffects.ringNavigation')}
+                t("game.activeEffects.ringNavigation")}
             </span>
           </div>
         )}
@@ -1192,10 +1224,10 @@ export default function MarsGameScene({
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Target className="w-4 h-4" />
-            <span>{t('game.controls.move')}</span>
+            <span>{t("game.controls.move")}</span>
           </div>
-          <div>• {t('game.controls.shoot')}</div>
-          <div>• {t('game.controls.pause')}</div>
+          <div>• {t("game.controls.shoot")}</div>
+          <div>• {t("game.controls.pause")}</div>
         </div>
       </div>
 
@@ -1208,10 +1240,10 @@ export default function MarsGameScene({
           className="absolute bottom-4 right-4 z-50 px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 
             text-white font-bold rounded-lg shadow-2xl transition-all duration-300 
             flex items-center gap-2 animate-pulse hover:animate-none hover:scale-105"
-          title={t('game.skipTooltip')}
+          title={t("game.skipTooltip")}
         >
           <SkipForward className="w-5 h-5" />
-          <span>{t('game.skipButton')}</span>
+          <span>{t("game.skipButton")}</span>
         </button>
       )}
 
@@ -1231,17 +1263,17 @@ export default function MarsGameScene({
           <div className="flex items-center gap-2 text-2xl animate-pulse border-2 rounded px-2 py-1 text-white">
             ⚠️{" "}
             {planetConfig.specialEffectType === "dust_storm" &&
-              t('game.specialEffects.dustStorm')}
+              t("game.specialEffects.dustStorm")}
             {planetConfig.specialEffectType === "acid_rain" &&
-              t('game.specialEffects.acidRain')}
+              t("game.specialEffects.acidRain")}
             {planetConfig.specialEffectType === "heat_wave" &&
-              t('game.specialEffects.heatWave')}
+              t("game.specialEffects.heatWave")}
             {planetConfig.specialEffectType === "ice_storm" &&
-              t('game.specialEffects.iceStorm')}
+              t("game.specialEffects.iceStorm")}
             {planetConfig.specialEffectType === "gravity_well" &&
-              t('game.specialEffects.gravityWell')}
+              t("game.specialEffects.gravityWell")}
             {planetConfig.specialEffectType === "ring_navigation" &&
-              t('game.specialEffects.ringNavigation')}{" "}
+              t("game.specialEffects.ringNavigation")}{" "}
             ⚠️
           </div>
         </div>
@@ -1251,12 +1283,14 @@ export default function MarsGameScene({
       {isPaused && (
         <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-20">
           <div className="bg-gray-900 p-8 rounded-xl text-center">
-            <h2 className="text-3xl font-bold text-white mb-4">{t('game.pause.title')}</h2>
+            <h2 className="text-3xl font-bold text-white mb-4">
+              {t("game.pause.title")}
+            </h2>
             <button
               onClick={() => setIsPaused(false)}
               className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg"
             >
-              {t('game.pause.resume')}
+              {t("game.pause.resume")}
             </button>
           </div>
         </div>
@@ -1267,20 +1301,29 @@ export default function MarsGameScene({
         <div className="absolute inset-0 bg-black/90 flex items-center justify-center z-30">
           <div className="bg-gray-900 p-8 rounded-xl text-center max-w-md">
             <X className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-4xl font-bold text-white mb-4">{t('game.gameOver.title')}</h2>
-            <div className="text-2xl text-white mb-2">{t('game.gameOver.finalScore')}{score}</div>
+            <h2 className="text-4xl font-bold text-white mb-4">
+              {t("game.gameOver.title")}
+            </h2>
+            <div className="text-2xl text-white mb-2">
+              {t("game.gameOver.finalScore")}
+              {score}
+            </div>
             <div className="text-lg text-gray-400 mb-6">
-              {t('game.gameOver.waveReached')}{wave}
+              {t("game.gameOver.waveReached")}
+              {wave}
             </div>
             <button
               onClick={() => window.location.reload()}
               className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg"
             >
-              {t('game.gameOver.restart')}
+              {t("game.gameOver.restart")}
             </button>
           </div>
         </div>
       )}
+
+      {/* Audio Settings */}
+      {!victory && <AudioSettings />}
     </div>
   );
 }

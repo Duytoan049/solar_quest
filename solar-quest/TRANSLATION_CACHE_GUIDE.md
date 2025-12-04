@@ -9,6 +9,7 @@ Hệ thống giờ đã tự động dịch **mô tả hành tinh từ NASA API*
 ## 🚀 Cách hoạt động
 
 ### 1. **Lần đầu truy cập (Dịch mới)**
+
 ```
 Người dùng chọn Sao Hỏa → Đổi sang tiếng Việt
 ↓
@@ -22,11 +23,13 @@ Hiển thị bản dịch tiếng Việt
 ```
 
 **Console log:**
+
 ```
 🔄 Translating with Gemini: Mars is the fourth planet from...
 ```
 
 ### 2. **Lần sau (Lấy từ cache - tức thì)**
+
 ```
 Người dùng quay lại Sao Hỏa → Tiếng Việt
 ↓
@@ -36,6 +39,7 @@ Hiển thị ngay lập tức (không cần gọi API)
 ```
 
 **Console log:**
+
 ```
 ✅ Using cached translation for: Mars is the fourth planet from...
 ```
@@ -45,16 +49,19 @@ Hiển thị ngay lập tức (không cần gọi API)
 ## 📂 Các file đã thêm
 
 ### 1. **src/services/geminiTranslator.ts**
+
 - Dịch text bằng Gemini AI
 - Prompt được tối ưu cho học sinh
 - Tự động loại bỏ markdown formatting
 
 ### 2. **src/services/cachedTranslation.ts**
+
 - Lưu trữ bản dịch trong localStorage
 - Cache valid trong 30 ngày
 - Tự động xóa cache cũ
 
 ### 3. **PlanetDetail.tsx (đã cập nhật)**
+
 - Thêm state `translatedDescription`
 - Tự động dịch khi đổi ngôn ngữ
 - Hiển thị loading indicator khi đang dịch
@@ -63,19 +70,20 @@ Hiển thị ngay lập tức (không cần gọi API)
 
 ## 🎯 Ưu điểm
 
-| Tính năng | Mô tả |
-|-----------|-------|
-| **Miễn phí** | Dùng Gemini API (60 requests/phút) |
-| **Nhanh** | Lần 2 trở đi load tức thì từ cache |
-| **Chất lượng cao** | AI context-aware, phù hợp học sinh |
-| **Tự động** | Không cần maintain translation keys |
-| **Tiết kiệm** | Cache 30 ngày, ít phải dịch lại |
+| Tính năng          | Mô tả                               |
+| ------------------ | ----------------------------------- |
+| **Miễn phí**       | Dùng Gemini API (60 requests/phút)  |
+| **Nhanh**          | Lần 2 trở đi load tức thì từ cache  |
+| **Chất lượng cao** | AI context-aware, phù hợp học sinh  |
+| **Tự động**        | Không cần maintain translation keys |
+| **Tiết kiệm**      | Cache 30 ngày, ít phải dịch lại     |
 
 ---
 
 ## 📊 So sánh: Trước vs Sau
 
 ### ❌ **Trước (Static translation)**
+
 ```tsx
 // Phải viết sẵn trong vi.json
 "planets": {
@@ -89,6 +97,7 @@ Hiển thị ngay lập tức (không cần gọi API)
 ```
 
 **Vấn đề:**
+
 - Nội dung ngắn gọn, thiếu chi tiết
 - Không cập nhật khi NASA có thông tin mới
 - Phải maintain 2 bản EN + VI
@@ -96,15 +105,16 @@ Hiển thị ngay lập tức (không cần gọi API)
 ---
 
 ### ✅ **Sau (Dynamic translation)**
+
 ```tsx
 // NASA API trả về (full detail)
-planetInfo.description = "Mars is the fourth planet from the Sun, 
-known as the Red Planet due to iron oxide on its surface. It has 
+planetInfo.description = "Mars is the fourth planet from the Sun,
+known as the Red Planet due to iron oxide on its surface. It has
 the largest volcano and canyon in the solar system."
 
 // Gemini AI dịch tự động
 translatedDescription = "Sao Hỏa là hành tinh thứ tư từ Mặt Trời,
-được biết đến là Hành Tinh Đỏ do oxide sắt trên bề mặt. Nó có 
+được biết đến là Hành Tinh Đỏ do oxide sắt trên bề mặt. Nó có
 núi lửa lớn nhất và hẻm núi lớn nhất trong hệ mặt trời."
 
 // Hiển thị
@@ -112,6 +122,7 @@ núi lửa lớn nhất và hẻm núi lớn nhất trong hệ mặt trời."
 ```
 
 **Ưu điểm:**
+
 - ✅ Nội dung đầy đủ, chi tiết từ NASA
 - ✅ Tự động cập nhật khi NASA thay đổi
 - ✅ Dịch tự nhiên, phù hợp ngữ cảnh
@@ -121,6 +132,7 @@ núi lửa lớn nhất và hẻm núi lớn nhất trong hệ mặt trời."
 ## 🧪 Cách test
 
 ### 1. **Test lần đầu (Translation mới)**
+
 ```
 1. Mở DevTools Console (F12)
 2. Xóa localStorage: localStorage.clear()
@@ -131,6 +143,7 @@ núi lửa lớn nhất và hẻm núi lớn nhất trong hệ mặt trời."
 ```
 
 ### 2. **Test cache (Lần 2)**
+
 ```
 1. Reload trang (F5)
 2. Vào lại Sao Hỏa
@@ -140,6 +153,7 @@ núi lửa lớn nhất và hẻm núi lớn nhất trong hệ mặt trời."
 ```
 
 ### 3. **Test nhiều hành tinh**
+
 ```
 Mars → Venus → Earth → Jupiter
 - Mỗi hành tinh dịch 1 lần
@@ -152,6 +166,7 @@ Mars → Venus → Earth → Jupiter
 ## 🔧 Cấu hình
 
 ### Cache Duration (Thời gian lưu cache)
+
 ```typescript
 // src/services/cachedTranslation.ts
 const CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 ngày
@@ -161,10 +176,11 @@ const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000;
 ```
 
 ### Translation Prompt (Tùy chỉnh cách dịch)
+
 ```typescript
 // src/services/geminiTranslator.ts
 const prompt = targetLang === 'vi'
-  ? `Dịch đoạn văn khoa học sau sang tiếng Việt tự nhiên, 
+  ? `Dịch đoạn văn khoa học sau sang tiếng Việt tự nhiên,
      dễ hiểu cho học sinh. Giữ nguyên các thuật ngữ khoa học...`
 ```
 
@@ -173,19 +189,22 @@ const prompt = targetLang === 'vi'
 ## 🧹 Quản lý Cache
 
 ### Xóa cache cũ (tự động)
+
 ```typescript
 // Chạy tự động khi vào PlanetDetail
 clearOldCache(); // Xóa cache > 30 ngày
 ```
 
 ### Xóa toàn bộ cache (manual)
+
 ```typescript
-import { clearAllCache } from '@/services/cachedTranslation';
+import { clearAllCache } from "@/services/cachedTranslation";
 
 clearAllCache(); // Xóa tất cả translation cache
 ```
 
 ### Kiểm tra cache trong DevTools
+
 ```javascript
 // Console
 JSON.parse(localStorage.getItem('nasa_translations_v1'))
@@ -204,6 +223,7 @@ JSON.parse(localStorage.getItem('nasa_translations_v1'))
 ## 🎨 UI States
 
 ### 1. **Loading (Đang dịch)**
+
 ```tsx
 <span className="flex items-center gap-2 text-gray-500">
   <Loader2 className="w-3 h-3 animate-spin" />
@@ -212,6 +232,7 @@ JSON.parse(localStorage.getItem('nasa_translations_v1'))
 ```
 
 ### 2. **Translated (Đã dịch)**
+
 ```tsx
 <p className="text-gray-300 text-xs mb-2 leading-relaxed">
   {translatedDescription}
@@ -219,28 +240,32 @@ JSON.parse(localStorage.getItem('nasa_translations_v1'))
 ```
 
 ### 3. **Fallback (Lỗi dịch)**
+
 ```tsx
 // Nếu Gemini API lỗi, hiển thị bản gốc tiếng Anh
-{planetInfo.description}
+{
+  planetInfo.description;
+}
 ```
 
 ---
 
 ## 📈 Performance
 
-| Metric | Giá trị |
-|--------|---------|
-| **First load** | ~1-2s (dịch mới) |
-| **Cached load** | <50ms (tức thì) |
-| **Cache size** | ~2-5KB/planet |
-| **Total cache** | ~50KB (10 planets) |
-| **API calls** | 10 lần đầu, sau đó 0 |
+| Metric          | Giá trị              |
+| --------------- | -------------------- |
+| **First load**  | ~1-2s (dịch mới)     |
+| **Cached load** | <50ms (tức thì)      |
+| **Cache size**  | ~2-5KB/planet        |
+| **Total cache** | ~50KB (10 planets)   |
+| **API calls**   | 10 lần đầu, sau đó 0 |
 
 ---
 
 ## 🐛 Troubleshooting
 
 ### Vấn đề: Không dịch được
+
 ```
 ✅ Check 1: VITE_GEMINI_API_KEY có trong .env không?
 ✅ Check 2: Internet connection ổn định?
@@ -248,6 +273,7 @@ JSON.parse(localStorage.getItem('nasa_translations_v1'))
 ```
 
 ### Vấn đề: Dịch sai
+
 ```
 → Sửa prompt trong geminiTranslator.ts
 → Xóa cache cũ: clearAllCache()
@@ -255,6 +281,7 @@ JSON.parse(localStorage.getItem('nasa_translations_v1'))
 ```
 
 ### Vấn đề: Cache không hoạt động
+
 ```
 → Check localStorage không bị disable
 → Check browser không ở chế độ Incognito
@@ -266,31 +293,34 @@ JSON.parse(localStorage.getItem('nasa_translations_v1'))
 ## 🚀 Next Steps (Tùy chọn)
 
 ### 1. **Dịch thêm các field khác**
+
 ```typescript
 // Stats atmosphere
-if (planetInfo.stats.atmosphere && currentLanguage === 'vi') {
+if (planetInfo.stats.atmosphere && currentLanguage === "vi") {
   const translatedAtmosphere = await getCachedTranslation(
     planetInfo.stats.atmosphere,
-    'vi'
+    "vi"
   );
 }
 ```
 
 ### 2. **Dịch marker descriptions**
+
 ```typescript
 const translatedMarkerDesc = await getCachedTranslation(
   marker.description,
-  'vi'
+  "vi"
 );
 ```
 
 ### 3. **Batch translation (Tối ưu)**
+
 ```typescript
 // Dịch nhiều texts cùng lúc
 const translations = await Promise.all([
-  getCachedTranslation(description, 'vi'),
-  getCachedTranslation(atmosphere, 'vi'),
-  getCachedTranslation(history, 'vi')
+  getCachedTranslation(description, "vi"),
+  getCachedTranslation(atmosphere, "vi"),
+  getCachedTranslation(history, "vi"),
 ]);
 ```
 
@@ -299,13 +329,15 @@ const translations = await Promise.all([
 ## 📝 Summary
 
 ✅ **Đã implement:**
+
 - Gemini AI translator service
-- LocalStorage caching system  
+- LocalStorage caching system
 - Auto-translate description từ NASA API
 - Loading states và error handling
 - Auto cleanup old cache
 
 ✅ **Kết quả:**
+
 - Miễn phí hoàn toàn
 - Tự động dịch description từ NASA
 - Cache 30 ngày, load tức thì

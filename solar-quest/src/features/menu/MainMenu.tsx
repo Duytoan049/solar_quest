@@ -8,12 +8,15 @@ import { motion } from "framer-motion";
 // FIX 2: Import type từ file types.ts
 import type { SceneType } from "@/core/engine/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAudio } from "@/hooks/useAudio";
 import { LogOut, User, Trophy, Rocket, LogIn } from "lucide-react";
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from "react-i18next";
 import LanguageToggle from "@/components/LanguageToggle";
+import AudioSettings from "@/components/AudioSettings";
 
 export default function MainMenu() {
   const { t } = useTranslation();
+  const { play, playMusic, stopMusic } = useAudio();
   const [exit, setExit] = useState(false);
   const [nextScene, setNextScene] = useState<SceneType | null>(null);
   const { setScene, preloadSolarSystem, isSolarSystemLoaded, sceneParams } =
@@ -25,7 +28,7 @@ export default function MainMenu() {
   const isGuestMode = !user && sceneParams?.guestMode === true;
 
   const handleLogout = async () => {
-    if (confirm(t('common.confirm') + ': ' + t('auth.logout') + '?')) {
+    if (confirm(t("common.confirm") + ": " + t("auth.logout") + "?")) {
       setIsLoggingOut(true);
       try {
         await logout();
@@ -41,7 +44,14 @@ export default function MainMenu() {
     if (!isSolarSystemLoaded) {
       preloadSolarSystem();
     }
-  }, [isSolarSystemLoaded, preloadSolarSystem]);
+
+    // Play main menu music
+    playMusic('main-menu', true);
+
+    return () => {
+      stopMusic(true);
+    };
+  }, [isSolarSystemLoaded, preloadSolarSystem, playMusic, stopMusic]);
   const handleStart = (scene: SceneType) => {
     // FIX: XÓA LỆNH GỌI PRELOAD Ở ĐÂY
     // preloadSolarSystem(); // <--- Dòng này không còn cần thiết
@@ -105,7 +115,7 @@ export default function MainMenu() {
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-white font-semibold text-sm truncate">
-                {user.displayName || t('userProfile.astronaut')}
+                {user.displayName || t("userProfile.astronaut")}
               </h3>
               <p className="text-gray-400 text-xs truncate opacity-0 group-hover:opacity-100 transition-opacity duration-2000">
                 {user.email}
@@ -116,26 +126,37 @@ export default function MainMenu() {
           {/* Expanded View - Action Buttons (Show on Hover) */}
           <div className="flex flex-col gap-2 mt-0 max-h-0 opacity-0 group-hover:mt-3 group-hover:max-h-40 group-hover:opacity-100 transition-all duration-2000 overflow-hidden">
             <button
-              onClick={() => handleStart("profile")}
+              onClick={() => {
+                play('click', { category: 'ui' });
+                handleStart("profile");
+              }}
               className="w-full flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-white text-sm"
             >
               <Rocket className="w-4 h-4" />
-              <span>{t('mainMenu.myProgress')}</span>
+              <span>{t("mainMenu.myProgress")}</span>
             </button>
             <button
-              onClick={() => handleStart("leaderboard")}
+              onClick={() => {
+                play('click', { category: 'ui' });
+                handleStart("leaderboard");
+              }}
               className="w-full flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-white text-sm"
             >
               <Trophy className="w-4 h-4" />
-              <span>{t('menu.leaderboard')}</span>
+              <span>{t("menu.leaderboard")}</span>
             </button>
             <button
-              onClick={handleLogout}
+              onClick={() => {
+                play('click', { category: 'ui' });
+                handleLogout();
+              }}
               disabled={isLoggingOut}
               className="w-full flex items-center gap-2 px-3 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-colors text-red-400 text-sm disabled:opacity-50"
             >
               <LogOut className="w-4 h-4" />
-              <span>{isLoggingOut ? t('common.loading') : t('menu.logout')}</span>
+              <span>
+                {isLoggingOut ? t("common.loading") : t("menu.logout")}
+              </span>
             </button>
           </div>
         </motion.div>
@@ -157,8 +178,10 @@ export default function MainMenu() {
           >
             <LogIn className="w-5 h-5" />
             <div className="text-left">
-              <div className="text-sm font-bold">{t('mainMenu.login')}</div>
-              <div className="text-xs opacity-90">{t('mainMenu.loginSubtext')}</div>
+              <div className="text-sm font-bold">{t("mainMenu.login")}</div>
+              <div className="text-xs opacity-90">
+                {t("mainMenu.loginSubtext")}
+              </div>
             </div>
           </motion.button>
         </motion.div>
@@ -172,14 +195,14 @@ export default function MainMenu() {
             textShadow: "0 0 15px rgba(128, 200, 255, 0.7)",
           }}
         >
-          {t('mainMenu.title')}
+          SOLAR QUEST
         </h1>
 
         <TextType
           text={[
-            t('mainMenu.welcome1'),
-            t('mainMenu.welcome2'),
-            t('mainMenu.welcome3'),
+            t("mainMenu.welcome1"),
+            t("mainMenu.welcome2"),
+            t("mainMenu.welcome3"),
           ]}
           typingSpeed={75}
           pauseDuration={2500}
@@ -194,15 +217,21 @@ export default function MainMenu() {
         <div className="flex flex-col items-center gap-6">
           <Button
             style={{ fontFamily: "Sebino-Regular" }}
-            onClick={() => handleStart("warp")}
+            onClick={() => {
+              play('click', { category: 'ui' });
+              handleStart("warp");
+            }}
           >
-            {t('mainMenu.startExplore')}
+            {t("mainMenu.startExplore")}
           </Button>
           <Button
             style={{ fontFamily: "Sebino-Regular" }}
-            onClick={() => handleStart("3dlook")}
+            onClick={() => {
+              play('click', { category: 'ui' });
+              handleStart("3dlook");
+            }}
           >
-            {t('mainMenu.setting')}
+            {t("mainMenu.setting")}
           </Button>
 
           {/* <Button
@@ -216,10 +245,13 @@ export default function MainMenu() {
             style={{ fontFamily: "Sebino-Regular" }}
             onClick={() => handleStart("game")}
           >
-            {t('mainMenu.aboutUs')}
+            {t("mainMenu.aboutUs")}
           </Button>
         </div>
       </div>
+
+      {/* Audio Settings */}
+      <AudioSettings />
     </motion.div>
   );
 }

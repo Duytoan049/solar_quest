@@ -1,12 +1,12 @@
-import React from 'react';
-import { useLanguage } from '../contexts/LanguageContext';
-import { Globe } from 'lucide-react';
+import React from "react";
+import { useLanguage } from "../contexts/LanguageContext";
+import { Globe } from "lucide-react";
 
 const LanguageToggle: React.FC = () => {
   const { language, changeLanguage } = useLanguage();
 
   const handleToggle = () => {
-    changeLanguage(language === 'en' ? 'vi' : 'en');
+    changeLanguage(language === "en" ? "vi" : "en");
   };
 
   return (
@@ -17,7 +17,7 @@ const LanguageToggle: React.FC = () => {
     >
       <Globe className="w-5 h-5 text-white group-hover:rotate-12 transition-transform" />
       <span className="text-white font-medium uppercase">
-        {language === 'en' ? '🇬🇧 EN' : '🇻🇳 VI'}
+        {language === "en" ? "🇬🇧 EN" : "🇻🇳 VI"}
       </span>
     </button>
   );

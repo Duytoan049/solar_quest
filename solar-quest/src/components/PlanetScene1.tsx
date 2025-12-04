@@ -3,6 +3,7 @@ import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber"; // Thêm
 import * as THREE from "three";
 import { useTranslation } from "react-i18next";
 import { useGameManager } from "../core/engine/GameContext";
+import { useAudio } from "@/hooks/useAudio";
 import { OrbitControls, Stars, Ring } from "@react-three/drei";
 import { planets as planetData } from "./planets";
 import PlanetMenu from "./PlanetMenu";
@@ -13,6 +14,7 @@ import PlanetInfoPanel from "./PlanetInfoPanel";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { ArrowLeft } from "lucide-react";
+import AudioSettings from "@/components/AudioSettings";
 
 // This type is now simpler as position is calculated dynamically
 export type PlanetData = (typeof planetData)[0];
@@ -245,6 +247,7 @@ function SpaceDust() {
 export default function PlanetScene() {
   const { t } = useTranslation();
   const { setScene, sceneParams } = useGameManager();
+  const { play, playMusic, stopMusic } = useAudio();
   const [selectedPlanet, setSelectedPlanet] = useState<PlanetData | null>(null);
   const [hoveredPlanet, setHoveredPlanet] = useState<PlanetData | null>(null);
   const [isManualCamera, setIsManualCamera] = useState(true);
@@ -256,13 +259,24 @@ export default function PlanetScene() {
   const earthPosition = React.useRef(new THREE.Vector3());
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
 
+  // Play solar system music on mount
+  useEffect(() => {
+    playMusic('solar-system', true);
+
+    return () => {
+      stopMusic(true);
+    };
+  }, [playMusic, stopMusic]);
+
   const handlePlanetSelect = (planet: PlanetData) => {
+    play('click', { category: 'ui' });
     setSelectedPlanet(planet);
     setIsManualCamera(false);
   };
 
   const handleStartMission = () => {
     if (selectedPlanet) {
+      play('transition', { category: 'ui' });
       // Truyền planetId vào params và giữ lại guestMode nếu có
       setScene("game", {
         planetId: selectedPlanet.name.toLowerCase(),
@@ -272,6 +286,7 @@ export default function PlanetScene() {
   };
 
   const handleClosePanel = () => {
+    play('click', { category: 'ui' });
     setSelectedPlanet(null);
     setIsManualCamera(true);
   };
@@ -308,7 +323,7 @@ export default function PlanetScene() {
           border border-white/20 hover:border-white/40 flex items-center gap-2"
       >
         <ArrowLeft className="w-5 h-5" />
-        {t('mainMenu.backToMenu')}
+        {t("mainMenu.backToMenu")}
       </button>
       {/* Overlay loading - Nhanh hơn */}
       {isLoading && (
@@ -352,6 +367,9 @@ export default function PlanetScene() {
           onLoadingComplete={handleLoadingComplete} // Truyền callback
         />
       </Canvas>
+
+      {/* Audio Settings */}
+      <AudioSettings />
     </div>
   );
 }

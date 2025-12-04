@@ -93,10 +93,10 @@ export const ArtifactCollection: React.FC = () => {
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <div className="text-center text-white">
           <Sparkles className="w-16 h-16 mx-auto mb-4 text-purple-400" />
-          <h2 className="text-2xl font-bold mb-2">{t('artifact.noArtifacts')}</h2>
-          <p className="text-white/60">
-            {t('collection.emptyMessage')}
-          </p>
+          <h2 className="text-2xl font-bold mb-2">
+            {t("artifact.noArtifacts")}
+          </h2>
+          <p className="text-white/60">{t("collection.emptyMessage")}</p>
         </div>
       </div>
     );
@@ -109,11 +109,9 @@ export const ArtifactCollection: React.FC = () => {
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-white mb-4 flex items-center justify-center gap-3">
             <Trophy className="w-12 h-12 text-yellow-400" />
-            {t('collection.title')}
+            {t("collection.title")}
           </h1>
-          <p className="text-white/60 text-lg">
-            {t('collection.subtitle')}
-          </p>
+          <p className="text-white/60 text-lg">{t("collection.subtitle")}</p>
         </div>
 
         {/* Stats Overview */}

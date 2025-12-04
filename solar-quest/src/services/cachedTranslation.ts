@@ -60,24 +60,24 @@ export const getCachedTranslation = async (
 
   const cache = getCache();
   const cacheKey = generateCacheKey(originalText);
-  
+
   // Check if we have a valid cached translation
   const cached = cache[cacheKey];
-  const isValid = cached && 
-    cached[targetLang] && 
+  const isValid = cached &&
+    cached[targetLang] &&
     (Date.now() - cached.timestamp < CACHE_DURATION);
-  
+
   if (isValid) {
     console.log('✅ Using cached translation for:', originalText.slice(0, 50) + '...');
     return cached[targetLang]!;
   }
-  
+
   // No valid cache, translate with Gemini
   console.log('🔄 Translating with Gemini:', originalText.slice(0, 50) + '...');
-  
+
   try {
     const translated = await translateWithGemini(originalText, targetLang);
-    
+
     // Save to cache
     cache[cacheKey] = {
       ...cache[cacheKey],
@@ -85,7 +85,7 @@ export const getCachedTranslation = async (
       timestamp: Date.now()
     };
     saveCache(cache);
-    
+
     return translated;
   } catch (error) {
     console.error('Translation failed, using original text:', error);
@@ -100,14 +100,14 @@ export const clearOldCache = (): void => {
   const cache = getCache();
   const now = Date.now();
   let cleaned = 0;
-  
+
   Object.keys(cache).forEach(key => {
     if (now - cache[key].timestamp > CACHE_DURATION) {
       delete cache[key];
       cleaned++;
     }
   });
-  
+
   if (cleaned > 0) {
     console.log(`🧹 Cleaned ${cleaned} old cache entries`);
     saveCache(cache);

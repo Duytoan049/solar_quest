@@ -5,6 +5,7 @@ import { useMemo, useRef, useEffect, useState } from "react";
 import "../../styles/warp.css";
 import ShinyText from "../../ui/ShinyText";
 import { useGameManager } from "@/core/engine/GameContext";
+import { useAudio } from "@/hooks/useAudio";
 
 function WarpTunnel({
   onAnimationComplete,
@@ -64,9 +65,14 @@ export default function WarpScreen() {
     loadingProgress,
     sceneParams,
   } = useGameManager();
+  const { play, playMusic } = useAudio();
   const [isAnimationDone, setIsAnimationDone] = useState(false);
 
   useEffect(() => {
+    // Play whoosh sound for warp effect
+    play('whoosh', { volume: 0.6, category: 'ui' });
+    playMusic('solar-system', true);
+    
     preloadSolarSystem();
     // Logic chuyển cảnh: chỉ chạy khi cả 2 điều kiện đều đúng
     if (isSolarSystemLoaded && isAnimationDone) {
