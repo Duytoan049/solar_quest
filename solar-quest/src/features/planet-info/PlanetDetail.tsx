@@ -3,6 +3,8 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { Html, OrbitControls, Stars } from "@react-three/drei";
 import * as THREE from "three";
 import { useGameManager } from "@/core/engine/GameContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useArtifactCollection } from "@/hooks/useArtifactCollection";
 import {
   ArrowLeft,
   Play,
@@ -12,6 +14,7 @@ import {
   Loader2,
   Camera,
   BookOpen,
+  Package,
 } from "lucide-react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import {
@@ -36,6 +39,9 @@ import {
 } from "@/utils/planetPreloader";
 import ChatbotPanel from "@/features/chatbot/ChatbotPanel";
 import QuizPanel from "@/features/quiz/QuizPanel";
+import ArtifactSpawner from "@/components/ArtifactSpawner";
+import ArtifactCollectionModal from "@/components/ArtifactCollectionModal";
+import type { Artifact } from "@/types/artifact";
 import { aiCompanions } from "@/data/aiCompanions";
 import {
   getPlanetHistory,
@@ -188,6 +194,7 @@ interface MarkerProps {
   isActive: boolean;
   isHovered: boolean;
   onHover: (id: number | null) => void;
+  hideLabel?: boolean; // Hide label when modal is open
 }
 
 function Marker({
@@ -199,6 +206,7 @@ function Marker({
   isActive,
   isHovered,
   onHover,
+  hideLabel = false,
 }: MarkerProps) {
   const meshRef = useRef<THREE.Mesh>(null);
 
@@ -235,22 +243,24 @@ function Marker({
         emissive={isActive ? "#00ff00" : isHovered ? "#ffff00" : "#ff8800"}
         emissiveIntensity={isActive ? 2 : isHovered ? 1.5 : 0.8}
       />
-      <Html position={[0, 0.2, 0]} center>
-        <button
-          onClick={() => onClick(id)}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 shadow-lg
-            ${
-              isActive
-                ? "bg-green-600/90 text-white scale-110"
-                : isHovered
-                ? "bg-yellow-500/90 text-black scale-105"
-                : "bg-black/70 text-white hover:bg-black/90"
-            }`}
-          style={{ cursor: "pointer", backdropFilter: "blur(10px)" }}
-        >
-          {label}
-        </button>
-      </Html>
+      {!hideLabel && (
+        <Html position={[0, 0.2, 0]} center>
+          <button
+            onClick={() => onClick(id)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 shadow-lg
+              ${
+                isActive
+                  ? "bg-green-600/90 text-white scale-110"
+                  : isHovered
+                  ? "bg-yellow-500/90 text-black scale-105"
+                  : "bg-black/70 text-white hover:bg-black/90"
+              }`}
+            style={{ cursor: "pointer", backdropFilter: "blur(10px)" }}
+          >
+            {label}
+          </button>
+        </Html>
+      )}
     </mesh>
   );
 }
@@ -376,7 +386,21 @@ function CameraController({
 
 export default function PlanetDetail() {
   const { sceneParams, setScene } = useGameManager();
+  const { user } = useAuth();
   const planetId = (sceneParams?.planetId as string) || "mars";
+
+  // Artifact collection hook
+  const {
+    availableArtifacts,
+    collectedIds,
+    handleCollect,
+    loading: artifactsLoading,
+  } = useArtifactCollection(planetId);
+
+  const [selectedArtifact, setSelectedArtifact] = useState<Artifact | null>(
+    null
+  );
+  const [showArtifactModal, setShowArtifactModal] = useState(false);
 
   const [activeMarker, setActiveMarker] = useState<number | null>(null);
   const [hoveredMarker, setHoveredMarker] = useState<number | null>(null);
@@ -400,6 +424,8 @@ export default function PlanetDetail() {
   const [showProfileCard, setShowProfileCard] = useState(true);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
+  const [showMarkers, setShowMarkers] = useState(true); // Toggle markers
+  const [showArtifacts, setShowArtifacts] = useState(true); // Toggle artifacts
   const [showHistory, setShowHistory] = useState(false);
   const [planetHistory, setPlanetHistory] = useState<PlanetHistoryData | null>(
     null
@@ -408,6 +434,25 @@ export default function PlanetDetail() {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const markerRefs = useRef<Record<number, THREE.Mesh>>({});
   const tourIndexRef = useRef(0);
+
+  // Handle artifact collection
+  const handleArtifactClick = async (artifact: Artifact) => {
+    const success = await handleCollect(artifact);
+
+    if (success) {
+      setSelectedArtifact(artifact);
+      setShowArtifactModal(true);
+
+      // Optional: Play sound
+      try {
+        const audio = new Audio("/sounds/collect.mp3");
+        audio.volume = 0.3;
+        audio.play().catch(() => {});
+      } catch (e) {
+        // Ignore audio errors
+      }
+    }
+  };
 
   // Load profile
   const profile = getProfile(planetId);
@@ -1446,7 +1491,83 @@ export default function PlanetDetail() {
 
       {/* Progress & Achievement - Hide when Quiz is open */}
       {!showQuiz && (
-        <div className="absolute bottom-4 right-4 z-50 flex flex-col items-end gap-2">
+        <div className="absolute bottom-25 right-4 z-50 flex flex-col items-end gap-2">
+          {/* Toggle Controls */}
+          <div className="flex items-center gap-2">
+            {/* Toggle Markers */}
+            <button
+              onClick={() => setShowMarkers(!showMarkers)}
+              className={`px-3 py-2 rounded-lg font-semibold text-xs transition-all duration-300 flex items-center gap-1.5 ${
+                showMarkers
+                  ? "bg-blue-600/80 text-white border border-blue-400/50"
+                  : "bg-black/60 text-gray-400 border border-white/20 hover:bg-black/80"
+              }`}
+              title={showMarkers ? "Ẩn địa điểm" : "Hiện địa điểm"}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+                className="w-4 h-4"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+                />
+              </svg>
+              {showMarkers ? "Markers" : "Markers"}
+            </button>
+
+            {/* Toggle Artifacts */}
+            {user && availableArtifacts.length > 0 && (
+              <button
+                onClick={() => setShowArtifacts(!showArtifacts)}
+                className={`px-3 py-2 rounded-lg font-semibold text-xs transition-all duration-300 flex items-center gap-1.5 ${
+                  showArtifacts
+                    ? "bg-purple-600/80 text-white border border-purple-400/50"
+                    : "bg-black/60 text-gray-400 border border-white/20 hover:bg-black/80"
+                }`}
+                title={showArtifacts ? "Ẩn đồ vật" : "Hiện đồ vật"}
+              >
+                <Package className="w-4 h-4" />
+                {showArtifacts ? "Artifacts" : "Artifacts"}
+              </button>
+            )}
+          </div>
+
+          {/* Artifact Collection Counter */}
+          {user && (
+            <div className="bg-black/80 backdrop-blur-md rounded-lg p-3 border border-purple-500/30">
+              <div className="flex items-center gap-2 mb-2">
+                <Package className="w-4 h-4 text-purple-400" />
+                <span className="text-white text-sm font-semibold">
+                  Artifacts: {collectedIds.length}/{availableArtifacts.length}
+                </span>
+              </div>
+              <div className="w-[180px] h-2 bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500"
+                  style={{
+                    width: `${
+                      availableArtifacts.length > 0
+                        ? (collectedIds.length / availableArtifacts.length) *
+                          100
+                        : 0
+                    }%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Progress bar */}
           <div className="bg-black/80 backdrop-blur-md rounded-lg p-3 border border-white/20">
             <div className="flex items-center gap-2 mb-2">
@@ -1455,7 +1576,7 @@ export default function PlanetDetail() {
                 Explored: {visitedMarkers.size}/{markers.length}
               </span>
             </div>
-            <div className="w-48 h-2 bg-gray-700 rounded-full overflow-hidden">
+            <div className="w-[180px] h-2 bg-gray-700 rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-500"
                 style={{ width: `${progress}%` }}
@@ -1510,21 +1631,37 @@ export default function PlanetDetail() {
           {/* Atmosphere glow */}
           <AtmosphereGlow color={atmosphereColor} />
 
-          {markers.map((marker) => (
-            <Marker
-              key={marker.id}
-              id={marker.id}
-              label={marker.name}
-              position={marker.position}
-              onClick={handleMarkerClick}
-              markerRef={(el) => {
-                if (el) markerRefs.current[marker.id] = el;
-              }}
-              isActive={activeMarker === marker.id}
-              isHovered={hoveredMarker === marker.id}
-              onHover={setHoveredMarker}
-            />
-          ))}
+          {showMarkers &&
+            markers.map((marker) => (
+              <Marker
+                key={marker.id}
+                id={marker.id}
+                label={marker.name}
+                position={marker.position}
+                onClick={handleMarkerClick}
+                markerRef={(el) => {
+                  if (el) markerRefs.current[marker.id] = el;
+                }}
+                isActive={activeMarker === marker.id}
+                isHovered={hoveredMarker === marker.id}
+                onHover={setHoveredMarker}
+                hideLabel={showArtifactModal}
+              />
+            ))}
+
+          {/* Artifact Collection System */}
+          {user &&
+            !artifactsLoading &&
+            availableArtifacts.length > 0 &&
+            showArtifacts && (
+              <ArtifactSpawner
+                planetId={planetId}
+                planetRadius={2}
+                artifacts={availableArtifacts}
+                onCollect={handleArtifactClick}
+                collectedIds={collectedIds}
+              />
+            )}
 
           <CameraController
             targetMarkerId={activeMarker}
@@ -1788,6 +1925,16 @@ export default function PlanetDetail() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Artifact Collection Modal */}
+      <ArtifactCollectionModal
+        artifact={selectedArtifact}
+        isOpen={showArtifactModal}
+        onClose={() => {
+          setShowArtifactModal(false);
+          setSelectedArtifact(null);
+        }}
+      />
     </div>
   );
 }

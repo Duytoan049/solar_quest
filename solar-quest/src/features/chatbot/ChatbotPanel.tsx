@@ -129,7 +129,7 @@ export default function ChatbotPanel({
     return (
       <motion.button
         onClick={onToggle}
-        className="fixed bottom-20 right-6 z-50 p-4 rounded-full shadow-2xl"
+        className="fixed bottom-6 right-6 z-40 p-4 rounded-full shadow-2xl"
         style={{
           background: `linear-gradient(135deg, ${ai.color}  , ${ai.color})`,
           backdropFilter: "blur(10px)",
