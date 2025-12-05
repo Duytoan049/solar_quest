@@ -1,12 +1,18 @@
 // Solar System OpenData API Service
 // https://api.le-systeme-solaire.net/
 
-// Use proxy in both dev and production to bypass CORS
-const SOLAR_SYSTEM_API_BASE = import.meta.env.DEV
-    ? '/api/solar-system/rest'  // Development: Use Vite proxy
-    : '/api/solar-system'; // Production: Use Vercel serverless function proxy
+// Always use proxy to bypass CORS (works in both dev and production)
+// Development: Vite proxy /api/solar-system/rest -> external API
+// Production: Vercel serverless function /api/solar-system?path=...
+const SOLAR_SYSTEM_API_BASE = '/api/solar-system';
 
 const API_TOKEN = import.meta.env.VITE_SOLAR_SYSTEM_API_KEY || ''; // Get free token from https://api.le-systeme-solaire.net/generatekey.html
+
+// Detect if running in development (localhost) or production
+const isDevelopment = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' || 
+    window.location.hostname === '127.0.0.1'
+);
 
 // Planet name mapping (English to API ID)
 const PLANET_ID_MAP: Record<string, string> = {
@@ -67,11 +73,13 @@ export async function getPlanetHistory(planetId: string): Promise<PlanetHistoryD
     try {
         const apiId = PLANET_ID_MAP[planetId.toLowerCase()] || planetId.toLowerCase();
 
-        // In production, use query parameter for Vercel serverless function
-        // In dev, use direct path for Vite proxy
-        const url = import.meta.env.DEV
-            ? `${SOLAR_SYSTEM_API_BASE}/bodies/${apiId}`
+        // In development (localhost), use Vite proxy: /api/solar-system/rest/bodies/mars
+        // In production (Vercel), use serverless function: /api/solar-system?path=bodies/mars
+        const url = isDevelopment
+            ? `${SOLAR_SYSTEM_API_BASE}/rest/bodies/${apiId}`
             : `${SOLAR_SYSTEM_API_BASE}?path=bodies/${apiId}`;
+
+        console.log('Fetching planet history:', url, 'isDev:', isDevelopment);
 
         const headers: HeadersInit = {};
         if (API_TOKEN) {
