@@ -12,12 +12,12 @@ const LanguageToggle: React.FC = () => {
   return (
     <button
       onClick={handleToggle}
-      className="fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full hover:bg-white/20 transition-all duration-300 group"
+      className="fixed bottom-4 left-48 z-50 flex items-center gap-2 px-4 py-1.5   border border-white/20 rounded-full hover:bg-white/20 transition-all duration-300 group"
       aria-label="Change language"
     >
       <Globe className="w-5 h-5 text-white group-hover:rotate-12 transition-transform" />
       <span className="text-white font-medium uppercase">
-        {language === "en" ? "🇬🇧 EN" : "🇻🇳 VI"}
+        {language === "en" ? "EN" : "VI"}
       </span>
     </button>
   );

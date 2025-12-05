@@ -46,7 +46,7 @@ export default function MainMenu() {
     }
 
     // Play main menu music
-    playMusic('main-menu', true);
+    playMusic("main-menu", true);
 
     return () => {
       stopMusic(true);
@@ -127,7 +127,7 @@ export default function MainMenu() {
           <div className="flex flex-col gap-2 mt-0 max-h-0 opacity-0 group-hover:mt-3 group-hover:max-h-40 group-hover:opacity-100 transition-all duration-2000 overflow-hidden">
             <button
               onClick={() => {
-                play('click', { category: 'ui' });
+                play("click", { category: "ui" });
                 handleStart("profile");
               }}
               className="w-full flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-white text-sm"
@@ -137,7 +137,7 @@ export default function MainMenu() {
             </button>
             <button
               onClick={() => {
-                play('click', { category: 'ui' });
+                play("click", { category: "ui" });
                 handleStart("leaderboard");
               }}
               className="w-full flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-white text-sm"
@@ -147,7 +147,7 @@ export default function MainMenu() {
             </button>
             <button
               onClick={() => {
-                play('click', { category: 'ui' });
+                play("click", { category: "ui" });
                 handleLogout();
               }}
               disabled={isLoggingOut}
@@ -218,7 +218,7 @@ export default function MainMenu() {
           <Button
             style={{ fontFamily: "Sebino-Regular" }}
             onClick={() => {
-              play('click', { category: 'ui' });
+              play("click", { category: "ui" });
               handleStart("warp");
             }}
           >
@@ -227,7 +227,7 @@ export default function MainMenu() {
           <Button
             style={{ fontFamily: "Sebino-Regular" }}
             onClick={() => {
-              play('click', { category: 'ui' });
+              play("click", { category: "ui" });
               handleStart("3dlook");
             }}
           >

@@ -38,8 +38,8 @@ export default function VictorySequence({
 
   // Play victory music on mount
   useEffect(() => {
-    play('fanfare', { volume: 0.7, category: 'achievement' });
-    playMusic('victory-theme', true);
+    play("fanfare", { volume: 0.7, category: "achievement" });
+    playMusic("victory-theme", { loop: false });
   }, [play, playMusic]);
 
   // 🚀 Preload PlanetDetail resources during travel/arrival phase

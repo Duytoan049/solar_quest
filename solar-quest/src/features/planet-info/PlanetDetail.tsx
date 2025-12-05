@@ -460,7 +460,7 @@ export default function PlanetDetail() {
       setShowArtifactModal(true);
 
       // Play collect sound
-      play('collect', { volume: 0.5, category: 'ui' });
+      play("collect", { volume: 0.5, category: "ui" });
     }
   };
 

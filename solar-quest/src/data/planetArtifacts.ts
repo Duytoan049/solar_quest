@@ -138,7 +138,7 @@ export const marsArtifacts: Artifact[] = [
     spawnChance: 100,
     points: 70,
     glowColor: '#00ffff',
-    scale: 0.005, // Adjusted from 5 to match other artifacts
+    scale: 0.0005, // Adjusted from 5 to match other artifacts
 
     initialRotation: [deg(90), deg(0), deg(0)],
     isCollected: false
@@ -165,7 +165,7 @@ export const marsArtifacts: Artifact[] = [
     points: 150,
     badge: 'moon-collector',
     glowColor: '#ff4500',
-    scale: 0.15,
+    scale: 0.005,
     isCollected: false
   },
 ];

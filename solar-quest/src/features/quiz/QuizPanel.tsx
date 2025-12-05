@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import QuizQuestion from "./QuizQuestion";
 import QuizResult from "./QuizResult";
 import { getPlanetQuiz, getRewardTier } from "@/data/planetQuizzes";
-import { useAudio } from "@/hooks/useAudio";
 import type { AICompanionData } from "@/types/victory";
 import type { QuizResult as QuizResultType } from "@/types/quiz";
 
@@ -15,7 +14,6 @@ interface Props {
 
 export default function QuizPanel({ planetId, ai, onComplete }: Props) {
   const quiz = getPlanetQuiz(planetId);
-  const { play } = useAudio();
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<
@@ -36,13 +34,6 @@ export default function QuizPanel({ planetId, ai, onComplete }: Props) {
 
   const handleAnswer = (selectedAnswer: number) => {
     const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
-
-    // Play sound feedback
-    if (isCorrect) {
-      play('success', { volume: 0.6, category: 'ui' });
-    } else {
-      play('error', { volume: 0.5, category: 'ui' });
-    }
 
     // Record answer
     setAnswers((prev) => [

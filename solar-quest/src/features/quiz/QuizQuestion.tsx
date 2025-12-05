@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { useAudio } from "@/hooks/useAudio";
 import type { QuizQuestion as QuizQuestionType } from "@/types/quiz";
 
 interface Props {
@@ -19,11 +20,21 @@ export default function QuizQuestion({
   aiColor,
 }: Props) {
   const { t } = useTranslation();
+  const { play } = useAudio();
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
 
   const handleSelectAnswer = (index: number) => {
     if (selectedAnswer !== null) return; // Already answered
+
+    const isCorrect = index === question.correctAnswer;
+
+    // Phát âm thanh ngay lập tức
+    if (isCorrect) {
+      play("success", { volume: 0.6, category: "ui" });
+    } else {
+      play("error", { volume: 0.5, category: "ui" });
+    }
 
     setSelectedAnswer(index);
     setShowExplanation(true);

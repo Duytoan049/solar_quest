@@ -70,9 +70,9 @@ export default function WarpScreen() {
 
   useEffect(() => {
     // Play whoosh sound for warp effect
-    play('whoosh', { volume: 0.6, category: 'ui' });
-    playMusic('solar-system', true);
-    
+    play("whoosh", { volume: 0.6, category: "ui" });
+    playMusic("solar-system", true);
+
     preloadSolarSystem();
     // Logic chuyển cảnh: chỉ chạy khi cả 2 điều kiện đều đúng
     if (isSolarSystemLoaded && isAnimationDone) {

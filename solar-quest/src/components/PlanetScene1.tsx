@@ -261,7 +261,7 @@ export default function PlanetScene() {
 
   // Play solar system music on mount
   useEffect(() => {
-    playMusic('solar-system', true);
+    playMusic("solar-system", true);
 
     return () => {
       stopMusic(true);
@@ -269,14 +269,14 @@ export default function PlanetScene() {
   }, [playMusic, stopMusic]);
 
   const handlePlanetSelect = (planet: PlanetData) => {
-    play('click', { category: 'ui' });
+    play("click", { category: "ui" });
     setSelectedPlanet(planet);
     setIsManualCamera(false);
   };
 
   const handleStartMission = () => {
     if (selectedPlanet) {
-      play('transition', { category: 'ui' });
+      play("transition", { category: "ui" });
       // Truyền planetId vào params và giữ lại guestMode nếu có
       setScene("game", {
         planetId: selectedPlanet.name.toLowerCase(),
@@ -286,7 +286,7 @@ export default function PlanetScene() {
   };
 
   const handleClosePanel = () => {
-    play('click', { category: 'ui' });
+    play("click", { category: "ui" });
     setSelectedPlanet(null);
     setIsManualCamera(true);
   };

@@ -229,7 +229,7 @@ export default function MarsGameScene({
       });
 
       // Play shoot sound
-      play('shoot', { volume: 0.3, category: 'sfx' });
+      play("shoot", { volume: 0.3, category: "sfx" });
     };
 
     // Create explosion particles
@@ -353,8 +353,12 @@ export default function MarsGameScene({
         if (comboCount.current >= config.comboThresholds[i]) {
           multiplier = config.multipliers[i];
           // Play powerup sound when reaching new combo tier (only when combo just increased)
-          if (hitRegistered && previousCombo < config.comboThresholds[i] && comboCount.current >= config.comboThresholds[i]) {
-            play('powerup', { volume: 0.4, category: 'sfx' });
+          if (
+            hitRegistered &&
+            previousCombo < config.comboThresholds[i] &&
+            comboCount.current >= config.comboThresholds[i]
+          ) {
+            play("powerup", { volume: 0.4, category: "sfx" });
           }
         }
       }
@@ -694,7 +698,7 @@ export default function MarsGameScene({
 
     // Game loop
     const animate = () => {
-      if (gameOver || isPaused) return;
+      if (gameOver || isPaused || victory) return;
 
       // Increment game time for consistent animations
       gameTime.current++;
@@ -741,7 +745,7 @@ export default function MarsGameScene({
         ) {
           setEffectWarning(true);
           if (dustStormTimer.current === 301) {
-            play('warning', { volume: 0.5, category: 'sfx' });
+            play("warning", { volume: 0.5, category: "sfx" });
           }
         } else if (dustStormTimer.current > 480 && !isSpecialEffect) {
           setIsSpecialEffect(true);
@@ -780,7 +784,7 @@ export default function MarsGameScene({
         !victory
       ) {
         // Victory condition: completed all asteroids
-        play('success', { volume: 0.7, category: 'achievement' });
+        play("success", { volume: 0.7, category: "achievement" });
         setVictory(true);
       }
 
@@ -835,11 +839,11 @@ export default function MarsGameScene({
         ) {
           createExplosion(ast.x + ast.size / 2, ast.y + ast.size / 2);
           asteroidsRef.current.splice(i, 1);
-          play('hit', { volume: 0.4, category: 'sfx' });
+          play("hit", { volume: 0.4, category: "sfx" });
           setLives((l) => {
             const newLives = l - 1;
             if (newLives <= 0) {
-              play('explosion', { volume: 0.6, category: 'sfx' });
+              play("explosion", { volume: 0.6, category: "sfx" });
               setGameOver(true);
             }
             return newLives;
@@ -909,8 +913,8 @@ export default function MarsGameScene({
               asteroidsRef.current.splice(ai, 1);
 
               // Play hit and explosion sounds
-              play('hit', { volume: 0.4, category: 'sfx' });
-              play('explosion', { volume: 0.3, category: 'sfx' });
+              play("hit", { volume: 0.4, category: "sfx" });
+              play("explosion", { volume: 0.3, category: "sfx" });
 
               // Calculate score with combo multiplier
               const now = Date.now();
