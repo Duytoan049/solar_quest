@@ -10,7 +10,7 @@ const API_TOKEN = import.meta.env.VITE_SOLAR_SYSTEM_API_KEY || ''; // Get free t
 
 // Detect if running in development (localhost) or production
 const isDevelopment = typeof window !== 'undefined' && (
-    window.location.hostname === 'localhost' || 
+    window.location.hostname === 'localhost' ||
     window.location.hostname === '127.0.0.1'
 );
 
