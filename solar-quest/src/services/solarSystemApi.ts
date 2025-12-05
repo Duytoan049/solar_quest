@@ -1,10 +1,10 @@
 // Solar System OpenData API Service
 // https://api.le-systeme-solaire.net/
 
-// Use Vite proxy to bypass CORS (dev mode) or direct API (production)
+// Use proxy in both dev and production to bypass CORS
 const SOLAR_SYSTEM_API_BASE = import.meta.env.DEV
     ? '/api/solar-system/rest'  // Development: Use Vite proxy
-    : 'https://api.le-systeme-solaire.net/rest'; // Production: Direct API
+    : '/api/solar-system'; // Production: Use Vercel serverless function proxy
 
 const API_TOKEN = import.meta.env.VITE_SOLAR_SYSTEM_API_KEY || ''; // Get free token from https://api.le-systeme-solaire.net/generatekey.html
 
@@ -66,7 +66,12 @@ export interface PlanetHistoryData {
 export async function getPlanetHistory(planetId: string): Promise<PlanetHistoryData | null> {
     try {
         const apiId = PLANET_ID_MAP[planetId.toLowerCase()] || planetId.toLowerCase();
-        const url = `${SOLAR_SYSTEM_API_BASE}/bodies/${apiId}`;
+
+        // In production, use query parameter for Vercel serverless function
+        // In dev, use direct path for Vite proxy
+        const url = import.meta.env.DEV
+            ? `${SOLAR_SYSTEM_API_BASE}/bodies/${apiId}`
+            : `${SOLAR_SYSTEM_API_BASE}?path=bodies/${apiId}`;
 
         const headers: HeadersInit = {};
         if (API_TOKEN) {
