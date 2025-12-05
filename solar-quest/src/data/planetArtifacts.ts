@@ -104,7 +104,7 @@ export const marsArtifacts: Artifact[] = [
     scientificValue: 'Chứa thông tin về khí hậu Sao Hỏa trong quá khứ',
     location: 'surface',
     position: {
-      latitude: 85.0, // Near North Pole - hard to reach!
+      latitude: 85.0,
       longitude: 1,
       altitude: 0.05
     },

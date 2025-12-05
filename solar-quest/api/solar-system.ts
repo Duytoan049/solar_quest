@@ -29,9 +29,23 @@ export default async function handler(req: any, res: any) {
 
         // Use native fetch (Node 18+) or import https module
         const https = require('https');
+        const { URL } = require('url');
+        
+        const parsedUrl = new URL(apiUrl);
 
         const apiData = await new Promise((resolve, reject) => {
-            https.get(apiUrl, { headers: { 'Accept': 'application/json' } }, (apiRes: any) => {
+            const options = {
+                hostname: parsedUrl.hostname,
+                port: 443,
+                path: parsedUrl.pathname + parsedUrl.search,
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'User-Agent': 'Solar-Quest-App/1.0'
+                }
+            };
+            
+            https.get(options, (apiRes: any) => {
                 let data = '';
 
                 apiRes.on('data', (chunk: any) => {
@@ -39,6 +53,7 @@ export default async function handler(req: any, res: any) {
                 });
 
                 apiRes.on('end', () => {
+                    console.log('API response status:', apiRes.statusCode);
                     if (apiRes.statusCode === 200) {
                         try {
                             resolve(JSON.parse(data));
@@ -46,7 +61,8 @@ export default async function handler(req: any, res: any) {
                             reject(new Error('Failed to parse JSON'));
                         }
                     } else {
-                        reject(new Error(`API responded with status ${apiRes.statusCode}`));
+                        console.error('API error response:', data);
+                        reject(new Error(`API responded with status ${apiRes.statusCode}: ${data}`));
                     }
                 });
             }).on('error', reject);
