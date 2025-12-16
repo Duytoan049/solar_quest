@@ -18,6 +18,7 @@ interface Props {
   stats: VictoryStats;
   ai: AICompanionData;
   onComplete: () => void;
+  suppressAutoComplete?: boolean;
 }
 
 export default function VictorySequence({
@@ -27,6 +28,7 @@ export default function VictorySequence({
   stats,
   ai,
   onComplete,
+  suppressAutoComplete,
 }: Props) {
   const { t } = useTranslation();
   const { play, playMusic } = useAudio();
@@ -50,6 +52,7 @@ export default function VictorySequence({
     phase === "travel" || phase === "arrival" || phase === "ai-intro",
     markers
   );
+  const localizedPlanetName = t(`planets.${planetId}.name`);
 
   useEffect(() => {
     if (isPreloaded) {
@@ -394,7 +397,7 @@ export default function VictorySequence({
           >
             <div className="bg-black/60 backdrop-blur-md px-8 py-4 rounded-lg border border-white/20">
               <p className="text-3xl font-bold text-white mb-2">
-                Đã đến {planetName}!
+                {t("victorySequence.arrived", { planetName: localizedPlanetName })}
               </p>
               <p className="text-lg text-gray-300">{getPerformanceMessage()}</p>
             </div>
@@ -408,6 +411,7 @@ export default function VictorySequence({
           ai={ai}
           planetId={planetId}
           planetName={planetName}
+          suppressAutoComplete={suppressAutoComplete}
           onComplete={() => {
             setPhase("complete");
             onComplete();
@@ -422,13 +426,13 @@ export default function VictorySequence({
           animate={{ opacity: 1 }}
           className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
         >
-          <button
+            <button
             onClick={() => setPhase("ai-intro")}
             className="px-6 py-3 bg-black/60 hover:bg-black/80 backdrop-blur-md 
               rounded-lg text-white font-semibold transition-all duration-300
               border border-white/30 hover:border-white/60"
           >
-            ESC hoặc Click để bỏ qua
+            {t("victorySequence.skipButton")}
           </button>
         </motion.div>
       )}

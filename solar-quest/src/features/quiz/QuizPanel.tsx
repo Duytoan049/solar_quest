@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import QuizQuestion from "./QuizQuestion";
 import QuizResult from "./QuizResult";
 import { getPlanetQuiz, getRewardTier } from "@/data/planetQuizzes";
+import { saveQuizResult, getQuizResult } from "@/services/profileStorage";
+import { useTranslation } from "react-i18next";
 import type { AICompanionData } from "@/types/victory";
 import type { QuizResult as QuizResultType } from "@/types/quiz";
 
@@ -13,6 +15,7 @@ interface Props {
 }
 
 export default function QuizPanel({ planetId, ai, onComplete }: Props) {
+  const { t } = useTranslation();
   const quiz = getPlanetQuiz(planetId);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -71,8 +74,8 @@ export default function QuizPanel({ planetId, ai, onComplete }: Props) {
         answers: finalAnswers,
       };
 
-      // Save to localStorage
-      localStorage.setItem(`quiz-${planetId}`, JSON.stringify(result));
+      // Save result (namespaced by user, also updates Firestore)
+      saveQuizResult(result);
 
       setTimeout(() => {
         setShowResult(true);
@@ -85,10 +88,9 @@ export default function QuizPanel({ planetId, ai, onComplete }: Props) {
   };
 
   const handleContinue = () => {
-    const savedResult = localStorage.getItem(`quiz-${planetId}`);
+    const savedResult = getQuizResult(planetId);
     if (savedResult) {
-      const result: QuizResultType = JSON.parse(savedResult);
-      onComplete(result);
+      onComplete(savedResult as QuizResultType);
     }
   };
 
@@ -133,19 +135,18 @@ export default function QuizPanel({ planetId, ai, onComplete }: Props) {
                 className="text-center mb-2"
               >
                 <h2
-                  className="text-4xl font-bold mb-2"
-                  style={{
-                    background: `linear-gradient(135deg, ${ai.color} 0%, white 100%)`,
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                  }}
-                >
-                  Quiz: {quiz.planetName}
-                </h2>
-                <p className="text-gray-400">
-                  Trả lời đúng {quiz.passingScore}/{quiz.questions.length} để
-                  đạt huy hiệu Silver
-                </p>
+                    className="text-4xl font-bold mb-2"
+                    style={{
+                      background: `linear-gradient(135deg, ${ai.color} 0%, white 100%)`,
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                    }}
+                  >
+                    {t('quiz.title')}: {t(`planets.${planetId}.name`)}
+                  </h2>
+                  <p className="text-gray-400">
+                    {t('quiz.instructions', { score: quiz.passingScore, total: quiz.questions.length })}
+                  </p>
               </motion.div>
 
               {/* Question */}
@@ -158,10 +159,8 @@ export default function QuizPanel({ planetId, ai, onComplete }: Props) {
               />
             </motion.div>
           ) : (
-            <QuizResult
-              result={JSON.parse(
-                localStorage.getItem(`quiz-${planetId}`) || "{}"
-              )}
+              <QuizResult
+              result={getQuizResult(planetId) || ({} as any)}
               ai={ai}
               onContinue={handleContinue}
             />

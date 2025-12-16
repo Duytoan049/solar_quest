@@ -140,10 +140,21 @@ class TextToSpeechService {
         };
 
         utterance.onerror = (event) => {
-            console.error("TTS Error:", event);
+            // Some browsers report 'interrupted' when speech is cancelled/paused.
+            // Treat 'interrupted' as a non-fatal interruption (expected when calling cancel/resume/etc.).
+            const evt: any = event as any;
+            const errCode = evt && evt.error ? String(evt.error) : '';
+            if (errCode === 'interrupted') {
+                console.debug('TTS interrupted (expected during cancel/pause)');
+                this.currentUtterance = null;
+                this.isPaused = false;
+                return;
+            }
+
+            console.error('TTS Error:', event);
             this.currentUtterance = null;
             this.isPaused = false;
-            if (onError) onError(new Error(event.error));
+            if (onError) onError(new Error(errCode || 'unknown'));
         };
 
         utterance.onstart = () => {

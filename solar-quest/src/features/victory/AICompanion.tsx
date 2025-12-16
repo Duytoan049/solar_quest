@@ -6,12 +6,15 @@ import ProfileCreation from "@/features/profile/ProfileCreation";
 import type { AICompanionData } from "@/types/victory";
 import type { QuizResult } from "@/types/quiz";
 import { ttsService, detectLanguage } from "@/services/textToSpeech";
+import { useTranslation } from "react-i18next";
+import { hasCompletedQuiz } from "@/services/profileStorage";
 
 interface Props {
   ai: AICompanionData;
   planetId: string; // NEW: Need planetId for quiz
   planetName: string; // NEW: Need planetName for profile
   onComplete: () => void;
+  suppressAutoComplete?: boolean;
 }
 
 export default function AICompanion({
@@ -19,24 +22,50 @@ export default function AICompanion({
   planetId,
   planetName,
   onComplete,
+  suppressAutoComplete,
 }: Props) {
   // Phase management: intro -> quiz -> profile -> complete
-  const [phase, setPhase] = useState<"intro" | "quiz" | "profile" | "complete">(
-    () => {
-      // Check if user has already completed quiz for this planet
-      const savedQuiz = localStorage.getItem(`quiz-${planetId}`);
-      return savedQuiz ? "complete" : "intro";
+  const [phase, setPhase] = useState<"intro" | "quiz" | "profile" | "complete">(() => {
+    // Check if user has already completed quiz for this planet (use profileStorage which handles user scoping)
+    // If `suppressAutoComplete` is true (e.g., user arrived via Skip), force intro so quiz button shows.
+    try {
+      const completed = hasCompletedQuiz(planetId);
+      return completed && !suppressAutoComplete ? "complete" : "intro";
+    } catch (e) {
+      // Fallback to intro on error
+      console.error("AICompanion: failed to check quiz completion:", e);
+      return "intro";
     }
-  );
+  });
 
   const [currentDialogue, setCurrentDialogue] = useState(0);
   const [displayedText, setDisplayedText] = useState("");
+  const { t, i18n } = useTranslation();
   const [isTyping, setIsTyping] = useState(true);
   const [isTTSEnabled, setIsTTSEnabled] = useState(true);
   const [isTTSPlaying, setIsTTSPlaying] = useState(false);
   const [isTTSPaused, setIsTTSPaused] = useState(false);
 
-  const fullText = ai.dialogues.intro[currentDialogue] || "";
+  const appLang = i18n.language || "en";
+
+  // choose dialogues for current app language if English variants exist
+  const dialogues = (() => {
+    const d: any = ai.dialogues as any;
+    if (appLang.startsWith("en")) {
+      const hasEn = d.introEn || d.exploreEn || d.performanceBasedEn;
+      if (hasEn) {
+        return {
+          intro: d.introEn || d.intro,
+          performanceBased: d.performanceBasedEn || d.performanceBased,
+          facts: d.factsEn || d.facts,
+          explore: d.exploreEn || d.explore,
+        } as any;
+      }
+    }
+    return ai.dialogues;
+  })();
+
+  const fullText = dialogues.intro[currentDialogue] || "";
 
   // Auto-skip to PlanetDetail if quiz already completed
   useEffect(() => {
@@ -50,7 +79,7 @@ export default function AICompanion({
   // Typing effect with synchronized TTS
   useEffect(() => {
     if (phase !== "intro") return;
-
+        const isExploreMessage = currentDialogue >= dialogues.intro.length;
     setDisplayedText("");
     setIsTyping(true);
 
@@ -65,37 +94,40 @@ export default function AICompanion({
     );
     console.log("AICompanion: Full text:", fullText);
 
-    // Start TTS immediately with full text if enabled
+    // Start TTS immediately with full text if enabled and non-empty
     if (shouldPlayTTS) {
-      const lang = detectLanguage(fullText);
-      console.log("AICompanion: Detected language:", lang);
+      if (!fullText || !fullText.trim()) {
+        console.log("AICompanion: Full text empty, skipping TTS");
+      } else {
+        const lang = detectLanguage(fullText);
+        console.log("AICompanion: Detected language:", lang);
+        setIsTTSPaused(false);
 
-      setIsTTSPlaying(true);
-      setIsTTSPaused(false);
-
-      ttsService.speak(
-        fullText,
-        { lang, rate: 0.9, pitch: 1.0, volume: 1.0 }, // Slightly slower for better sync
-        () => {
-          // On TTS complete
-          console.log("AICompanion: TTS completed");
-          setIsTTSPlaying(false);
-          setIsTTSPaused(false);
-        },
-        (error) => {
-          // On TTS error
-          console.error("AICompanion: TTS Error:", error);
-          setIsTTSPlaying(false);
-          setIsTTSPaused(false);
-        }
-      );
+        setIsTTSPlaying(true);
+        ttsService.speak(
+          fullText,
+          { lang, rate: 0.9, pitch: 1.0, volume: 1.0 }, // Slightly slower for better sync
+          () => {
+            // On TTS complete
+            console.log("AICompanion: TTS completed");
+            setIsTTSPlaying(false);
+            setIsTTSPaused(false);
+          },
+          (error) => {
+            // On TTS error
+            console.error("AICompanion: TTS Error:", error);
+            setIsTTSPlaying(false);
+            setIsTTSPaused(false);
+          }
+        );
+      }
     } else {
       console.log("AICompanion: TTS is disabled, skipping");
     }
 
     let currentIndex = 0;
     const typingSpeed = 50; // milliseconds per character
-    const isExploreMessage = currentDialogue >= ai.dialogues.intro.length;
+    // use `dialogues.intro.length` (supports language variants)
 
     const typingInterval = setInterval(() => {
       if (currentIndex < fullText.length) {
@@ -134,7 +166,7 @@ export default function AICompanion({
       setIsTTSPaused(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDialogue, fullText, phase, ai.dialogues.intro.length]);
+  }, [currentDialogue, fullText, phase, dialogues.intro.length]);
   // Intentionally not including isTTSEnabled to prevent re-triggering typing effect when mute/unmute
 
   const skipToEnd = () => {
@@ -188,8 +220,8 @@ export default function AICompanion({
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [phase, ai.dialogues.intro.length]);
 
-  const isExplorePhase = currentDialogue >= ai.dialogues.intro.length;
-  const exploreText = ai.dialogues.explore;
+  const isExplorePhase = currentDialogue >= dialogues.intro.length;
+  const exploreText = dialogues.explore;
 
   const handleQuizComplete = (result: QuizResult) => {
     console.log("Quiz completed:", result);
@@ -330,7 +362,7 @@ export default function AICompanion({
                   className="w-9 h-9 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 
                     hover:border-white/40 hover:bg-black/80 transition-all hover:scale-105
                     flex items-center justify-center"
-                  title={isTTSPaused ? "Tiếp tục" : "Tạm dừng"}
+                  title={isTTSPaused ? t('tts.resume') : t('tts.pause')}
                 >
                   {isTTSPaused ? (
                     <Play
@@ -353,7 +385,7 @@ export default function AICompanion({
                       ? "bg-black/60 border-white/20 hover:border-white/40 hover:bg-black/80"
                       : "bg-red-500/20 border-red-500/30 hover:border-red-500/50 hover:bg-red-500/30"
                   }`}
-                title={isTTSEnabled ? "Tắt giọng nói" : "Bật giọng nói"}
+                title={isTTSEnabled ? t('tts.disable') : t('tts.enable')}
               >
                 {isTTSEnabled ? (
                   <Volume2 className="w-4 h-4 text-white/90" />
@@ -420,7 +452,7 @@ export default function AICompanion({
                 boxShadow: `0 0 20px ${ai.color}20`,
               }}
             >
-              � Bắt đầu Quiz
+              {t('quiz.start')}
             </button>
           </motion.div>
         )}
@@ -433,7 +465,7 @@ export default function AICompanion({
             transition={{ duration: 2, repeat: Infinity }}
             className="text-center text-gray-500 text-xs mt-3"
           >
-            Click để bỏ qua | ESC để skip
+            {t('victorySequence.skipHint')}
           </motion.p>
         )}
       </div>

@@ -14,30 +14,35 @@ export default function QuizResult({ result, ai, onContinue }: Props) {
   const quiz = result;
   const percentage = quiz.percentage;
 
-  // Determine reward tier message
-  let rewardData;
-  if (quiz.tier === "gold") {
-    rewardData = {
-      score: 5,
-      title: "Bậc thầy",
-      badges: ["🥇 Gold Master", "⭐ Hoàn hảo", "🎓 Chuyên gia"],
-      message: "Xuất sắc! Bạn là chuyên gia thực thụ!",
-    };
-  } else if (quiz.tier === "silver") {
-    rewardData = {
-      score: 3,
-      title: "Chuyên gia",
-      badges: ["🥈 Silver Expert", "🔓 Mở khóa tính năng"],
-      message: "Tuyệt vời! Bạn hiểu rất rõ!",
-    };
-  } else {
-    rewardData = {
-      score: 1,
-      title: t("quiz.explorer"),
-      badges: ["🥉 Bronze Explorer"],
-      message: "Bạn đã bắt đầu hành trình!",
-    };
-  }
+  // Determine reward tier message (localized)
+  const rewardData =
+    quiz.tier === "gold"
+      ? {
+          score: 5,
+          title: t("quiz.tierNames.gold"),
+          badges: [
+            `🥇 ${t("quiz.badge.goldMaster")}`,
+            `⭐ ${t("quiz.badge.perfect")}`,
+            `🎓 ${t("quiz.badge.expert")}`,
+          ],
+          message: t("quiz.tierMessages.gold"),
+        }
+      : quiz.tier === "silver"
+      ? {
+          score: 3,
+          title: t("quiz.tierNames.silver"),
+          badges: [
+            `🥈 ${t("quiz.badge.silverExpert")}`,
+            `🔓 ${t("quiz.badge.unlockFeature")}`,
+          ],
+          message: t("quiz.tierMessages.silver"),
+        }
+      : {
+          score: 1,
+          title: t("quiz.tierNames.bronze"),
+          badges: [`🥉 ${t("quiz.badge.bronzeExplorer")}`],
+          message: t("quiz.tierMessages.bronze"),
+        };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center p-4 z-50">
@@ -118,7 +123,7 @@ export default function QuizResult({ result, ai, onContinue }: Props) {
               transition={{ delay: 0.3 }}
               className="text-2xl font-bold text-center text-white"
             >
-              Kết quả Quiz
+              {t("quiz.results")}
             </motion.h2>
 
             {/* Score */}
@@ -207,13 +212,13 @@ export default function QuizResult({ result, ai, onContinue }: Props) {
                 <div className="text-2xl font-bold text-green-400">
                   {quiz.answers.filter((a) => a.isCorrect).length}
                 </div>
-                <div className="text-sm text-gray-400">Đúng</div>
+                <div className="text-sm text-gray-400">{t('quiz.correct')}</div>
               </div>
               <div className="bg-white/5 rounded-lg p-3">
                 <div className="text-2xl font-bold text-red-400">
                   {quiz.answers.filter((a) => !a.isCorrect).length}
                 </div>
-                <div className="text-sm text-gray-400">Sai</div>
+                <div className="text-sm text-gray-400">{t('quiz.incorrect')}</div>
               </div>
               <div className="bg-white/5 rounded-lg p-3">
                 <div className="text-2xl font-bold" style={{ color: ai.color }}>
@@ -224,7 +229,7 @@ export default function QuizResult({ result, ai, onContinue }: Props) {
                     : "🥉"}
                 </div>
                 <div className="text-sm text-gray-400 capitalize">
-                  {quiz.tier}
+                  {t(`quiz.tierNames.${quiz.tier}`)}
                 </div>
               </div>
             </motion.div>
@@ -251,7 +256,7 @@ export default function QuizResult({ result, ai, onContinue }: Props) {
               transition={{ delay: 1.2 }}
             >
               <h4 className="text-center text-gray-400 mb-3 text-sm uppercase tracking-wide">
-                Huy hiệu đạt được
+                {t('quiz.earnedBadges')}
               </h4>
               <div className="flex flex-wrap justify-center gap-3">
                 {rewardData.badges.map((badge, index) => (
@@ -286,7 +291,7 @@ export default function QuizResult({ result, ai, onContinue }: Props) {
                   </p>
                   <p className="text-gray-300 leading-relaxed text-base">
                     {percentage === 100
-                      ? "Không thể tin được! Bạn trả lời đúng tất cả! Bạn thực sự là bậc thầy về hành tinh này! 🎉"
+                      ? t('quiz.perfectMessage')
                       : percentage >= 80
                       ? t("quiz.excellentMessage")
                       : percentage >= 60

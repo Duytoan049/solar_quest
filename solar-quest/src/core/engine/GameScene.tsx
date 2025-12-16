@@ -93,6 +93,7 @@ export default function MarsGameScene({
   const [isSpecialEffect, setIsSpecialEffect] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [victory, setVictory] = useState(false);
+  const [skipTriggered, setSkipTriggered] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [comboDisplay, setComboDisplay] = useState({ count: 0, multiplier: 1 });
   const [heatWarning, setHeatWarning] = useState(0); // 0-100
@@ -1095,9 +1096,11 @@ export default function MarsGameScene({
           planetColor={planetConfig.particleColor}
           stats={victoryStats}
           ai={aiCompanion}
+          suppressAutoComplete={skipTriggered}
           onComplete={() => {
             // Save minigame completion status
             setMinigameCompleted(planetId);
+            setSkipTriggered(false);
             if (onComplete) onComplete();
           }}
         />
@@ -1239,7 +1242,10 @@ export default function MarsGameScene({
       {showSkipButton && !gameOver && !victory && (
         <button
           onClick={() => {
-            if (onComplete) onComplete();
+            // Instead of immediately navigating away, trigger the victory sequence
+            // so the player still sees the celebration and the AI/Quiz flow.
+            setSkipTriggered(true);
+            setVictory(true);
           }}
           className="absolute bottom-4 right-4 z-50 px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 
             text-white font-bold rounded-lg shadow-2xl transition-all duration-300 

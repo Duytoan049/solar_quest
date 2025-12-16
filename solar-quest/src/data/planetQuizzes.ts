@@ -206,7 +206,14 @@ export const PLANET_QUIZZES: Record<string, PlanetQuiz> = {
             {
                 id: "earth-q1",
                 question: "Trái Đất có bao nhiêu phần trăm bề mặt là nước?",
+                questionEn: "What percentage of Earth's surface is water?",
                 options: [
+                    "50%",
+                    "60%",
+                    "71%",
+                    "85%"
+                ],
+                optionsEn: [
                     "50%",
                     "60%",
                     "71%",
@@ -214,13 +221,21 @@ export const PLANET_QUIZZES: Record<string, PlanetQuiz> = {
                 ],
                 correctAnswer: 2,
                 explanation: "71% bề mặt Trái Đất là nước, vì vậy còn gọi là 'Hành tinh xanh'!",
+                explanationEn: "71% of Earth's surface is water, that's why it's called the 'Blue Planet'!",
                 difficulty: "easy",
                 category: "geography"
             },
             {
                 id: "earth-q2",
                 question: "Núi cao nhất trên Trái Đất là gì?",
+                questionEn: "What is the highest mountain on Earth?",
                 options: [
+                    "K2",
+                    "Mount Everest (8,849m)",
+                    "Kilimanjaro",
+                    "Mauna Kea"
+                ],
+                optionsEn: [
                     "K2",
                     "Mount Everest (8,849m)",
                     "Kilimanjaro",
@@ -228,27 +243,43 @@ export const PLANET_QUIZZES: Record<string, PlanetQuiz> = {
                 ],
                 correctAnswer: 1,
                 explanation: "Mount Everest cao 8,849m so với mực nước biển!",
+                explanationEn: "Mount Everest is 8,849m above sea level!",
                 difficulty: "easy",
                 category: "geography"
             },
             {
                 id: "earth-q3",
                 question: "Lớp nào của Trái Đất bảo vệ chúng ta khỏi bức xạ?",
+                questionEn: "Which layer of Earth protects us from radiation?",
                 options: [
                     "Tầng đối lưu",
                     "Lớp Ozone (O₃)",
                     "Từ trường",
                     "Lớp khí quyển"
                 ],
+                optionsEn: [
+                    "Troposphere",
+                    "Ozone Layer (O₃)",
+                    "Magnetic Field",
+                    "Atmosphere"
+                ],
                 correctAnswer: 1,
                 explanation: "Lớp Ozone hấp thụ 97-99% tia UV có hại từ Mặt trời!",
+                explanationEn: "The Ozone Layer absorbs 97-99% of harmful UV rays from the Sun!",
                 difficulty: "medium",
                 category: "science"
             },
             {
                 id: "earth-q4",
                 question: "Trái Đất di chuyển quanh Mặt trời với tốc độ bao nhiêu?",
+                questionEn: "How fast does Earth orbit the Sun?",
                 options: [
+                    "10 km/s",
+                    "20 km/s",
+                    "30 km/s (108,000 km/h)",
+                    "50 km/s"
+                ],
+                optionsEn: [
                     "10 km/s",
                     "20 km/s",
                     "30 km/s (108,000 km/h)",
@@ -256,20 +287,29 @@ export const PLANET_QUIZZES: Record<string, PlanetQuiz> = {
                 ],
                 correctAnswer: 2,
                 explanation: "Trái Đất bay quanh Mặt trời với tốc độ 30 km/giây!",
+                explanationEn: "Earth orbits the Sun at 30 km/s!",
                 difficulty: "hard",
                 category: "science"
             },
             {
                 id: "earth-q5",
                 question: "Trái Đất có tuổi bao nhiêu?",
+                questionEn: "How old is the Earth?",
                 options: [
                     "1 tỷ năm",
                     "2.5 tỷ năm",
                     "4.54 tỷ năm",
                     "10 tỷ năm"
                 ],
+                optionsEn: [
+                    "1 billion years",
+                    "2.5 billion years",
+                    "4.54 billion years",
+                    "10 billion years"
+                ],
                 correctAnswer: 2,
                 explanation: "Trái Đất hình thành cách đây 4.54 tỷ năm!",
+                explanationEn: "Earth formed 4.54 billion years ago!",
                 difficulty: "medium",
                 category: "science"
             }
@@ -304,70 +344,110 @@ export const PLANET_QUIZZES: Record<string, PlanetQuiz> = {
             {
                 id: "mars-q1",
                 question: "Núi lửa cao nhất trong hệ mặt trời nằm ở đâu?",
+                questionEn: "Where is the tallest volcano in the solar system?",
                 options: [
                     "Mount Everest trên Trái Đất",
                     "Olympus Mons trên Sao Hỏa (21.9 km)",
                     "Maxwell Montes trên Sao Kim",
                     "Io Volcano trên sao Mộc"
                 ],
+                optionsEn: [
+                    "Mount Everest on Earth",
+                    "Olympus Mons on Mars (21.9 km)",
+                    "Maxwell Montes on Venus",
+                    "Io Volcano on Jupiter"
+                ],
                 correctAnswer: 1,
                 explanation: "Olympus Mons cao 21.9 km, gấp gần 3 lần Mount Everest!",
+                explanationEn: "Olympus Mons is 21.9 km tall, nearly 3 times Mount Everest!",
                 difficulty: "easy",
                 category: "geography"
             },
             {
                 id: "mars-q2",
                 question: "Màu của bầu trời Sao Hỏa vào ban ngày là gì?",
+                questionEn: "What color is the sky on Mars during the day?",
                 options: [
                     "Xanh dương như Trái Đất",
                     "Đỏ/Cam do bụi sắt oxit",
                     "Đen tối",
                     "Xanh lá"
                 ],
+                optionsEn: [
+                    "Blue like Earth",
+                    "Red/Orange due to iron oxide dust",
+                    "Dark black",
+                    "Green"
+                ],
                 correctAnswer: 1,
                 explanation: "Bụi sắt oxit trong khí quyển làm bầu trời Sao Hỏa có màu đỏ cam!",
+                explanationEn: "Iron oxide dust in the atmosphere makes the Martian sky red-orange!",
                 difficulty: "medium",
                 category: "science"
             },
             {
                 id: "mars-q3",
                 question: "Rover nào đang hoạt động trên Sao Hỏa hiện nay (2025)?",
+                questionEn: "Which rovers are currently operating on Mars (2025)?",
                 options: [
                     "Spirit và Opportunity",
                     "Viking 1 và 2",
                     "Curiosity và Perseverance",
                     "Pathfinder"
                 ],
+                optionsEn: [
+                    "Spirit and Opportunity",
+                    "Viking 1 and 2",
+                    "Curiosity and Perseverance",
+                    "Pathfinder"
+                ],
                 correctAnswer: 2,
                 explanation: "Curiosity (2012) và Perseverance (2021) vẫn đang khám phá Sao Hỏa!",
+                explanationEn: "Curiosity (2012) and Perseverance (2021) are still exploring Mars!",
                 difficulty: "medium",
                 category: "history"
             },
             {
                 id: "mars-q4",
                 question: "Một ngày trên Sao Hỏa (sol) dài bao lâu?",
+                questionEn: "How long is a day (sol) on Mars?",
                 options: [
                     "24 giờ giống Trái Đất",
                     "24 giờ 37 phút",
                     "12 giờ",
                     "48 giờ"
                 ],
+                optionsEn: [
+                    "24 hours like Earth",
+                    "24 hours 37 minutes",
+                    "12 hours",
+                    "48 hours"
+                ],
                 correctAnswer: 1,
                 explanation: "Một sol = 24 giờ 37 phút, chỉ dài hơn Trái Đất 37 phút!",
+                explanationEn: "A sol = 24 hours 37 minutes, just 37 minutes longer than an Earth day!",
                 difficulty: "easy",
                 category: "science"
             },
             {
                 id: "mars-q5",
                 question: "Sao Hỏa có bao nhiêu mặt trăng?",
+                questionEn: "How many moons does Mars have?",
                 options: [
                     "0",
                     "1",
                     "2 (Phobos và Deimos)",
                     "4"
                 ],
+                optionsEn: [
+                    "0",
+                    "1",
+                    "2 (Phobos and Deimos)",
+                    "4"
+                ],
                 correctAnswer: 2,
                 explanation: "Phobos và Deimos là 2 mặt trăng nhỏ, có thể là tiểu hành tinh bị bắt giữ!",
+                explanationEn: "Phobos and Deimos are two small moons, possibly captured asteroids!",
                 difficulty: "easy",
                 category: "science"
             }

@@ -142,7 +142,9 @@
     "noArtifacts": "Chưa thu thập hiện vật nào"
   },
   "quiz": {
+    "start": "Bắt đầu Quiz",
     "title": "Câu Đố Hành Tinh",
+    "instructions": "Trả lời đúng {{score}}/{{total}} để đạt huy hiệu Silver",
     "question": "Câu Hỏi",
     "submit": "Gửi Câu Trả Lời",
     "correct": "Đúng!",
@@ -158,6 +160,27 @@
     "encourageMessage": "Đừng lo! Mọi hành trình đều bắt đầu từ những bước đi đầu tiên. Hãy khám phá các markers để học thêm nhé! 🚀",
     "explorePlanet": "Khám phá hành tinh",
     "retake": "Thử lại"
+    ,
+    "tierNames": {
+      "gold": "Bậc thầy",
+      "silver": "Chuyên gia",
+      "bronze": "Người khám phá"
+    },
+    "badge": {
+      "goldMaster": "Bậc thầy vàng",
+      "perfect": "Hoàn hảo",
+      "expert": "Chuyên gia",
+      "silverExpert": "Chuyên gia Bạc",
+      "unlockFeature": "Mở khóa tính năng",
+      "bronzeExplorer": "Người khám phá"
+    },
+    "tierMessages": {
+      "gold": "Xuất sắc! Bạn là chuyên gia thực thụ!",
+      "silver": "Tuyệt vời! Bạn hiểu rất rõ!",
+      "bronze": "Bạn đã bắt đầu hành trình!"
+    },
+    "earnedBadges": "Huy hiệu đạt được",
+    "perfectMessage": "Không thể tin được! Bạn trả lời đúng tất cả! Bạn thực sự là bậc thầy về hành tinh này! 🎉"
   },
   "leaderboard": {
     "title": "Bảng Xếp Hạng",
@@ -275,6 +298,12 @@
     "engineerDesc": "Xây dựng và sửa chữa",
     "pilot": "Phi Công",
     "pilotDesc": "Điều hướng giữa các vì sao",
+    "avatarTitle": "Chọn avatar",
+    "avatarSubtitle": "Chọn biểu tượng đại diện cho bạn",
+    "complete": "Hoàn tất",
+    "back": "Quay lại",
+    "welcome": "Chào mừng, {{name}}!",
+    "onPlanet": "trên {{planetName}}",
     "continue": "Tiếp tục →",
     "skip": "Bỏ qua"
   },
@@ -332,7 +361,16 @@
     "maxCombo": "Combo tối đa: ",
     "damagesTaken": "Sát thương nhận: ",
     "launching": "Khởi động...",
-    "flyingTo": "Đang bay đến {{planetName}}"
+    "flyingTo": "Đang bay đến {{planetName}}",
+    "arrived": "Đã đến {{planetName}}!",
+    "skipButton": "ESC hoặc Click để bỏ qua",
+    "skipHint": "Click để bỏ qua | ESC để bỏ qua"
+  },
+  "tts": {
+    "resume": "Tiếp tục",
+    "pause": "Tạm dừng",
+    "enable": "Bật giọng nói",
+    "disable": "Tắt giọng nói"
   },
   "collection": {
     "title": "Bộ Sưu Tập Của Tôi",

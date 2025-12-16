@@ -10,10 +10,23 @@ import {
     migrateLocalStorageToFirestore,
 } from "./firestoreService";
 
-// LocalStorage keys
-const PROFILE_KEY_PREFIX = "planet-profile-";
-const QUIZ_KEY_PREFIX = "quiz-";
-const MINIGAME_COMPLETED_KEY = "minigame-completed-";
+// LocalStorage keys (base prefixes). Actual keys are namespaced by user UID when logged in.
+const PROFILE_KEY_PREFIX = "planet-profile-"; // final key: planet-profile-<uid>-<planetId> or planet-profile-<planetId> for guests
+const QUIZ_KEY_PREFIX = "quiz-"; // final key: quiz-<uid>-<planetId>
+const MINIGAME_COMPLETED_KEY = "minigame-completed-"; // final key: minigame-completed-<uid>-<planetId>
+
+function makeKey(prefix: string, planetId: string): string {
+    const user = getCurrentUser();
+    if (user && user.uid) {
+        return `${prefix}${user.uid}-${planetId}`;
+    }
+    return `${prefix}${planetId}`;
+}
+
+// Try legacy key without UID (for migration support)
+function legacyKey(prefix: string, planetId: string): string {
+    return `${prefix}${planetId}`;
+}
 
 /**
  * Save planet profile (localStorage + Firestore if logged in)
@@ -83,8 +96,21 @@ export async function getProfileAsync(planetId: string): Promise<PlanetProfile |
  */
 function getProfileFromLocalStorage(planetId: string): PlanetProfile | null {
     try {
-        const key = `${PROFILE_KEY_PREFIX}${planetId}`;
-        const data = localStorage.getItem(key);
+        const key = makeKey(PROFILE_KEY_PREFIX, planetId);
+        let data = localStorage.getItem(key);
+        // If not found and user is logged in, try legacy key and migrate
+        const user = getCurrentUser();
+        if (!data && user) {
+            const legacy = legacyKey(PROFILE_KEY_PREFIX, planetId);
+            const legacyData = localStorage.getItem(legacy);
+            if (legacyData) {
+                // migrate to user-scoped key
+                localStorage.setItem(key, legacyData);
+                localStorage.removeItem(legacy);
+                data = legacyData;
+            }
+        }
+        if (!data) return null;
         if (!data) return null;
 
         const profile = JSON.parse(data);
@@ -103,7 +129,7 @@ function getProfileFromLocalStorage(planetId: string): PlanetProfile | null {
  */
 function saveProfileToLocalStorage(profile: PlanetProfile): void {
     try {
-        const key = `${PROFILE_KEY_PREFIX}${profile.planetId}`;
+        const key = makeKey(PROFILE_KEY_PREFIX, profile.planetId);
         localStorage.setItem(key, JSON.stringify(profile));
     } catch (error) {
         console.error("Failed to save profile to localStorage:", error);
@@ -135,14 +161,23 @@ export function updateLastVisited(planetId: string): void {
 export function getAllProfiles(): PlanetProfile[] {
     const profiles: PlanetProfile[] = [];
 
+    // Collect keys for current user scope (include legacy guest keys)
+    const user = getCurrentUser();
+    const prefixWithUid = user && user.uid ? `${PROFILE_KEY_PREFIX}${user.uid}-` : PROFILE_KEY_PREFIX;
+
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && key.startsWith(PROFILE_KEY_PREFIX)) {
+        if (!key) continue;
+
+        if (key.startsWith(prefixWithUid)) {
+            const planetId = key.replace(prefixWithUid, "");
+            const profile = getProfile(planetId);
+            if (profile) profiles.push(profile);
+        } else if (!user && key.startsWith(PROFILE_KEY_PREFIX)) {
+            // guest mode legacy keys
             const planetId = key.replace(PROFILE_KEY_PREFIX, "");
             const profile = getProfile(planetId);
-            if (profile) {
-                profiles.push(profile);
-            }
+            if (profile) profiles.push(profile);
         }
     }
 
@@ -156,8 +191,18 @@ export function getAllProfiles(): PlanetProfile[] {
  */
 export function getQuizResult(planetId: string): QuizResult | null {
     try {
-        const key = `${QUIZ_KEY_PREFIX}${planetId}`;
-        const data = localStorage.getItem(key);
+        const key = makeKey(QUIZ_KEY_PREFIX, planetId);
+        let data = localStorage.getItem(key);
+        const user = getCurrentUser();
+        if (!data && user) {
+            const legacy = legacyKey(QUIZ_KEY_PREFIX, planetId);
+            const legacyData = localStorage.getItem(legacy);
+            if (legacyData) {
+                localStorage.setItem(key, legacyData);
+                localStorage.removeItem(legacy);
+                data = legacyData;
+            }
+        }
         if (!data) return null;
 
         const result = JSON.parse(data);
@@ -166,6 +211,25 @@ export function getQuizResult(planetId: string): QuizResult | null {
     } catch (error) {
         console.error("Failed to load quiz result:", error);
         return null;
+    }
+}
+
+/**
+ * Save quiz result for a planet (localStorage + Firestore if logged in)
+ */
+export function saveQuizResult(result: QuizResult): void {
+    try {
+        const key = makeKey(QUIZ_KEY_PREFIX, result.planetId);
+        localStorage.setItem(key, JSON.stringify(result));
+    } catch (error) {
+        console.error('Failed to save quiz result to localStorage:', error);
+    }
+
+    // Also update Firestore if logged in
+    const user = getCurrentUser();
+    if (user) {
+        updateFirestoreQuizScore(user.uid, result.planetId, result.score, result.tier)
+            .catch((err) => console.error('Failed to update quiz score in Firestore:', err));
     }
 }
 
@@ -180,8 +244,8 @@ export function hasCompletedQuiz(planetId: string): boolean {
  * Clear all data for a planet
  */
 export function clearPlanetData(planetId: string): void {
-    localStorage.removeItem(`${PROFILE_KEY_PREFIX}${planetId}`);
-    localStorage.removeItem(`${QUIZ_KEY_PREFIX}${planetId}`);
+    localStorage.removeItem(makeKey(PROFILE_KEY_PREFIX, planetId));
+    localStorage.removeItem(makeKey(QUIZ_KEY_PREFIX, planetId));
 }
 
 /**
@@ -189,12 +253,18 @@ export function clearPlanetData(planetId: string): void {
  */
 export function clearAllData(): void {
     const keys: string[] = [];
-
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
+        if (!key) continue;
+
+        // Only clear keys that belong to current user scope or guest keys
+        const user = getCurrentUser();
+        const prefixWithUid = user && user.uid ? `${PROFILE_KEY_PREFIX}${user.uid}-` : PROFILE_KEY_PREFIX;
+
         if (
-            key &&
-            (key.startsWith(PROFILE_KEY_PREFIX) || key.startsWith(QUIZ_KEY_PREFIX))
+            key.startsWith(prefixWithUid) ||
+            key.startsWith(QUIZ_KEY_PREFIX) ||
+            (!user && (key.startsWith(PROFILE_KEY_PREFIX) || key.startsWith(QUIZ_KEY_PREFIX)))
         ) {
             keys.push(key);
         }
@@ -316,7 +386,7 @@ export function checkSpeedRunner(planetId: string): void {
  */
 export function setMinigameCompleted(planetId: string): void {
     try {
-        const key = `${MINIGAME_COMPLETED_KEY}${planetId}`;
+        const key = makeKey(MINIGAME_COMPLETED_KEY, planetId);
         localStorage.setItem(key, "true");
     } catch (error) {
         console.error("Failed to save minigame completion:", error);
@@ -328,8 +398,21 @@ export function setMinigameCompleted(planetId: string): void {
  */
 export function hasCompletedMinigame(planetId: string): boolean {
     try {
-        const key = `${MINIGAME_COMPLETED_KEY}${planetId}`;
-        return localStorage.getItem(key) === "true";
+        const key = makeKey(MINIGAME_COMPLETED_KEY, planetId);
+        let value = localStorage.getItem(key);
+        const user = getCurrentUser();
+        // Migrate legacy key if user exists
+        if (!value && user) {
+            const legacy = legacyKey(MINIGAME_COMPLETED_KEY, planetId);
+            const legacyVal = localStorage.getItem(legacy);
+            if (legacyVal) {
+                localStorage.setItem(key, legacyVal);
+                localStorage.removeItem(legacy);
+                value = legacyVal;
+            }
+        }
+
+        return value === "true";
     } catch (error) {
         console.error("Failed to check minigame completion:", error);
         return false;

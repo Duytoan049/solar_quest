@@ -142,7 +142,9 @@
     "noArtifacts": "No artifacts collected yet"
   },
   "quiz": {
+    "start": "Start Quiz",
     "title": "Planet Quiz",
+    "instructions": "Answer {{score}}/{{total}} correctly to earn the Silver badge",
     "question": "Question",
     "submit": "Submit Answer",
     "correct": "Correct!",
@@ -158,6 +160,27 @@
     "encourageMessage": "Don't worry! Every journey starts with the first steps. Explore the markers to learn more! 🚀",
     "explorePlanet": "Explore Planet",
     "retake": "Try Again"
+    ,
+    "tierNames": {
+      "gold": "Master",
+      "silver": "Expert",
+      "bronze": "Explorer"
+    },
+    "badge": {
+      "goldMaster": "Gold Master",
+      "perfect": "Perfect",
+      "expert": "Expert",
+      "silverExpert": "Silver Expert",
+      "unlockFeature": "Unlock Feature",
+      "bronzeExplorer": "Bronze Explorer"
+    },
+    "tierMessages": {
+      "gold": "Excellent! You are a true specialist!",
+      "silver": "Great job! You understand this topic well!",
+      "bronze": "Nice start! Keep exploring to learn more!"
+    },
+    "earnedBadges": "Badges Earned",
+    "perfectMessage": "Unbelievable! You answered everything correctly! You're a master of this planet! 🎉"
   },
   "leaderboard": {
     "title": "Leaderboard",
@@ -275,6 +298,12 @@
     "engineerDesc": "Build and repair",
     "pilot": "Pilot",
     "pilotDesc": "Navigate the stars",
+    "avatarTitle": "Choose avatar",
+    "avatarSubtitle": "Pick an avatar to represent you",
+    "complete": "Complete",
+    "back": "Back",
+    "welcome": "Welcome, {{name}}!",
+    "onPlanet": "on {{planetName}}",
     "continue": "Continue →",
     "skip": "Skip"
   },
@@ -332,7 +361,16 @@
     "maxCombo": "Max Combo: ",
     "damagesTaken": "Damages Taken: ",
     "launching": "Launching...",
-    "flyingTo": "Flying to {{planetName}}"
+    "flyingTo": "Flying to {{planetName}}",
+    "arrived": "Arrived at {{planetName}}!",
+    "skipButton": "ESC or Click to skip",
+    "skipHint": "Click to skip | ESC to skip"
+  },
+  "tts": {
+    "resume": "Resume",
+    "pause": "Pause",
+    "enable": "Enable voice",
+    "disable": "Disable voice"
   },
   "collection": {
     "title": "My Collection",

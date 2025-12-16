@@ -102,18 +102,35 @@ export const aiCompanions: Record<string, AICompanionData> = {
                 "Tôi là ARES, nhà địa chất học hành tinh đỏ.",
                 "Hành tinh này từng có nước và có thể đã từng có sự sống!",
             ],
+            introEn: [
+                "Welcome to Mars!",
+                "I'm ARES, a planetary geologist for the Red Planet.",
+                "This world once held water and may have supported life!",
+            ],
             performanceBased: {
                 highScore: "Tuyệt vời! Bạn chinh phục bão cát như một thợ săn thiên thạch chuyên nghiệp!",
                 noDamage: "Hoàn hảo! Bạn né bão cát khéo như một Rover Mars!",
                 highCombo: "Combo đỉnh! Chính xác như một tên lửa đáp xuống Sao Hỏa!",
                 default: "Bạn đã vượt qua bão cát thành công!",
             },
+            performanceBasedEn: {
+                highScore: "Amazing! You conquered the sandstorm like a pro meteor hunter!",
+                noDamage: "Perfect! You dodged the sandstorm like a Mars rover!",
+                highCombo: "Sick combo! Precise like a rocket landing on Mars!",
+                default: "You successfully navigated the sandstorm!",
+            },
             facts: [
                 "Olympus Mons là núi lửa cao nhất hệ mặt trời - 21km!",
                 "Valles Marineris dài hơn 4000km - hẻm núi khổng lồ nhất",
                 "Sao Hỏa có 2 mặt trăng nhỏ: Phobos và Deimos",
             ],
+            factsEn: [
+                "Olympus Mons is the tallest volcano in the solar system at about 21 km",
+                "Valles Marineris stretches over 4,000 km - one of the largest canyons",
+                "Mars has two small moons: Phobos and Deimos",
+            ],
             explore: "Hãy khám phá núi lửa khổng lồ và những dấu vết của nước cổ đại!",
+            exploreEn: "Explore the giant volcanoes and the ancient signs of water!",
         },
     },
 

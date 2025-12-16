@@ -112,7 +112,7 @@ export default function AuthPage() {
 
           <div>
             <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-cyan-400 via-blue-400 to-blue-500 bg-clip-text text-transparent">
-              {t("authPage.welcomeTitle")}
+              SOLAR QUEST
             </h1>
             <p className="text-lg text-gray-300 leading-relaxed">
               {t("authPage.welcomeSubtitle")}

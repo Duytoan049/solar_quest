@@ -22,6 +22,7 @@ export default function ProfileCreation({
   onSkip,
 }: Props) {
   const { t } = useTranslation();
+  const localizedPlanetName = t(`planets.${planetId}.name`);
   const [step, setStep] = useState<"name" | "role" | "avatar" | "complete">(
     "name"
   );
@@ -122,7 +123,7 @@ export default function ProfileCreation({
             {t("profileCreation.title")}
           </h2>
           <p className="text-gray-400">
-            {t("profileCreation.subtitle", { planetName })}
+            {t("profileCreation.subtitle", { planetName: localizedPlanetName })}
           </p>
         </motion.div>
 
@@ -138,7 +139,7 @@ export default function ProfileCreation({
               {t("profileCreation.enterName")}
             </h3>
             <p className="text-gray-400 mb-6">
-              {t("profileCreation.subtitle", { planetName })}
+              {t("profileCreation.subtitle", { planetName: localizedPlanetName })}
             </p>
 
             <input
@@ -209,10 +210,12 @@ export default function ProfileCreation({
                     className="text-xl font-bold mb-2"
                     style={{ color: info.color }}
                   >
-                    {info.title}
+                    {t(`profileCreation.${key}`, { defaultValue: info.title })}
                   </h4>
                   <p className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">
-                    {info.description}
+                    {t(`profileCreation.${key}Desc`, {
+                      defaultValue: info.description,
+                    })}
                   </p>
                 </motion.button>
               ))}
@@ -237,10 +240,10 @@ export default function ProfileCreation({
             className="bg-white/5 backdrop-blur-xl rounded-2xl p-8 border border-white/10"
           >
             <h3 className="text-2xl font-bold text-white mb-4 text-center">
-              Chọn avatar
+              {t("profileCreation.avatarTitle")}
             </h3>
             <p className="text-gray-400 mb-6 text-center">
-              Chọn biểu tượng đại diện cho bạn
+              {t("profileCreation.avatarSubtitle")}
             </p>
 
             <div className="grid grid-cols-6 gap-3 mb-6">
@@ -268,8 +271,11 @@ export default function ProfileCreation({
                 {citizenName}
               </h4>
               <p className="text-gray-400">
-                {selectedRole && ROLE_INFO[selectedRole].title} trên{" "}
-                {planetName}
+                {selectedRole &&
+                  t(`profileCreation.${selectedRole}`, {
+                    defaultValue: ROLE_INFO[selectedRole].title,
+                  })}{" "}
+                {t("profileCreation.onPlanet", { planetName: localizedPlanetName })}
               </p>
             </div>
 
@@ -280,14 +286,14 @@ export default function ProfileCreation({
                   bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700
                   transition-all"
               >
-                ✓ Hoàn tất
+                {t("profileCreation.complete")}
               </button>
               <button
                 onClick={() => setStep("role")}
                 className="px-6 py-4 rounded-xl font-bold text-gray-400 hover:text-white
                   bg-white/5 hover:bg-white/10 transition-all"
               >
-                ← Quay lại
+                {t("profileCreation.back")}
               </button>
             </div>
           </motion.div>
@@ -310,10 +316,14 @@ export default function ProfileCreation({
             </motion.div>
 
             <h3 className="text-3xl font-bold text-white mb-2">
-              Chào mừng, {citizenName}!
+              {t("profileCreation.welcome", { name: citizenName })}
             </h3>
             <p className="text-xl text-gray-400 mb-6">
-              {selectedRole && ROLE_INFO[selectedRole].title} trên {planetName}
+              {selectedRole &&
+                t(`profileCreation.${selectedRole}`, {
+                  defaultValue: ROLE_INFO[selectedRole].title,
+                })}{" "}
+              {t("profileCreation.onPlanet", { planetName: localizedPlanetName })}
             </p>
 
             <div className="flex items-center justify-center gap-2 text-gray-400 mb-4">

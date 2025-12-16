@@ -19,7 +19,7 @@ export default function QuizQuestion({
   onAnswer,
   aiColor,
 }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { play } = useAudio();
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
@@ -29,7 +29,7 @@ export default function QuizQuestion({
 
     const isCorrect = index === question.correctAnswer;
 
-    // Phát âm thanh ngay lập tức
+    // Play sound immediately
     if (isCorrect) {
       play("success", { volume: 0.6, category: "ui" });
     } else {
@@ -46,6 +46,13 @@ export default function QuizQuestion({
   };
 
   const isCorrect = selectedAnswer === question.correctAnswer;
+
+  // Lấy ngôn ngữ hiện tại
+  const lang = i18n.language;
+  // Ưu tiên trường tiếng Anh nếu đang ở en, fallback về tiếng Việt
+  const getQuestion = () => lang === "en" && question.questionEn ? question.questionEn : question.question;
+  const getOptions = () => lang === "en" && question.optionsEn ? question.optionsEn : question.options;
+  const getExplanation = () => lang === "en" && question.explanationEn ? question.explanationEn : question.explanation;
 
   return (
     <motion.div
@@ -88,12 +95,12 @@ export default function QuizQuestion({
         className="bg-white/5 backdrop-blur-lg rounded-2xl p-8 mb-6 border border-white/10"
       >
         <h3 className="text-xl font-bold text-white mb-6 leading-relaxed">
-          {question.question}
+          {getQuestion()}
         </h3>
 
         {/* Options */}
         <div className="space-y-3">
-          {question.options.map((option, index) => {
+          {getOptions().map((option, index) => {
             const isSelected = selectedAnswer === index;
             const isCorrectOption = index === question.correctAnswer;
             const showResult = selectedAnswer !== null;
@@ -186,7 +193,7 @@ export default function QuizQuestion({
                 {isCorrect ? t("quiz.correct") : t("quiz.incorrect")}
               </h4>
               <p className="text-gray-200 leading-relaxed">
-                {question.explanation}
+                {getExplanation()}
               </p>
             </div>
           </div>
@@ -199,7 +206,7 @@ export default function QuizQuestion({
               className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full"
             />
             {/* <Loader2 className="w-4 h-4 text-yellow-400 animate-spin" /> */}
-            <span>Tiếp tục sau 3 giây...</span>
+            <span>{lang === "en" ? "Continue in 3 seconds..." : "Tiếp tục sau 3 giây..."}</span>
           </div>
         </motion.div>
       )}

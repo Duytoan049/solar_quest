@@ -30,7 +30,7 @@ export default async function handler(req: any, res: any) {
         // Use native fetch (Node 18+) or import https module
         const https = require('https');
         const { URL } = require('url');
-        
+
         const parsedUrl = new URL(apiUrl);
 
         const apiData = await new Promise((resolve, reject) => {
@@ -44,7 +44,7 @@ export default async function handler(req: any, res: any) {
                     'User-Agent': 'Solar-Quest-App/1.0'
                 }
             };
-            
+
             https.get(options, (apiRes: any) => {
                 let data = '';
 
