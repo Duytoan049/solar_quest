@@ -1,6 +1,20 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { AICompanionData } from "@/types/victory";
 import type { PlanetProfile } from "@/types/profile";
 import { ROLE_INFO } from "@/types/profile";
+
+// ===================================================================
+// 🔧 KHỞI TẠO GEMINI API
+// ===================================================================
+const API_KEY = (import.meta.env.VITE_GEMINI_API_KEY || "").trim();
+
+let genAI: GoogleGenerativeAI | null = null;
+
+try {
+    genAI = new GoogleGenerativeAI(API_KEY);
+} catch (error) {
+    console.error("Failed to initialize Gemini AI:", error);
+}
 
 export interface ChatMessage {
     role: "user" | "model";
@@ -93,10 +107,21 @@ export async function sendChatMessage(
     conversationHistory: ChatMessage[] = [],
     profile?: PlanetProfile | null
 ): Promise<string> {
+    if (!genAI) {
+        return "Xin lỗi, AI chatbot chưa được cấu hình. Vui lòng thêm VITE_GEMINI_API_KEY vào file .env 🛠️";
+    }
+
     try {
+        // ⚙️ MODEL ĐÃ TEST VÀ XÁC NHẬN HOẠT ĐỘNG!
+        // Chỉ có "gemini-pro-latest" hoạt động với API key này
+        const model = genAI.getGenerativeModel({
+            model: "gemini-pro-latest"
+        });
+
         // Build conversation context
         const systemPrompt = generateSystemPrompt(ai, planetId, planetName, profile);
 
+        // Build complete prompt with history
         const conversationText = conversationHistory
             .map((msg) => `${msg.role === "user" ? "Người dùng" : ai.name}: ${msg.parts}`)
             .join("\n");
@@ -107,28 +132,27 @@ ${conversationText ? `Lịch sử hội thoại:\n${conversationText}\n` : ""}
 Người dùng: ${userMessage}
 ${ai.name}:`;
 
-        // POST to serverless proxy which holds the API key
-        const resp = await fetch('/api/proxy-gemini', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: fullPrompt, model: 'gemini-pro-latest' })
-        });
+        // Generate response
+        const result = await model.generateContent(fullPrompt);
+        const response = result.response;
+        const text = response.text();
 
-        if (!resp.ok) {
-            const errText = await resp.text();
-            console.error('proxy-gemini error:', resp.status, errText);
-            return 'Xin lỗi, không thể kết nối đến AI server. Vui lòng thử lại sau.';
-        }
-
-        const data = await resp.json();
-        return data?.text || 'Xin lỗi, tôi không hiểu câu hỏi. Hãy thử lại nhé! 🤔';
+        return text || "Xin lỗi, tôi không hiểu câu hỏi. Hãy thử lại nhé! 🤔";
     } catch (error: unknown) {
-        console.error('sendChatMessage error:', error);
+        console.error("Gemini API error:", error);
+
+        // Handle specific errors
         const errorMessage = error instanceof Error ? error.message : String(error);
-        if (errorMessage?.includes('quota')) {
-            return '⚠️ Đã vượt quá giới hạn API. Vui lòng thử lại sau vài phút! ⏰';
+
+        if (errorMessage?.includes("API key")) {
+            return "⚠️ API key không hợp lệ. Vui lòng kiểm tra VITE_GEMINI_API_KEY trong file .env";
         }
-        return `Xin lỗi, có lỗi xảy ra: ${errorMessage || 'Unknown error'}. Thử lại nhé! 🛠️`;
+
+        if (errorMessage?.includes("quota")) {
+            return "⚠️ Đã vượt quá giới hạn API. Vui lòng thử lại sau vài phút! ⏰";
+        }
+
+        return `Xin lỗi, có lỗi xảy ra: ${errorMessage || "Unknown error"}. Thử lại nhé! 🛠️`;
     }
 }
 
