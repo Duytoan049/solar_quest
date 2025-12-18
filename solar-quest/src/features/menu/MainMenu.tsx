@@ -224,7 +224,7 @@ export default function MainMenu() {
           >
             {t("mainMenu.startExplore")}
           </Button>
-          <Button
+          {/* <Button
             style={{ fontFamily: "Sebino-Regular" }}
             onClick={() => {
               play("click", { category: "ui" });
@@ -232,7 +232,7 @@ export default function MainMenu() {
             }}
           >
             {t("mainMenu.setting")}
-          </Button>
+          </Button> */}
 
           {/* <Button
             style={{ fontFamily: "Sebino-Regular" }}
