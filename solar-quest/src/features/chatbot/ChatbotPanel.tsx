@@ -42,7 +42,7 @@ export default function ChatbotPanel({
   isOpen,
   onToggle,
 }: ChatbotPanelProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -80,14 +80,13 @@ export default function ChatbotPanel({
     const userMessage = inputValue.trim();
     setInputValue("");
     setIsLoading(true);
-
     // Add user message to history
     const newUserMessage: ChatMessage = { role: "user", parts: userMessage };
     setMessages((prev) => [...prev, newUserMessage]);
 
     try {
       // Send to Gemini API
-      const conversationHistory = [...messages, newUserMessage];
+      const conversationHistory = [...messages, newUserMessage].slice(-6);
       const response = await sendChatMessage(
         planetId,
         planetName,
@@ -178,7 +177,11 @@ export default function ChatbotPanel({
           <div className="text-2xl">{ai.avatar}</div>
           <div>
             <div className="font-bold text-white text-sm">{ai.name}</div>
-            <div className="text-xs text-white/80">{ai.title}</div>
+            <div className="text-xs text-white/80">
+              {(i18n.language || "en").startsWith("en")
+                ? ai.titleEn ?? ai.title
+                : ai.title}
+            </div>
           </div>
         </div>
         <button
@@ -256,7 +259,7 @@ export default function ChatbotPanel({
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-            placeholder="Hỏi tôi về hành tinh này..."
+            placeholder={t('chatbot.placeholder')}
             className="flex-1 px-3 py-2 text-sm rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:border-white/40"
             disabled={isLoading}
           />

@@ -23,12 +23,24 @@ export interface AIDialogue {
     };
     facts: string[];
     explore: string;
+    // Optional English variants for bilingual support
+    introEn?: string[];
+    performanceBasedEn?: {
+        highScore: string;
+        noDamage: string;
+        highCombo: string;
+        default: string;
+    };
+    factsEn?: string[];
+    exploreEn?: string;
 }
 
 export interface AICompanionData {
     id: string;
     name: string;
     title: string;
+    // Optional English title for bilingual display
+    titleEn?: string;
     personality: AIPersonality;
     color: string; // Hologram color
     avatar: string; // Emoji or icon

@@ -245,6 +245,10 @@
     "masterVolume": "Master Volume",
     "musicVolume": "Music Volume",
     "sfxVolume": "Sound Effects Volume",
+    "soundOn": "Sound: On",
+    "soundOff": "Sound: Off",
+    "enableAudio": "Enable audio",
+    "disableAudio": "Disable audio",
     "fullscreen": "Fullscreen",
     "shadows": "Shadows",
     "antialiasing": "Anti-Aliasing"

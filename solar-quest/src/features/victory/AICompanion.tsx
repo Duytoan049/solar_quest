@@ -25,18 +25,20 @@ export default function AICompanion({
   suppressAutoComplete,
 }: Props) {
   // Phase management: intro -> quiz -> profile -> complete
-  const [phase, setPhase] = useState<"intro" | "quiz" | "profile" | "complete">(() => {
-    // Check if user has already completed quiz for this planet (use profileStorage which handles user scoping)
-    // If `suppressAutoComplete` is true (e.g., user arrived via Skip), force intro so quiz button shows.
-    try {
-      const completed = hasCompletedQuiz(planetId);
-      return completed && !suppressAutoComplete ? "complete" : "intro";
-    } catch (e) {
-      // Fallback to intro on error
-      console.error("AICompanion: failed to check quiz completion:", e);
-      return "intro";
+  const [phase, setPhase] = useState<"intro" | "quiz" | "profile" | "complete">(
+    () => {
+      // Check if user has already completed quiz for this planet (use profileStorage which handles user scoping)
+      // If `suppressAutoComplete` is true (e.g., user arrived via Skip), force intro so quiz button shows.
+      try {
+        const completed = hasCompletedQuiz(planetId);
+        return completed && !suppressAutoComplete ? "complete" : "intro";
+      } catch (e) {
+        // Fallback to intro on error
+        console.error("AICompanion: failed to check quiz completion:", e);
+        return "intro";
+      }
     }
-  });
+  );
 
   const [currentDialogue, setCurrentDialogue] = useState(0);
   const [displayedText, setDisplayedText] = useState("");
@@ -79,7 +81,7 @@ export default function AICompanion({
   // Typing effect with synchronized TTS
   useEffect(() => {
     if (phase !== "intro") return;
-        const isExploreMessage = currentDialogue >= dialogues.intro.length;
+    const isExploreMessage = currentDialogue >= dialogues.intro.length;
     setDisplayedText("");
     setIsTyping(true);
 
@@ -333,7 +335,11 @@ export default function AICompanion({
             >
               {ai.name}
             </h2>
-            <p className="text-sm text-gray-400">{ai.title}</p>
+            <p className="text-sm text-gray-400">
+              {(i18n.language || "en").startsWith("en")
+                ? ai.titleEn ?? ai.title
+                : ai.title}
+            </p>
           </motion.div>
         </motion.div>
 
@@ -362,7 +368,7 @@ export default function AICompanion({
                   className="w-9 h-9 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 
                     hover:border-white/40 hover:bg-black/80 transition-all hover:scale-105
                     flex items-center justify-center"
-                  title={isTTSPaused ? t('tts.resume') : t('tts.pause')}
+                  title={isTTSPaused ? t("tts.resume") : t("tts.pause")}
                 >
                   {isTTSPaused ? (
                     <Play
@@ -385,7 +391,7 @@ export default function AICompanion({
                       ? "bg-black/60 border-white/20 hover:border-white/40 hover:bg-black/80"
                       : "bg-red-500/20 border-red-500/30 hover:border-red-500/50 hover:bg-red-500/30"
                   }`}
-                title={isTTSEnabled ? t('tts.disable') : t('tts.enable')}
+                title={isTTSEnabled ? t("tts.disable") : t("tts.enable")}
               >
                 {isTTSEnabled ? (
                   <Volume2 className="w-4 h-4 text-white/90" />
@@ -452,7 +458,7 @@ export default function AICompanion({
                 boxShadow: `0 0 20px ${ai.color}20`,
               }}
             >
-              {t('quiz.start')}
+              {t("quiz.start")}
             </button>
           </motion.div>
         )}
@@ -465,7 +471,7 @@ export default function AICompanion({
             transition={{ duration: 2, repeat: Infinity }}
             className="text-center text-gray-500 text-xs mt-3"
           >
-            {t('victorySequence.skipHint')}
+            {t("victorySequence.skipHint")}
           </motion.p>
         )}
       </div>

@@ -13,7 +13,7 @@ export const translateWithGemini = async (
   targetLang: 'vi' | 'en'
 ): Promise<string> => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro-latest" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = targetLang === 'vi'
       ? `Dịch đoạn văn khoa học sau sang tiếng Việt tự nhiên, dễ hiểu cho học sinh. Giữ nguyên các thuật ngữ khoa học quan trọng (như tên nguyên tố hóa học, đơn vị đo lường). Chỉ trả về bản dịch, không giải thích thêm:\n\n${text}`

@@ -21,7 +21,8 @@ export default function ProfileCreation({
   onComplete,
   onSkip,
 }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const langIsEn = (i18n.language || "en").startsWith("en");
   const localizedPlanetName = t(`planets.${planetId}.name`);
   const [step, setStep] = useState<"name" | "role" | "avatar" | "complete">(
     "name"
@@ -139,7 +140,9 @@ export default function ProfileCreation({
               {t("profileCreation.enterName")}
             </h3>
             <p className="text-gray-400 mb-6">
-              {t("profileCreation.subtitle", { planetName: localizedPlanetName })}
+              {t("profileCreation.subtitle", {
+                planetName: localizedPlanetName,
+              })}
             </p>
 
             <input
@@ -210,7 +213,11 @@ export default function ProfileCreation({
                     className="text-xl font-bold mb-2"
                     style={{ color: info.color }}
                   >
-                    {t(`profileCreation.${key}`, { defaultValue: info.title })}
+                    {t(`profileCreation.${key}`, {
+                      defaultValue: langIsEn
+                        ? info.titleEn ?? info.title
+                        : info.title,
+                    })}
                   </h4>
                   <p className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">
                     {t(`profileCreation.${key}Desc`, {
@@ -273,9 +280,14 @@ export default function ProfileCreation({
               <p className="text-gray-400">
                 {selectedRole &&
                   t(`profileCreation.${selectedRole}`, {
-                    defaultValue: ROLE_INFO[selectedRole].title,
+                    defaultValue: langIsEn
+                      ? ROLE_INFO[selectedRole].titleEn ??
+                        ROLE_INFO[selectedRole].title
+                      : ROLE_INFO[selectedRole].title,
                   })}{" "}
-                {t("profileCreation.onPlanet", { planetName: localizedPlanetName })}
+                {t("profileCreation.onPlanet", {
+                  planetName: localizedPlanetName,
+                })}
               </p>
             </div>
 
@@ -321,9 +333,14 @@ export default function ProfileCreation({
             <p className="text-xl text-gray-400 mb-6">
               {selectedRole &&
                 t(`profileCreation.${selectedRole}`, {
-                  defaultValue: ROLE_INFO[selectedRole].title,
+                  defaultValue: langIsEn
+                    ? ROLE_INFO[selectedRole].titleEn ??
+                      ROLE_INFO[selectedRole].title
+                    : ROLE_INFO[selectedRole].title,
                 })}{" "}
-              {t("profileCreation.onPlanet", { planetName: localizedPlanetName })}
+              {t("profileCreation.onPlanet", {
+                planetName: localizedPlanetName,
+              })}
             </p>
 
             <div className="flex items-center justify-center gap-2 text-gray-400 mb-4">

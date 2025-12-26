@@ -7,7 +7,9 @@ export const planets = [
         name: 'Sun',
         texture: '/texture/sun-min.webp',
         description: 'Ngôi sao trung tâm của hệ mặt trời, cung cấp ánh sáng và năng lượng.',
-        radius: 4,
+        // NOTE: display radius is compressed for visualization; Sun must remain largest.
+        // Increased so Sun appears prominently in the scene while keeping Earth = 1.
+        radius: 12,
         distance: 0,
         speed: 0,
         isLightSource: true,
@@ -72,7 +74,8 @@ export const planets = [
         name: 'Jupiter',
         texture: '/texture/jupiter-min.webp',
         description: 'Hành tinh khí khổng lồ với cơn bão Great Red Spot.',
-        radius: 11.2,
+        // Scaled down for visualization so it does not overshadow the Sun
+        radius: 4.5,
         distance: 60,
         speed: 0.013,
         hasAtmosphere: true,
@@ -86,7 +89,8 @@ export const planets = [
         ringTexture: '/texture/saturnringcolor-min.webp',
         ringAlphaMap: '/texture/saturn_ring_alpha-min.webp',
         description: 'Hành tinh với hệ thống vành đai nổi bật nhất.',
-        radius: 9.45,
+        // Slightly smaller than Jupiter in display scale
+        radius: 4.0,
         distance: 100,
         speed: 0.009,
         hasAtmosphere: true,
@@ -97,7 +101,7 @@ export const planets = [
         name: 'Uranus',
         texture: '/texture/Uranus-min.webp',
         description: 'Hành tinh nghiêng 98 độ, có màu xanh lam đặc trưng.',
-        radius: 4.0,
+        radius: 2.0,
         distance: 130,
         speed: 0.006,
         hasAtmosphere: true,
@@ -108,7 +112,7 @@ export const planets = [
         name: 'Neptune',
         texture: '/texture/neptune-min.webp',
         description: 'Hành tinh xa nhất trong hệ mặt trời, với màu xanh đặc trưng.',
-        radius: 3.88,
+        radius: 1.8,
         distance: 160,
         speed: 0.005,
         hasAtmosphere: true,

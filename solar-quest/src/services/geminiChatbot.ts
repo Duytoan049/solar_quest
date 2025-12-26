@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import i18n from '@/config/i18n';
 import type { AICompanionData } from "@/types/victory";
 import type { PlanetProfile } from "@/types/profile";
 import { ROLE_INFO } from "@/types/profile";
@@ -42,40 +43,45 @@ function generateSystemPrompt(
     planetName: string,
     profile?: PlanetProfile | null
 ): string {
-    // 📝 PHẦN 1: PROMPT CHUNG - Tính cách cơ bản của AI
+    //PROMPT CHUNG - Tính cách cơ bản của AI
+    const lang = (i18n.language || 'en').startsWith('vi') ? 'vi' : 'en';
+    const useLangLine = lang === 'vi' ? 'Use Vietnamese language' : 'Use English language';
     const basePrompt = `You are ${ai.name}, an AI companion on planet ${planetName} (${planetId}).
 Your personality: ${ai.title}
 Your avatar: ${ai.avatar}
 Your color theme: ${ai.color}
 
 IMPORTANT RULES:
-1. Keep responses SHORT (2-3 sentences max) ← CHỈNH ĐỘ DÀI Ở ĐÂY
-2. Use emojis occasionally to match your personality ← CHỈNH SỬ DỤNG EMOJI Ở ĐÂY
+1. Keep responses SHORT (2-3 sentences max)
+2. Use emojis occasionally to match your personality
 3. Stay in character as ${ai.name}
 4. Focus on ${planetName} facts, geography, science, and exploration
 5. Be educational but fun and engaging
-6. Use Vietnamese language ← CHỈNH NGÔN NGỮ Ở ĐÂY
+6. ${useLangLine}
+7. Do NOT repeat or restate previous assistant responses. Answer the latest user question directly and concisely — avoid rehashing prior answers unless the user explicitly asks for a summary.
 `;
 
-    // 📝 PHẦN 2: PROMPT THEO PROFILE - Cá nhân hóa theo role người chơi
+    //PROMPT THEO PROFILE - Cá nhân hóa theo role người chơi
     if (profile) {
         const roleInfo = ROLE_INFO[profile.role];
+        const lang = (i18n.language || 'en').startsWith('vi') ? 'vi' : 'en';
+        const localizedRole = lang === 'vi' ? roleInfo.title : (profile.role === 'scientist' ? 'Scientist' : profile.role === 'explorer' ? 'Explorer' : profile.role === 'engineer' ? 'Engineer' : 'Pilot');
         const rolePrompt = `
-You are talking to ${profile.citizenName}, a ${roleInfo.title} (${roleInfo.icon}) on ${planetName}.
+You are talking to ${profile.citizenName}, a ${localizedRole} (${roleInfo.icon}) on ${planetName}.
 
 Their profile:
 - Name: ${profile.citizenName}
-- Role: ${roleInfo.title} - ${roleInfo.description}
+- Role: ${localizedRole} - ${roleInfo.description}
 - Quiz Score: ${profile.quizScore}/5 (${profile.quizTier} tier)
 - Badges: ${profile.badges.join(", ")}
 
-PERSONALIZATION: ← CHỈNH CÁCH PHẢN HỒI THEO TỪNG ROLE Ở ĐÂY
+PERSONALIZATION:
 - Always address them by name "${profile.citizenName}"
 - Tailor responses to their role:
-  ${profile.role === "scientist" ? "• Focus on scientific facts, data, research, geological structures" : ""}
-  ${profile.role === "explorer" ? "• Focus on adventure, discovery, navigation, hidden locations" : ""}
-  ${profile.role === "engineer" ? "• Focus on structures, technology, construction, materials" : ""}
-  ${profile.role === "pilot" ? "• Focus on orbital mechanics, navigation, flight paths, coordinates" : ""}
+    ${profile.role === "scientist" ? "• Focus on scientific facts, data, research, geological structures" : ""}
+    ${profile.role === "explorer" ? "• Focus on adventure, discovery, navigation, hidden locations" : ""}
+    ${profile.role === "engineer" ? "• Focus on structures, technology, construction, materials" : ""}
+    ${profile.role === "pilot" ? "• Focus on orbital mechanics, navigation, flight paths, coordinates" : ""}
 - Acknowledge their achievements (quiz score, badges)
 `;
 
@@ -115,7 +121,7 @@ export async function sendChatMessage(
         // ⚙️ MODEL ĐÃ TEST VÀ XÁC NHẬN HOẠT ĐỘNG!
         // Chỉ có "gemini-pro-latest" hoạt động với API key này
         const model = genAI.getGenerativeModel({
-            model: "gemini-pro-latest"
+            model: "gemini-2.0-flash"
         });
 
         // Build conversation context
@@ -170,18 +176,35 @@ export function getIntroMessage(
     planetName: string,
     profile?: PlanetProfile | null
 ): string {
+    const lang = (i18n.language || 'en').startsWith('en') ? 'en' : 'vi';
+
     if (profile) {
         const roleInfo = ROLE_INFO[profile.role];
-        // 💬 CHỈNH LỜI CHÀO CHO NGƯỜI CÓ PROFILE Ở ĐÂY
-        return `Xin chào ${profile.citizenName}! 👋 Tôi là ${ai.name}. 
-Rất vui được gặp một ${roleInfo.title} ${roleInfo.icon} trên ${planetName}! 
-Với ${profile.quizScore}/5 điểm quiz, bạn thực sự hiểu biết về nơi này! 
-Hỏi tôi bất cứ điều gì về ${planetName}! 🚀`;
+        const localizedRole = lang === 'en'
+            ? roleInfo.titleEn ?? roleInfo.title
+            : roleInfo.title;
+
+        if (lang === 'vi') {
+            return `Xin chào ${profile.citizenName}! 👋 Tôi là ${ai.name}.
+Rất vui được gặp một ${localizedRole} ${roleInfo.icon} trên ${planetName}!
+Bạn đã đạt điểm quiz ${profile.quizScore}/5, thật ấn tượng!
+Hãy hỏi tôi về ${planetName} nhé! 🚀`;
+        } else {
+            return `Hello ${profile.citizenName}! 👋 I'm ${ai.name}.
+Nice to meet a ${localizedRole} ${roleInfo.icon} on ${planetName}!
+With a quiz score of ${profile.quizScore}/5, you know this place well!
+Ask me anything about ${planetName}! 🚀`;
+        }
     }
 
-    // 💬 CHỈNH LỜI CHÀO CHO NGƯỜI CHƯA CÓ PROFILE Ở ĐÂY
-    return `Xin chào! Tôi là ${ai.name}, AI companion của ${planetName}. 
+    // No profile — simple bilingual greeting
+    if (lang === 'vi') {
+        return `Xin chào! Tôi là ${ai.name}, AI companion của ${planetName}.
 Hỏi tôi về địa lý, khoa học, hay bất cứ điều gì về hành tinh này! 🌟`;
+    }
+
+    return `Hello! I'm ${ai.name}, your AI companion for ${planetName}.
+Ask me about geography, science, or anything about this planet! 🌟`;
 }
 
 /**
@@ -194,34 +217,55 @@ export function getSuggestedQuestions(
     planetId: string,
     role?: "scientist" | "explorer" | "engineer" | "pilot"
 ): string[] {
-    // 💬 CHỈNH CÂU HỎI CƠ BẢN (cho tất cả role) Ở ĐÂY
-    const baseSuggestions = [
-        `Điều thú vị nhất về ${planetId} là gì?`,
-        `Có nước trên ${planetId} không?`,
-        `${planetId} khác Trái Đất như thế nào?`,
+    const lang = (i18n.language || 'en').startsWith('vi') ? 'vi' : 'en';
+    // Bilingual base suggestions
+    const baseSuggestions = lang === 'vi' ? [
+        `Điều thú vị nhất về ${planetId} là gì ? `,
+        `Có nước trên ${planetId} không ? `,
+        `${planetId} khác Trái Đất như thế nào ? `,
+    ] : [
+        `What's the most interesting thing about ${planetId}?`,
+        `Is there water on ${planetId}?`,
+        `How is ${planetId} different from Earth?`,
     ];
 
 
     const roleSuggestions: Record<string, string[]> = {
-        scientist: [
+        scientist: lang === 'vi' ? [
             `Khí quyển của ${planetId} như thế nào?`,
             `Cấu trúc địa chất của ${planetId}?`,
             `Có dấu hiệu sự sống trên ${planetId} không?`,
+        ] : [
+            `What is the atmosphere of ${planetId} like?`,
+            `What is the geological structure of ${planetId}?`,
+            `Are there signs of life on ${planetId}?`,
         ],
-        explorer: [
+        explorer: lang === 'vi' ? [
             `Địa điểm nào đáng khám phá nhất?`,
             `Làm sao để di chuyển trên ${planetId}?`,
             `Có gì ẩn chứa bên dưới bề mặt?`,
+        ] : [
+            `Which places are most worth exploring?`,
+            `How do you get around on ${planetId}?`,
+            `Is there anything hidden beneath the surface?`,
         ],
-        engineer: [
+        engineer: lang === 'vi' ? [
             `Xây dựng trên ${planetId} khó như thế nào?`,
             `Cấu trúc nào lớn nhất trên ${planetId}?`,
             `Vật liệu nào có sẵn để xây dựng?`,
+        ] : [
+            `How hard is it to build on ${planetId}?`,
+            `What is the largest structure on ${planetId}?`,
+            `What materials are available for construction?`,
         ],
-        pilot: [
+        pilot: lang === 'vi' ? [
             `Quỹ đạo của ${planetId} như thế nào?`,
             `Hạ cánh trên ${planetId} khó không?`,
             `Tốc độ thoát khỏi ${planetId} là bao nhiêu?`,
+        ] : [
+            `What is the orbit of ${planetId} like?`,
+            `Is landing on ${planetId} difficult?`,
+            `What is the escape velocity from ${planetId}?`,
         ],
     };
 

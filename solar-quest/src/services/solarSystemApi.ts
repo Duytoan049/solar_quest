@@ -83,13 +83,17 @@ export async function getPlanetHistory(planetId: string): Promise<PlanetHistoryD
 
         const headers: HeadersInit = {};
         if (API_TOKEN) {
+            // Some deployments of the Solar System OpenData API expect an API key header.
+            // Send both common formats to maximize compatibility.
             headers['Authorization'] = `Bearer ${API_TOKEN}`;
+            headers['x-api-key'] = API_TOKEN;
         }
 
         const response = await fetch(url, { headers });
 
         if (!response.ok) {
-            console.error(`Solar System API error: ${response.status}`);
+            const text = await response.text().catch(() => null);
+            console.error(`Solar System API error: ${response.status}`, text);
             return null;
         }
 

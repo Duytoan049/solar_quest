@@ -272,7 +272,7 @@ export const earthArtifacts: Artifact[] = [
     badge: 'moon-walker',
     unlocks: ['apollo-mission-story'],
     glowColor: '#ffd700',
-    scale: 0.08,
+    scale: 0.008,
     isCollected: false
   },
 
@@ -297,7 +297,7 @@ export const earthArtifacts: Artifact[] = [
     points: 200,
     badge: 'space-pioneer',
     glowColor: '#ff4444',
-    scale: 0.06,
+    scale: 0.0006,
     isCollected: false
   },
 
@@ -347,7 +347,7 @@ export const earthArtifacts: Artifact[] = [
     points: 150,
     badge: 'space-technician',
     glowColor: '#4a90ff',
-    scale: 0.12,
+    scale: 0.006,
     isCollected: false
   },
 
@@ -372,7 +372,7 @@ export const earthArtifacts: Artifact[] = [
     points: 100,
     badge: 'station-visitor',
     glowColor: '#00ccff',
-    scale: 0.08,
+    scale: 0.005,
     isCollected: false
   },
 

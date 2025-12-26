@@ -125,6 +125,7 @@ export default function MarsGameScene({
   const particlesRef = useRef<Particle[]>([]);
   const starsRef = useRef<Star[]>([]);
   const animationRef = useRef<number | null>(null);
+  const animateFnRef = useRef<(() => void) | null>(null);
   const dustStormTimer = useRef(0);
   const waveTimer = useRef(0);
   const asteroidsSpawned = useRef(0);
@@ -196,6 +197,8 @@ export default function MarsGameScene({
       });
       asteroidsSpawned.current++;
     };
+
+    // Expose animate function to outer scope so we can restart it after Game Over
 
     // Shoot bullet
     const shoot = () => {
@@ -990,6 +993,9 @@ export default function MarsGameScene({
       animationRef.current = requestAnimationFrame(animate);
     };
 
+    // Save animate to ref so other handlers (eg. resetGame) can restart the loop
+    animateFnRef.current = animate;
+
     // Input handlers - FREE MOVEMENT
     const onMouseMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
@@ -1086,6 +1092,62 @@ export default function MarsGameScene({
     timeElapsed: (Date.now() - startTime.current) / 1000,
   };
 
+  // Reset and restart the minigame without leaving the current planet screen
+  const resetGame = () => {
+    // cancel any running animation
+    if (animationRef.current) cancelAnimationFrame(animationRef.current);
+
+    // clear world
+    asteroidsRef.current = [];
+    bulletsRef.current = [];
+    particlesRef.current = [];
+    starsRef.current = [];
+
+    // reset trackers
+    asteroidsSpawned.current = 0;
+    gameTime.current = 0;
+    animationTime.current = 0;
+    startTime.current = Date.now();
+    lastFrameTime.current = Date.now();
+    comboCount.current = 0;
+    comboTimer.current = 0;
+    maxComboReached.current = 0;
+    totalShots.current = 0;
+    hits.current = 0;
+
+    // reset UI state
+    setScore(0);
+    setLives(3);
+    setWave(1);
+    setHeatWarning(0);
+    setEffectWarning(false);
+    setComboDisplay({ count: 0, multiplier: 1 });
+    setGameOver(false);
+    setVictory(false);
+    setIsPaused(false);
+    setSkipTriggered(false);
+
+    // reinit simple starfield to avoid blank background
+    const canvas = canvasRef.current;
+    if (canvas) {
+      for (let i = 0; i < 100; i++) {
+        starsRef.current.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          size: Math.random() * 2,
+          brightness: Math.random(),
+          twinkleSpeed: 0.02 + Math.random() * 0.03,
+        });
+      }
+    }
+
+    // restart animation loop
+    if (animateFnRef.current) {
+      lastFrameTime.current = Date.now();
+      animationRef.current = requestAnimationFrame(animateFnRef.current);
+    }
+  };
+
   return (
     <div className="relative w-full h-screen overflow-hidden bg-black cursor-none">
       {/* Victory Sequence */}
@@ -1125,10 +1187,10 @@ export default function MarsGameScene({
           </div>
         </div>
         <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg">
-          <div className="font-semibold">
+          {/* <div className="font-semibold">
             {t("game.wave")}
             {wave}
-          </div>
+          </div> */}
         </div>
 
         {/* Combo Display */}
@@ -1318,12 +1380,12 @@ export default function MarsGameScene({
               {t("game.gameOver.finalScore")}
               {score}
             </div>
-            <div className="text-lg text-gray-400 mb-6">
+            {/* <div className="text-lg text-gray-400 mb-6">
               {t("game.gameOver.waveReached")}
               {wave}
-            </div>
+            </div> */}
             <button
-              onClick={() => window.location.reload()}
+              onClick={resetGame}
               className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg"
             >
               {t("game.gameOver.restart")}

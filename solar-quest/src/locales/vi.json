@@ -245,6 +245,10 @@
     "masterVolume": "Âm Lượng Chính",
     "musicVolume": "Âm Lượng Nhạc",
     "sfxVolume": "Âm Lượng Hiệu Ứng",
+    "soundOn": "Âm thanh: Bật",
+    "soundOff": "Âm thanh: Tắt",
+    "enableAudio": "Bật âm thanh",
+    "disableAudio": "Tắt âm thanh",
     "fullscreen": "Toàn Màn Hình",
     "shadows": "Bóng Đổ",
     "antialiasing": "Khử Răng Cưa"

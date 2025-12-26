@@ -1,9 +1,11 @@
 import { useAudio } from "@/hooks/useAudio";
 import { Volume2, VolumeX } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 export default function AudioSettings() {
   const { isMuted, toggleMute } = useAudio();
+  const { t, i18n } = useTranslation();
 
   return (
     <div className="fixed bottom-4 left-4 z-50">
@@ -17,7 +19,7 @@ export default function AudioSettings() {
               ? "bg-red-600/20 border-red-500/40 text-red-200"
               : "bg-black/80 border-white/20 text-white"
           }`}
-        title={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
+        title={isMuted ? t("settings.enableAudio") : t("settings.disableAudio")}
       >
         {isMuted ? (
           <VolumeX className="w-5 h-5" />
@@ -25,7 +27,7 @@ export default function AudioSettings() {
           <Volume2 className="w-5 h-5" />
         )}
         <span className="text-sm font-semibold">
-          {isMuted ? "Âm thanh: Tắt" : "Âm thanh: Bật"}
+          {isMuted ? t("settings.soundOff") : t("settings.soundOn")}
         </span>
       </motion.button>
     </div>

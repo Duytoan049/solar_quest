@@ -467,6 +467,14 @@ export default function PlanetDetail() {
   // Load profile
   const profile = getProfile(planetId);
 
+  // Localized role title for profile card
+  const roleInfo = profile ? ROLE_INFO[profile.role] : null;
+  const roleTitle = roleInfo
+    ? (i18n.language || "en").startsWith("en")
+      ? roleInfo.titleEn ?? roleInfo.title
+      : roleInfo.title
+    : "";
+
   // Get AI companion for this planet
   const aiCompanion = aiCompanions[planetId];
 
@@ -742,7 +750,7 @@ export default function PlanetDetail() {
                   </h3>
                   <p className="text-sm text-gray-400 flex items-center gap-1">
                     <span>{ROLE_INFO[profile.role].icon}</span>
-                    <span>{ROLE_INFO[profile.role].title}</span>
+                    <span>{roleTitle}</span>
                   </p>
                 </div>
 
@@ -1021,7 +1029,7 @@ export default function PlanetDetail() {
                   </div>
                 </div>
 
-                {/* Physical Characteristics */}
+                {/* Physical Characteristics
                 <div className="bg-white/5 rounded-lg p-4">
                   <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
                     <span>⚖️</span>
@@ -1083,7 +1091,7 @@ export default function PlanetDetail() {
                       </span>
                     </div>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Orbital Parameters */}
                 <div className="bg-white/5 rounded-lg p-4">
@@ -1890,10 +1898,10 @@ export default function PlanetDetail() {
               )}
             </div>
           )}
-
+          {/* 
           <p className="text-sm text-gray-300 leading-relaxed mb-2">
             {markers.find((m) => m.id === activeMarker)?.description}
-          </p>
+          </p> */}
 
           {/* Detailed marker information */}
           {(() => {
