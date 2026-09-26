@@ -217,6 +217,63 @@ export default function MarsGameScene({
 
     // Expose animate function to outer scope so we can restart it after Game Over
 
+    const triggerDash = () => {
+      if (gameOver || isPaused || victory || dashCooldown.current > 0) return;
+      if (shieldChargesRef.current <= 0) return;
+
+      const dx = mouseTargetX.current - spaceshipX.current;
+      const dy = mouseTargetY.current - spaceshipY.current;
+      const distance = Math.max(1, Math.hypot(dx, dy));
+      const dashDistance = Math.min(180, distance);
+
+      spaceshipX.current += (dx / distance) * dashDistance;
+      spaceshipY.current += (dy / distance) * dashDistance;
+      spaceshipX.current = Math.max(30, Math.min(spaceshipX.current, canvas.width - 30));
+      spaceshipY.current = Math.max(30, Math.min(spaceshipY.current, canvas.height - 30));
+
+      dashTime.current = 0.28;
+      invulnerabilityTime.current = 0.48;
+      dashCooldown.current = 4;
+      shieldChargesRef.current -= 1;
+      setShieldCharges(shieldChargesRef.current);
+      setDashCooldownDisplay(4);
+      screenShake.current = 10;
+      play("shield", { volume: 0.55, category: "sfx" });
+    };
+
+    const triggerPulse = () => {
+      if (gameOver || isPaused || victory || pulseCooldown.current > 0) return;
+
+      pulseCooldown.current = 10;
+      setPulseCooldownDisplay(10);
+      screenShake.current = 14;
+      play("powerup", { volume: 0.6, category: "sfx" });
+
+      const radius = 230;
+      for (let i = asteroidsRef.current.length - 1; i >= 0; i--) {
+        const ast = asteroidsRef.current[i];
+        const dx = ast.x + ast.size / 2 - spaceshipX.current;
+        const dy = ast.y + ast.size / 2 - spaceshipY.current;
+
+        if (Math.hypot(dx, dy) <= radius) {
+          createExplosion(ast.x + ast.size / 2, ast.y + ast.size / 2);
+          asteroidsRef.current.splice(i, 1);
+          hits.current++;
+          destroyedRef.current++;
+          setDestroyedCount(destroyedRef.current);
+
+          const comboMultiplier = updateCombo(true, 0);
+          setScore(
+            (s) =>
+              s +
+              planetConfig.pointsPerAsteroid *
+                planetConfig.bonusMultiplier *
+                comboMultiplier
+          );
+        }
+      }
+    };
+
     // Shoot bullet
     const shoot = () => {
       if (gameOver || isPaused || victory) return;
@@ -1017,7 +1074,9 @@ export default function MarsGameScene({
     const onMouseMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
       const targetX = e.clientX - rect.left;
-      const targetY = e.clientY - rect.top; // NEW: Track Y position
+      const targetY = e.clientY - rect.top;
+      mouseTargetX.current = targetX;
+      mouseTargetY.current = targetY;
 
       // Apply movement modifier (ice physics on Uranus)
       const mod = planetConfig.movementModifier;
@@ -1072,6 +1131,14 @@ export default function MarsGameScene({
       }
       if (e.code === "KeyP") {
         setIsPaused((p) => !p);
+      }
+      if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
+        e.preventDefault();
+        triggerDash();
+      }
+      if (e.code === "KeyE") {
+        e.preventDefault();
+        triggerPulse();
       }
     };
 
