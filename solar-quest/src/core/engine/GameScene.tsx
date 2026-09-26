@@ -785,9 +785,28 @@ export default function MarsGameScene({
       const cW = canvas.width;
       const cH = canvas.height;
 
+      const frameDelta = 1 / 60;
+      dashCooldown.current = Math.max(0, dashCooldown.current - frameDelta);
+      pulseCooldown.current = Math.max(0, pulseCooldown.current - frameDelta);
+      dashTime.current = Math.max(0, dashTime.current - frameDelta);
+      invulnerabilityTime.current = Math.max(0, invulnerabilityTime.current - frameDelta);
+
+      if (screenShake.current > 0) {
+        screenShake.current = Math.max(0, screenShake.current - 0.8);
+      }
+
       // Draw starfield background
       ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, cW, cH);
+
+      ctx.save();
+      if (screenShake.current > 0) {
+        const shake = screenShake.current;
+        ctx.translate(
+          (Math.random() - 0.5) * shake,
+          (Math.random() - 0.5) * shake
+        );
+      }
 
       starsRef.current.forEach((star) => {
         star.brightness += star.twinkleSpeed;
@@ -913,10 +932,12 @@ export default function MarsGameScene({
             ast.y,
             ast.size,
             ast.size
-          )
+          ) &&
+          invulnerabilityTime.current <= 0
         ) {
           createExplosion(ast.x + ast.size / 2, ast.y + ast.size / 2);
           asteroidsRef.current.splice(i, 1);
+          screenShake.current = 16;
           play("hit", { volume: 0.4, category: "sfx" });
           setLives((l) => {
             const newLives = l - 1;
@@ -940,6 +961,21 @@ export default function MarsGameScene({
             graphicsConfig,
             planetConfig
           );
+
+          if (ast.maxHealth > 1 && ast.health < ast.maxHealth) {
+            const barWidth = ast.size * 0.8;
+            const barX = ast.x + (ast.size - barWidth) / 2;
+            const barY = ast.y - 9;
+            ctx.fillStyle = "rgba(0,0,0,0.55)";
+            ctx.fillRect(barX, barY, barWidth, 4);
+            ctx.fillStyle = planetConfig.particleColor;
+            ctx.fillRect(
+              barX,
+              barY,
+              barWidth * Math.max(0, ast.health / ast.maxHealth),
+              4
+            );
+          }
           ctx.restore();
         }
       });
@@ -986,13 +1022,18 @@ export default function MarsGameScene({
                 ast.size
               )
             ) {
-              createExplosion(ast.x + ast.size / 2, ast.y + ast.size / 2);
               bulletsRef.current.splice(bi, 1);
-              asteroidsRef.current.splice(ai, 1);
 
-              // Play hit and explosion sounds
-              play("hit", { volume: 0.4, category: "sfx" });
-              play("explosion", { volume: 0.3, category: "sfx" });
+              ast.health -= planetConfig.bulletDamage;
+              createExplosion(ast.x + ast.size / 2, ast.y + ast.size / 2);
+              play("hit", { volume: 0.35, category: "sfx" });
+
+              if (ast.health <= 0) {
+                asteroidsRef.current.splice(ai, 1);
+                play("explosion", { volume: 0.3, category: "sfx" });
+                destroyedRef.current++;
+                setDestroyedCount(destroyedRef.current);
+              }
 
               // Calculate score with combo multiplier
               const now = Date.now();
@@ -1040,6 +1081,27 @@ export default function MarsGameScene({
         }
       });
 
+      // Dash trail
+      if (dashTime.current > 0) {
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, dashTime.current * 3);
+        ctx.strokeStyle = planetConfig.particleColor;
+        ctx.lineWidth = 4;
+        for (let i = 1; i <= 5; i++) {
+          ctx.globalAlpha = (1 - i / 6) * 0.35;
+          ctx.beginPath();
+          ctx.moveTo(
+            spaceshipX.current -
+              (mouseTargetX.current - spaceshipX.current) * (i * 0.06),
+            spaceshipY.current -
+              (mouseTargetY.current - spaceshipY.current) * (i * 0.06)
+          );
+          ctx.lineTo(spaceshipX.current, spaceshipY.current);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
       // Draw radar
       drawRadar();
 
@@ -1064,6 +1126,7 @@ export default function MarsGameScene({
       // Store last ship position for next frame
       lastShipX.current = spaceshipX.current;
 
+      ctx.restore();
       animationRef.current = requestAnimationFrame(animate);
     };
 
@@ -1210,6 +1273,17 @@ export default function MarsGameScene({
     setVictory(false);
     setIsPaused(false);
     setSkipTriggered(false);
+    destroyedRef.current = 0;
+    shieldChargesRef.current = 2;
+    dashCooldown.current = 0;
+    pulseCooldown.current = 0;
+    dashTime.current = 0;
+    invulnerabilityTime.current = 0;
+    screenShake.current = 0;
+    setDestroyedCount(0);
+    setShieldCharges(2);
+    setDashCooldownDisplay(0);
+    setPulseCooldownDisplay(0);
 
     // reinit simple starfield to avoid blank background
     const canvas = canvasRef.current;
