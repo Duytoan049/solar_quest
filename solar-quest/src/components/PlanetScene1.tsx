@@ -13,7 +13,7 @@ import AsteroidBelt from "./AsteroidBelt"; // <-- Import Vành đai Tiểu hành
 import PlanetInfoPanel from "./PlanetInfoPanel";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { ArrowLeft } from "lucide-react";
+import { Activity, ArrowLeft, Crosshair, MousePointer2, Orbit, Radio, ScanLine } from "lucide-react";
 import AudioSettings from "@/components/AudioSettings";
 
 // This type is now simpler as position is calculated dynamically
@@ -310,7 +310,10 @@ export default function PlanetScene() {
   };
 
   return (
-    <div className="w-full h-screen bg-black relative font-sans">
+    <div className="relative h-screen w-full overflow-hidden bg-[#03050a] font-sans text-white">
+      <div className="pointer-events-none absolute inset-0 z-[2] bg-[radial-gradient(circle_at_50%_46%,rgba(103,232,249,0.055),transparent_27%),linear-gradient(180deg,rgba(3,5,10,0.1),rgba(3,5,10,0.42))]" />
+      <div className="pointer-events-none absolute inset-0 z-[2] opacity-[0.06] [background-image:linear-gradient(rgba(255,255,255,0.25)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.25)_1px,transparent_1px)] [background-size:84px_84px]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-[3] h-24 bg-gradient-to-b from-black/55 to-transparent" />
       <button
         onClick={() =>
           setScene(
@@ -318,20 +321,31 @@ export default function PlanetScene() {
             sceneParams?.guestMode ? { guestMode: true } : undefined
           )
         }
-        className="absolute top-4 left-4 z-50 px-4 py-2 bg-white/10 hover:bg-white/20 
-          backdrop-blur-md rounded-lg text-white font-semibold transition-all duration-300
-          border border-white/20 hover:border-white/40 flex items-center gap-2"
+        className="group absolute left-5 top-5 z-50 flex items-center gap-2.5 rounded-xl border border-white/10 bg-black/35 px-3.5 py-2.5 text-white/80 shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur-2xl transition-all duration-300 hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
       >
-        <ArrowLeft className="w-5 h-5" />
-        {t("mainMenu.backToMenu")}
+        <ArrowLeft className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-0.5" />
+        <span className="text-[10px] font-semibold uppercase tracking-[0.18em]">{t("mainMenu.backToMenu")}</span>
       </button>
-      {/* Overlay loading - Nhanh hơn */}
+      {/* Premium loading HUD */}
       {isLoading && (
-        <div className="absolute inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
-          <div className="text-center text-white">
-            <h2 className="text-2xl font-bold mb-2 animate-pulse">
-              Loading Solar System...
+        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-[#03050a]/95 backdrop-blur-sm">
+          <div className="relative w-[min(420px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-white/10 bg-[#07101c]/75 p-7 text-center shadow-[0_30px_100px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/70 to-transparent" />
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-200/15 bg-cyan-200/[0.06]">
+              <Orbit className="h-5 w-5 animate-pulse text-cyan-100/80" />
+            </div>
+            <p className="mt-5 text-[9px] font-semibold uppercase tracking-[0.3em] text-cyan-100/45">
+              Mission control
+            </p>
+            <h2 className="mt-2 text-lg font-semibold tracking-[0.08em] text-white">
+              Initializing Solar System
             </h2>
+            <p className="mt-2 text-xs leading-6 text-white/35">
+              Calibrating orbital map and planetary navigation systems.
+            </p>
+            <div className="mx-auto mt-6 h-1 w-full overflow-hidden rounded-full bg-white/6">
+              <div className="h-full w-2/3 animate-pulse rounded-full bg-gradient-to-r from-cyan-200/20 via-cyan-200/70 to-blue-300/30" />
+            </div>
           </div>
         </div>
       )}
@@ -352,7 +366,42 @@ export default function PlanetScene() {
         onStartMission={handleStartMission}
       />
 
-      <Canvas camera={{ position: [0, 25, 80], fov: 60 }} className="relative">
+      {/* Mission HUD */}
+      <div className="pointer-events-none absolute left-1/2 top-5 z-40 hidden -translate-x-1/2 md:block">
+        <div className="flex items-center gap-5 rounded-full border border-white/8 bg-black/25 px-4 py-2 shadow-[0_16px_50px_rgba(0,0,0,0.3)] backdrop-blur-xl">
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(74,222,128,0.65)]" />
+            <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/45">System online</span>
+          </div>
+          <span className="h-3 w-px bg-white/10" />
+          <div className="flex items-center gap-2 text-white/35">
+            <Activity className="h-3.5 w-3.5 text-cyan-200/60" />
+            <span className="text-[9px] font-mono uppercase tracking-[0.18em]">Orbital map</span>
+          </div>
+          <span className="h-3 w-px bg-white/10" />
+          <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-white/30">08 bodies</span>
+        </div>
+      </div>
+
+      <div className="pointer-events-none absolute bottom-5 left-1/2 z-40 hidden -translate-x-1/2 lg:block">
+        <div className="flex items-center gap-3 rounded-full border border-white/8 bg-black/25 px-4 py-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-white/30 backdrop-blur-xl">
+          <MousePointer2 className="h-3.5 w-3.5 text-cyan-200/50" />
+          Select a planet to open its mission dossier
+        </div>
+      </div>
+
+      {hoveredPlanet && !selectedPlanet && (
+        <div className="pointer-events-none absolute bottom-16 left-1/2 z-40 -translate-x-1/2">
+          <div className="flex items-center gap-2 rounded-full border border-cyan-200/15 bg-[#07101c]/75 px-3 py-2 shadow-[0_18px_50px_rgba(0,0,0,0.4)] backdrop-blur-xl">
+            <Crosshair className="h-3.5 w-3.5 text-cyan-200/70" />
+            <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/70">
+              {t(`planets.${hoveredPlanet.id}.name`)}
+            </span>
+          </div>
+        </div>
+      )}
+
+      <Canvas camera={{ position: [0, 25, 80], fov: 60 }} className="relative z-0">
         <SceneContent
           selectedPlanet={selectedPlanet}
           isManualCamera={isManualCamera}
@@ -367,6 +416,14 @@ export default function PlanetScene() {
           onLoadingComplete={handleLoadingComplete} // Truyền callback
         />
       </Canvas>
+
+      <div className="pointer-events-none absolute bottom-5 right-5 z-40 hidden xl:block">
+        <div className="flex items-center gap-2 rounded-full border border-white/8 bg-black/25 px-3 py-2 text-[9px] font-mono uppercase tracking-[0.15em] text-white/20 backdrop-blur-xl">
+          <ScanLine className="h-3.5 w-3.5" />
+          <span>Telemetry</span>
+          <span className="text-emerald-300/50">Stable</span>
+        </div>
+      </div>
 
       {/* Audio Settings */}
       <AudioSettings />

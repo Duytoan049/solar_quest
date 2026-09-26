@@ -17,6 +17,9 @@ import {
   Camera,
   BookOpen,
   Package,
+  Activity,
+  Satellite,
+  X,
 } from "lucide-react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import {
@@ -705,7 +708,10 @@ export default function PlanetDetail() {
   }, []);
 
   return (
-    <div className="w-full h-screen bg-black relative">
+    <div className="relative h-screen w-full overflow-hidden bg-[#03050a] text-white">
+      <div className="pointer-events-none absolute inset-0 z-[2] bg-[radial-gradient(circle_at_50%_42%,rgba(103,232,249,0.055),transparent_28%),radial-gradient(circle_at_82%_24%,rgba(96,165,250,0.05),transparent_24%),linear-gradient(180deg,rgba(3,5,10,0.08),rgba(3,5,10,0.5))]" />
+      <div className="pointer-events-none absolute inset-0 z-[2] opacity-[0.045] [background-image:linear-gradient(rgba(255,255,255,0.28)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.28)_1px,transparent_1px)] [background-size:96px_96px]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-[3] h-28 bg-gradient-to-b from-black/60 to-transparent" />
       {/* Back button - Hide when Quiz is open */}
       {!showQuiz && (
         <button
@@ -715,12 +721,10 @@ export default function PlanetDetail() {
               sceneParams?.guestMode ? { guestMode: true } : undefined
             )
           }
-          className="absolute top-4 left-4 z-50 px-4 py-2 bg-white/10 hover:bg-white/20 
-            backdrop-blur-md rounded-lg text-white font-semibold transition-all duration-300
-            border border-white/20 hover:border-white/40 flex items-center gap-2"
+          className="group absolute left-5 top-5 z-50 flex items-center gap-2.5 rounded-xl border border-white/10 bg-black/35 px-3.5 py-2.5 text-white/80 shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur-2xl transition-all duration-300 hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
         >
-          <ArrowLeft className="w-5 h-5" />
-          {t("planetDetail.backToSolarSystem")}
+          <ArrowLeft className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-0.5" />
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em]">{t("planetDetail.backToSolarSystem")}</span>
         </button>
       )}
 
@@ -735,20 +739,23 @@ export default function PlanetDetail() {
             className="absolute top-20 left-4 z-40 max-w-[280px]"
           >
             <div
-              className="bg-black/80 backdrop-blur-xl rounded-2xl p-4 border border-white/20 
-              shadow-2xl min-w-[280px] max-w-[320px]"
+              className="relative min-w-[290px] max-w-[330px] overflow-hidden rounded-2xl border border-white/10 bg-[#07101c]/72 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.48)] backdrop-blur-2xl"
             >
               {/* Header with avatar and minimize button */}
               <div className="flex items-start gap-4 mb-3">
                 {/* Avatar */}
-                <div className="text-5xl flex-shrink-0">{profile.avatar}</div>
+                <div className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-cyan-200/15 bg-cyan-200/[0.05] text-2xl">
+                  {profile.avatar}
+                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#07101c] bg-emerald-300 shadow-[0_0_12px_rgba(74,222,128,0.55)]" />
+                </div>
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-bold text-white truncate">
+                  <p className="text-[8px] font-semibold uppercase tracking-[0.22em] text-cyan-100/40">Astronaut profile</p>
+                    <h3 className="mt-1 text-sm font-bold text-white truncate">
                     {profile.citizenName}
                   </h3>
-                  <p className="text-sm text-gray-400 flex items-center gap-1">
+                  <p className="mt-1 flex items-center gap-1 text-[10px] text-white/40">
                     <span>{ROLE_INFO[profile.role].icon}</span>
                     <span>{roleTitle}</span>
                   </p>
@@ -777,7 +784,7 @@ export default function PlanetDetail() {
               </div>
 
               {/* Quiz Score */}
-              <div className="bg-white/5 rounded-lg p-2 mb-3">
+              <div className="mb-3 rounded-xl border border-white/8 bg-white/[0.025] p-3">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-gray-400">
                     {t("planetDetail.quizScore")}
@@ -805,9 +812,7 @@ export default function PlanetDetail() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setShowQuiz(true)}
-                  className="w-full mt-2 px-3 py-1.5 bg-gradient-to-r from-purple-600/80 to-blue-600/80 
-                    hover:from-purple-600 hover:to-blue-600 rounded-md text-xs font-semibold text-white
-                    transition-all duration-300 flex items-center justify-center gap-1.5"
+                  className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-cyan-200/10 bg-cyan-200/[0.06] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/75 transition-all duration-300 hover:border-cyan-200/25 hover:bg-cyan-200/[0.1]"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -877,7 +882,7 @@ export default function PlanetDetail() {
 
       {/* Planet name & Stats toggle - Hide when Quiz is open */}
       {!showQuiz && (
-        <div className="absolute top-4 right-4 z-50 flex gap-2">
+        <div className="absolute right-5 top-5 z-50 flex items-center gap-2">
           <div className="px-6 py-3 bg-black/60 backdrop-blur-md rounded-lg flex items-center gap-2">
             <h1 className="text-2xl font-bold text-white capitalize">
               {t(`planets.${planetId}.name`)}
@@ -909,7 +914,23 @@ export default function PlanetDetail() {
         </div>
       )}
 
-      {/* History Panel */}
+      {!showQuiz && (
+        <div className="pointer-events-none absolute bottom-5 left-1/2 z-40 hidden -translate-x-1/2 lg:block">
+          <div className="flex items-center gap-4 rounded-full border border-white/8 bg-black/25 px-4 py-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-white/30 backdrop-blur-xl">
+            <span className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(74,222,128,0.65)]" />
+              Telemetry stable
+            </span>
+            <span className="h-3 w-px bg-white/10" />
+            <span className="flex items-center gap-2">
+              <Activity className="h-3.5 w-3.5 text-cyan-200/55" />
+              Surface scan active
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* History Panel */
       <AnimatePresence mode="wait">
         {showHistory && (
           <motion.div
@@ -917,8 +938,7 @@ export default function PlanetDetail() {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 100, opacity: 0 }}
             transition={{ type: "tween", duration: 0.2 }}
-            className="absolute top-20 right-4 z-[60] w-96 bg-black/80 backdrop-blur-md rounded-lg p-4 
-          border border-white/20 max-h-[calc(100vh-280px)] overflow-y-auto scrollbar-thin"
+            className="absolute right-5 top-20 z-[60] w-[min(390px,calc(100vw-2rem))] overflow-y-auto rounded-2xl border border-white/10 bg-[#07101c]/88 p-5 shadow-[0_28px_90px_rgba(0,0,0,0.5)] backdrop-blur-2xl scrollbar-thin"
           >
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
@@ -1268,7 +1288,7 @@ export default function PlanetDetail() {
                 <img
                   src={planetInfo.imageUrl}
                   alt={`${planetId} from NASA`}
-                  className="w-full h-32 object-cover"
+                  className="h-36 w-full object-cover transition-transform duration-500 hover:scale-[1.02]"
                   onError={(e) => {
                     // Simply hide if image fails to load
                     (e.target as HTMLImageElement).style.display = "none";
@@ -1438,7 +1458,7 @@ export default function PlanetDetail() {
                   <img
                     src={planetInfo.imageUrl}
                     alt={`${planetId} from NASA`}
-                    className="w-full h-40 object-cover"
+                    className="h-44 w-full object-cover transition-transform duration-500 hover:scale-[1.02]"
                     onError={(e) => {
                       // Hide image if failed to load
                       const img = e.target as HTMLImageElement;
@@ -1829,8 +1849,7 @@ export default function PlanetDetail() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           transition={{ type: "tween", duration: 0.2 }}
-          className="absolute bottom-4 left-4 max-w-sm bg-black/80 backdrop-blur-md 
-          text-white p-4 rounded-lg border border-white/20 shadow-2xl"
+          className="absolute bottom-5 left-5 z-50 max-w-sm overflow-hidden rounded-2xl border border-white/10 bg-[#07101c]/78 p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
         >
           <div className="flex items-start justify-between mb-2">
             <h2 className="text-base font-bold flex items-center gap-2">

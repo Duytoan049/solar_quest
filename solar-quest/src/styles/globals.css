@@ -1,10 +1,19 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @font-face {
-  font-family: "Montreal-Serial Bold";
+  font-family: "Montreal Serial";
   src: url("../assets/fonts/Montreal-Serial Bold.ttf") format("truetype");
-  font-family: "Sebino-Regular";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Sebino";
   src: url("../assets/fonts/Sebino-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
 @custom-variant dark (&:is(.dark *));
 html,
@@ -12,8 +21,73 @@ body,
 #root {
   margin: 0;
   height: 100%;
-  background: black;
-  font-family: "Montserrat", sans-serif;
+  min-height: 100%;
+  background: #03050a;
+  color: #f7faff;
+  font-family: "Sebino", system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+:root {
+  --sq-void: #03050a;
+  --sq-space: #07101c;
+  --sq-panel: #0b1422;
+  --sq-panel-light: #101c2d;
+  --sq-white: #f7faff;
+  --sq-muted: rgba(247, 250, 255, 0.52);
+  --sq-cyan: #67e8f9;
+  --sq-blue: #60a5fa;
+  --sq-gold: #fdba4d;
+  --sq-green: #4ade80;
+  --sq-danger: #fb7185;
+}
+
+.font-display {
+  font-family: "Montreal Serial", "Sebino", system-ui, sans-serif;
+}
+
+.sq-glass {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.055),
+    rgba(255, 255, 255, 0.012)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.085);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.sq-noise {
+  position: relative;
+  isolation: isolate;
+}
+
+.sq-noise::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  z-index: -1;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+  mix-blend-mode: soft-light;
+}
+
+::selection {
+  background: rgba(103, 232, 249, 0.18);
+  color: #fff;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 1px solid rgba(103, 232, 249, 0.65);
+  outline-offset: 3px;
 }
 
 /* Performance optimizations */

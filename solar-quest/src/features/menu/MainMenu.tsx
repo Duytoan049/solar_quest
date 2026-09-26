@@ -2,14 +2,20 @@ import { useEffect, useState } from "react";
 import Button from "../../ui/Button";
 import Galaxy from "../../ui/Galaxy";
 import TextType from "../../ui/TextType";
-// FIX 1: Import hook từ file GameContext.ts
 import { useGameManager } from "@/core/engine/GameContext";
 import { motion } from "framer-motion";
-// FIX 2: Import type từ file types.ts
 import type { SceneType } from "@/core/engine/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAudio } from "@/hooks/useAudio";
-import { LogOut, User, Trophy, Rocket, LogIn } from "lucide-react";
+import {
+  ArrowRight,
+  LogOut,
+  User,
+  Trophy,
+  Rocket,
+  LogIn,
+  Sparkles,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import LanguageToggle from "@/components/LanguageToggle";
 import AudioSettings from "@/components/AudioSettings";
@@ -24,7 +30,6 @@ export default function MainMenu() {
   const { user, logout } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Kiểm tra chế độ khách
   const isGuestMode = !user && sceneParams?.guestMode === true;
 
   const handleLogout = async () => {
@@ -39,23 +44,14 @@ export default function MainMenu() {
       }
     }
   };
+
   useEffect(() => {
-    // ⚡ Bắt đầu tải sẵn hệ mặt trời khi menu vừa hiển thị
-    if (!isSolarSystemLoaded) {
-      preloadSolarSystem();
-    }
-
-    // Play main menu music
+    if (!isSolarSystemLoaded) preloadSolarSystem();
     playMusic("main-menu", true);
-
-    return () => {
-      stopMusic(true);
-    };
+    return () => stopMusic(true);
   }, [isSolarSystemLoaded, preloadSolarSystem, playMusic, stopMusic]);
-  const handleStart = (scene: SceneType) => {
-    // FIX: XÓA LỆNH GỌI PRELOAD Ở ĐÂY
-    // preloadSolarSystem(); // <--- Dòng này không còn cần thiết
 
+  const handleStart = (scene: SceneType) => {
     setNextScene(scene);
     setExit(true);
   };
@@ -64,86 +60,94 @@ export default function MainMenu() {
     <motion.div
       initial={{ opacity: 1 }}
       animate={{ opacity: exit ? 0 : 1 }}
-      transition={{ duration: 1 }}
+      transition={{ duration: 0.8, ease: "easeInOut" }}
       onAnimationComplete={() => {
         if (exit && nextScene) {
-          // Truyền tiếp guestMode nếu đang ở chế độ khách
-          if (isGuestMode) {
-            setScene(nextScene, { guestMode: true });
-          } else {
-            setScene(nextScene);
-          }
+          setScene(nextScene, isGuestMode ? { guestMode: true } : undefined);
         }
       }}
-      className="relative flex justify-center h-screen w-screen overflow-hidden bg-gradient-to-b from-black to-gray-900 text-white"
+      className="relative flex h-screen w-screen overflow-hidden bg-[#03050a] text-white"
     >
-      {/* Language Toggle */}
-      <LanguageToggle />
-
-      <div className="absolute inset-0 w-full h-full z-0">
+      <div className="absolute inset-0 z-0">
         <Galaxy
-          mouseRepulsion={true}
-          mouseInteraction={true}
-          density={1}
-          glowIntensity={0.3}
+          mouseRepulsion
+          mouseInteraction
+          density={0.85}
+          glowIntensity={0.22}
           saturation={0}
           hueShift={140}
-          starSpeed={0.1}
+          starSpeed={0.08}
         />
       </div>
 
-      {/* User Profile Card - Top Right (Compact with Hover Expand) */}
+      <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_50%_42%,rgba(103,232,249,0.08),transparent_32%),linear-gradient(180deg,rgba(3,5,10,0.04),rgba(3,5,10,0.72))]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-32 bg-gradient-to-b from-black/35 to-transparent" />
+
+      <div className="absolute left-6 top-5 z-20">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] shadow-[0_12px_30px_rgba(0,0,0,0.3)]">
+            <Sparkles className="h-4 w-4 text-cyan-200/80" />
+          </div>
+          <div>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.32em] text-white/35">
+              Space exploration system
+            </p>
+            <p className="mt-0.5 text-[11px] font-medium tracking-[0.12em] text-white/80">
+              SOLAR QUEST
+            </p>
+          </div>
+        </div>
+      </div>
+
       {user && (
         <motion.div
-          initial={{ opacity: 0, x: 100 }}
+          initial={{ opacity: 0, x: 24 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
-          className="absolute top-6 right-6 z-20 bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-4 w-auto  transition-all duration-2000 overflow-hidden group"
+          className="group absolute right-6 top-5 z-20 w-[260px] overflow-hidden rounded-2xl border border-white/10 bg-black/30 p-3.5 shadow-[0_20px_60px_rgba(0,0,0,0.38)] backdrop-blur-2xl"
         >
-          {/* Compact View - Avatar + Name */}
-          <div className="flex items-center gap-3 whitespace-nowrap">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-cyan-200/20 bg-gradient-to-br from-cyan-200/10 to-blue-300/10">
               {user.photoURL ? (
                 <img
                   src={user.photoURL}
                   alt={user.displayName || "User"}
-                  className="w-full h-full rounded-full object-cover"
+                  className="h-full w-full object-cover"
                 />
               ) : (
-                <User className="w-6 h-6 text-white" />
+                <User className="h-5 w-5 text-white/80" />
               )}
             </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-white font-semibold text-sm truncate">
+            <div className="min-w-0 flex-1">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                Astronaut
+              </p>
+              <p className="truncate text-sm font-semibold text-white/90">
                 {user.displayName || t("userProfile.astronaut")}
-              </h3>
-              <p className="text-gray-400 text-xs truncate opacity-0 group-hover:opacity-100 transition-opacity duration-2000">
-                {user.email}
               </p>
             </div>
           </div>
 
-          {/* Expanded View - Action Buttons (Show on Hover) */}
-          <div className="flex flex-col gap-2 mt-0 max-h-0 opacity-0 group-hover:mt-3 group-hover:max-h-40 group-hover:opacity-100 transition-all duration-2000 overflow-hidden">
+          <div className="mt-3 grid max-h-0 gap-1 overflow-hidden opacity-0 transition-all duration-300 group-hover:max-h-40 group-hover:opacity-100">
             <button
               onClick={() => {
                 play("click", { category: "ui" });
                 handleStart("profile");
               }}
-              className="w-full flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-white text-sm"
+              className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs text-white/65 transition hover:bg-white/[0.05] hover:text-white"
             >
-              <Rocket className="w-4 h-4" />
-              <span>{t("mainMenu.myProgress")}</span>
+              <Rocket className="h-3.5 w-3.5" />
+              {t("mainMenu.myProgress")}
             </button>
             <button
               onClick={() => {
                 play("click", { category: "ui" });
                 handleStart("leaderboard");
               }}
-              className="w-full flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-white text-sm"
+              className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs text-white/65 transition hover:bg-white/[0.05] hover:text-white"
             >
-              <Trophy className="w-4 h-4" />
-              <span>{t("menu.leaderboard")}</span>
+              <Trophy className="h-3.5 w-3.5" />
+              {t("menu.leaderboard")}
             </button>
             <button
               onClick={() => {
@@ -151,106 +155,134 @@ export default function MainMenu() {
                 handleLogout();
               }}
               disabled={isLoggingOut}
-              className="w-full flex items-center gap-2 px-3 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-colors text-red-400 text-sm disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs text-rose-200/70 transition hover:bg-rose-300/[0.06] hover:text-rose-100 disabled:opacity-40"
             >
-              <LogOut className="w-4 h-4" />
-              <span>
-                {isLoggingOut ? t("common.loading") : t("menu.logout")}
-              </span>
+              <LogOut className="h-3.5 w-3.5" />
+              {isLoggingOut ? t("common.loading") : t("menu.logout")}
             </button>
           </div>
         </motion.div>
       )}
 
-      {/* Guest Mode - Login Button */}
       {isGuestMode && (
-        <motion.div
-          initial={{ opacity: 0, x: 100 }}
+        <motion.button
+          initial={{ opacity: 0, x: 24 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
-          className="absolute top-6 right-6 z-20"
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setScene("menu")}
+          className="absolute right-6 top-5 z-20 flex items-center gap-3 rounded-full border border-cyan-200/15 bg-black/30 px-4 py-2.5 text-white shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur-xl transition hover:border-cyan-200/30 hover:bg-white/[0.05]"
         >
-          <motion.button
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setScene("menu")} // Reset về trang auth
-            className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 rounded-xl text-white font-semibold shadow-lg shadow-cyan-500/50 transition-all border border-white/20"
-          >
-            <LogIn className="w-5 h-5" />
-            <div className="text-left">
-              <div className="text-sm font-bold">{t("mainMenu.login")}</div>
-              <div className="text-xs opacity-90">
-                {t("mainMenu.loginSubtext")}
-              </div>
-            </div>
-          </motion.button>
-        </motion.div>
+          <LogIn className="h-4 w-4 text-cyan-100/80" />
+          <span className="text-left">
+            <span className="block text-[9px] font-semibold uppercase tracking-[0.16em] text-white/35">
+              Account
+            </span>
+            <span className="block text-xs font-semibold">
+              {t("mainMenu.login")}
+            </span>
+          </span>
+        </motion.button>
       )}
 
-      <div className="relative z-10 flex flex-col items-center">
-        <h1
-          // style={{ fontFamily: "Montreal-Serial Bold" }}
-          className="text-6xl font-bold text-white pt-25"
-          style={{
-            textShadow: "0 0 15px rgba(128, 200, 255, 0.7)",
-          }}
+      <main className="relative z-10 mx-auto flex h-full w-full max-w-5xl flex-col items-center justify-center px-6 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7 }}
+          className="mb-6 flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.025] px-4 py-2 shadow-[0_12px_40px_rgba(0,0,0,0.22)] backdrop-blur-xl"
         >
-          SOLAR QUEST
-        </h1>
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(74,222,128,0.7)]" />
+          <span className="text-[9px] font-semibold uppercase tracking-[0.28em] text-white/45">
+            Mission systems online
+          </span>
+        </motion.div>
 
-        <TextType
-          text={[
-            t("mainMenu.welcome1"),
-            t("mainMenu.welcome2"),
-            t("mainMenu.welcome3"),
-          ]}
-          typingSpeed={75}
-          pauseDuration={2500}
-          showCursor={true}
-          cursorCharacter="_"
-          deletingSpeed={30}
-          style={{
-            fontFamily: "Sebino-Regular",
-            paddingBottom: "100px",
-          }}
-        />
-        <div className="flex flex-col items-center gap-6">
+        <div className="relative">
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-56 w-[min(80vw,42rem)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-300/[0.055] blur-3xl" />
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-[min(80vw,48rem)] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-200/[0.06]" />
+
+          <p className="relative text-[10px] font-semibold uppercase tracking-[0.52em] text-cyan-100/45 sm:text-[11px]">
+            Explore · Discover · Learn
+          </p>
+
+          <h1 className="font-display relative mt-4 text-6xl font-bold leading-none tracking-[-0.05em] text-white drop-shadow-[0_8px_50px_rgba(103,232,249,0.12)] sm:text-8xl">
+            SOLAR
+            <span className="block text-white/90">QUEST</span>
+          </h1>
+
+          <div className="mx-auto mt-5 h-px w-36 bg-gradient-to-r from-transparent via-cyan-200/50 to-transparent" />
+
+          <div className="mt-6 text-sm text-white/50 sm:text-base">
+            <TextType
+              text={[
+                t("mainMenu.welcome1"),
+                t("mainMenu.welcome2"),
+                t("mainMenu.welcome3"),
+              ]}
+              typingSpeed={70}
+              pauseDuration={2500}
+              showCursor
+              cursorCharacter="▋"
+              deletingSpeed={28}
+            />
+          </div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.6 }}
+          className="mt-10 flex flex-col items-center gap-3"
+        >
           <Button
-            style={{ fontFamily: "Sebino-Regular" }}
             onClick={() => {
               play("click", { category: "ui" });
               handleStart("warp");
             }}
           >
             {t("mainMenu.startExplore")}
+            <ArrowRight className="h-4 w-4 text-cyan-100/80 transition-transform duration-300 group-hover:translate-x-1" />
           </Button>
-          {/* <Button
-            style={{ fontFamily: "Sebino-Regular" }}
+
+          <button
             onClick={() => {
               play("click", { category: "ui" });
-              handleStart("3dlook");
+              handleStart("game");
             }}
-          >
-            {t("mainMenu.setting")}
-          </Button> */}
-
-          {/* <Button
-            style={{ fontFamily: "Sebino-Regular" }}
-            onClick={() => handleStart("demo")}
-          >
-            Demo Game
-          </Button> */}
-
-          <Button
-            style={{ fontFamily: "Sebino-Regular" }}
-            onClick={() => handleStart("game")}
+            className="rounded-full px-4 py-2 text-[9px] font-semibold uppercase tracking-[0.26em] text-white/35 transition hover:text-white/75"
           >
             {t("mainMenu.aboutUs")}
-          </Button>
-        </div>
+          </button>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45, duration: 0.6 }}
+          className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[9px] font-medium uppercase tracking-[0.2em] text-white/25"
+        >
+          <span>8 planets</span>
+          <span className="h-1 w-1 rounded-full bg-white/15" />
+          <span>NASA data</span>
+          <span className="h-1 w-1 rounded-full bg-white/15" />
+          <span>AI companion</span>
+          <span className="h-1 w-1 rounded-full bg-white/15" />
+          <span>Interactive missions</span>
+        </motion.div>
+      </main>
+
+      <div className="pointer-events-none absolute bottom-6 right-6 z-10 hidden text-right sm:block">
+        <p className="text-[9px] uppercase tracking-[0.24em] text-white/20">
+          Solar Quest
+        </p>
+        <p className="mt-1 text-[9px] font-mono tracking-[0.12em] text-white/15">
+          EXPEDITION SYSTEM · 01
+        </p>
       </div>
 
-      {/* Audio Settings */}
+      <LanguageToggle />
       <AudioSettings />
     </motion.div>
   );

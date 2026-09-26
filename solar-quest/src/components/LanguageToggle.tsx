@@ -1,22 +1,18 @@
 import React from "react";
+import { Globe2 } from "lucide-react";
 import { useLanguage } from "../contexts/LanguageContext";
-import { Globe } from "lucide-react";
 
 const LanguageToggle: React.FC = () => {
   const { language, changeLanguage } = useLanguage();
 
-  const handleToggle = () => {
-    changeLanguage(language === "en" ? "vi" : "en");
-  };
-
   return (
     <button
-      onClick={handleToggle}
-      className="fixed bottom-4 left-48 z-50 flex items-center gap-2 px-4 py-1.5   border border-white/20 rounded-full hover:bg-white/20 transition-all duration-300 group"
+      onClick={() => changeLanguage(language === "en" ? "vi" : "en")}
       aria-label="Change language"
+      className="fixed bottom-5 left-[72px] z-50 flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-3.5 py-2.5 text-white/80 shadow-[0_14px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-all duration-300 hover:border-cyan-200/30 hover:bg-white/[0.06] hover:text-white"
     >
-      <Globe className="w-5 h-5 text-white group-hover:rotate-12 transition-transform" />
-      <span className="text-white font-medium uppercase">
+      <Globe2 className="h-4 w-4 text-cyan-200/80" />
+      <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">
         {language === "en" ? "EN" : "VI"}
       </span>
     </button>

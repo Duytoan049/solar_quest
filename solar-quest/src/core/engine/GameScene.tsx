@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAudio } from "@/hooks/useAudio";
-import { X, Target, AlertTriangle, SkipForward } from "lucide-react";
+import { X, Target, AlertTriangle, SkipForward, Zap, Shield, Crosshair, Gauge } from "lucide-react";
 import {
   getPlanetConfig,
   type PlanetGameConfig,
@@ -34,11 +34,12 @@ import {
  * />
  */
 
-interface Props {
+interface GameSceneProps {
   planetId?: string;
   config?: PlanetGameConfig;
   onComplete?: () => void;
   onGameOver?: () => void;
+  onExit?: () => void;
 }
 interface Asteroid {
   x: number;
@@ -47,9 +48,10 @@ interface Asteroid {
   size: number;
   rotation: number;
   rotationSpeed: number;
-  vx?: number; // Horizontal velocity for gravity
-  vy?: number; // Vertical velocity
-  health?: number; // HP for multi-hit asteroids
+  vx?: number;
+  vy?: number;
+  health: number;
+  maxHealth: number;
 }
 interface Bullet {
   x: number;
@@ -99,6 +101,10 @@ export default function MarsGameScene({
   const [heatWarning, setHeatWarning] = useState(0); // 0-100
   const [effectWarning, setEffectWarning] = useState(false); // Warning before effect starts
   const [showSkipButton, setShowSkipButton] = useState(false);
+  const [destroyedCount, setDestroyedCount] = useState(0);
+  const [dashCooldownDisplay, setDashCooldownDisplay] = useState(0);
+  const [pulseCooldownDisplay, setPulseCooldownDisplay] = useState(0);
+  const [shieldCharges, setShieldCharges] = useState(2);
 
   // Get planet config
   const planetConfig = customConfig || getPlanetConfig(planetId);
@@ -138,7 +144,17 @@ export default function MarsGameScene({
   const shipVelocityX = useRef(0); // Ship velocity for ice physics
   const comboCount = useRef(0); // Combo counter
   const comboTimer = useRef(0); // Time remaining for combo
-  const lastFrameTime = useRef(Date.now()); // For delta time calculation
+  const lastFrameTime = useRef(Date.now());
+  const mouseTargetX = useRef(0);
+  const mouseTargetY = useRef(0);
+  const dashCooldown = useRef(0);
+  const pulseCooldown = useRef(0);
+  const dashTime = useRef(0);
+  const invulnerabilityTime = useRef(0);
+  const screenShake = useRef(0);
+  const destroyedRef = useRef(0);
+  const shieldChargesRef = useRef(2);
+  const cooldownUiTimer = useRef(0);
 
   // No need to load images since we're drawing with code
 
@@ -194,11 +210,70 @@ export default function MarsGameScene({
         size,
         rotation: Math.random() * Math.PI * 2,
         rotationSpeed: (Math.random() - 0.5) * 0.1,
+        health: planetConfig.asteroidHealth,
+        maxHealth: planetConfig.asteroidHealth,
       });
       asteroidsSpawned.current++;
     };
 
     // Expose animate function to outer scope so we can restart it after Game Over
+
+    const triggerDash = () => {
+      if (gameOver || isPaused || victory || dashCooldown.current > 0) return;
+      if (shieldChargesRef.current <= 0) return;
+
+      const dx = mouseTargetX.current - spaceshipX.current;
+      const dy = mouseTargetY.current - spaceshipY.current;
+      const distance = Math.max(1, Math.hypot(dx, dy));
+      const dashDistance = Math.min(180, distance);
+
+      spaceshipX.current += (dx / distance) * dashDistance;
+      spaceshipY.current += (dy / distance) * dashDistance;
+      spaceshipX.current = Math.max(30, Math.min(spaceshipX.current, canvas.width - 30));
+      spaceshipY.current = Math.max(30, Math.min(spaceshipY.current, canvas.height - 30));
+
+      dashTime.current = 0.28;
+      invulnerabilityTime.current = 0.48;
+      dashCooldown.current = 4;
+      shieldChargesRef.current -= 1;
+      setShieldCharges(shieldChargesRef.current);
+      setDashCooldownDisplay(4);
+      screenShake.current = 10;
+      play("shield", { volume: 0.55, category: "sfx" });
+    };
+
+    const triggerPulse = () => {
+      if (gameOver || isPaused || victory || pulseCooldown.current > 0) return;
+
+      pulseCooldown.current = 10;
+      setPulseCooldownDisplay(10);
+      screenShake.current = 14;
+      play("powerup", { volume: 0.6, category: "sfx" });
+
+      const radius = 230;
+      for (let i = asteroidsRef.current.length - 1; i >= 0; i--) {
+        const ast = asteroidsRef.current[i];
+        const dx = ast.x + ast.size / 2 - spaceshipX.current;
+        const dy = ast.y + ast.size / 2 - spaceshipY.current;
+
+        if (Math.hypot(dx, dy) <= radius) {
+          createExplosion(ast.x + ast.size / 2, ast.y + ast.size / 2);
+          asteroidsRef.current.splice(i, 1);
+          hits.current++;
+          destroyedRef.current++;
+          setDestroyedCount(destroyedRef.current);
+
+          const comboMultiplier = updateCombo(true, 0);
+          setScore(
+            (s) =>
+              s +
+              planetConfig.pointsPerAsteroid *
+                planetConfig.bonusMultiplier *
+                comboMultiplier
+          );
+        }
+      }
+    };
 
     // Shoot bullet
     const shoot = () => {
@@ -711,9 +786,35 @@ export default function MarsGameScene({
       const cW = canvas.width;
       const cH = canvas.height;
 
+      const frameDelta = 1 / 60;
+      dashCooldown.current = Math.max(0, dashCooldown.current - frameDelta);
+      pulseCooldown.current = Math.max(0, pulseCooldown.current - frameDelta);
+      dashTime.current = Math.max(0, dashTime.current - frameDelta);
+      invulnerabilityTime.current = Math.max(0, invulnerabilityTime.current - frameDelta);
+
+      cooldownUiTimer.current += frameDelta;
+      if (cooldownUiTimer.current >= 0.15) {
+        cooldownUiTimer.current = 0;
+        setDashCooldownDisplay(Number(dashCooldown.current.toFixed(1)));
+        setPulseCooldownDisplay(Number(pulseCooldown.current.toFixed(1)));
+      }
+
+      if (screenShake.current > 0) {
+        screenShake.current = Math.max(0, screenShake.current - 0.8);
+      }
+
       // Draw starfield background
       ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, cW, cH);
+
+      ctx.save();
+      if (screenShake.current > 0) {
+        const shake = screenShake.current;
+        ctx.translate(
+          (Math.random() - 0.5) * shake,
+          (Math.random() - 0.5) * shake
+        );
+      }
 
       starsRef.current.forEach((star) => {
         star.brightness += star.twinkleSpeed;
@@ -839,10 +940,12 @@ export default function MarsGameScene({
             ast.y,
             ast.size,
             ast.size
-          )
+          ) &&
+          invulnerabilityTime.current <= 0
         ) {
           createExplosion(ast.x + ast.size / 2, ast.y + ast.size / 2);
           asteroidsRef.current.splice(i, 1);
+          screenShake.current = 16;
           play("hit", { volume: 0.4, category: "sfx" });
           setLives((l) => {
             const newLives = l - 1;
@@ -866,6 +969,21 @@ export default function MarsGameScene({
             graphicsConfig,
             planetConfig
           );
+
+          if (ast.maxHealth > 1 && ast.health < ast.maxHealth) {
+            const barWidth = ast.size * 0.8;
+            const barX = ast.x + (ast.size - barWidth) / 2;
+            const barY = ast.y - 9;
+            ctx.fillStyle = "rgba(0,0,0,0.55)";
+            ctx.fillRect(barX, barY, barWidth, 4);
+            ctx.fillStyle = planetConfig.particleColor;
+            ctx.fillRect(
+              barX,
+              barY,
+              barWidth * Math.max(0, ast.health / ast.maxHealth),
+              4
+            );
+          }
           ctx.restore();
         }
       });
@@ -912,13 +1030,18 @@ export default function MarsGameScene({
                 ast.size
               )
             ) {
-              createExplosion(ast.x + ast.size / 2, ast.y + ast.size / 2);
               bulletsRef.current.splice(bi, 1);
-              asteroidsRef.current.splice(ai, 1);
 
-              // Play hit and explosion sounds
-              play("hit", { volume: 0.4, category: "sfx" });
-              play("explosion", { volume: 0.3, category: "sfx" });
+              ast.health -= planetConfig.bulletDamage;
+              createExplosion(ast.x + ast.size / 2, ast.y + ast.size / 2);
+              play("hit", { volume: 0.35, category: "sfx" });
+
+              if (ast.health <= 0) {
+                asteroidsRef.current.splice(ai, 1);
+                play("explosion", { volume: 0.3, category: "sfx" });
+                destroyedRef.current++;
+                setDestroyedCount(destroyedRef.current);
+              }
 
               // Calculate score with combo multiplier
               const now = Date.now();
@@ -966,6 +1089,27 @@ export default function MarsGameScene({
         }
       });
 
+      // Dash trail
+      if (dashTime.current > 0) {
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, dashTime.current * 3);
+        ctx.strokeStyle = planetConfig.particleColor;
+        ctx.lineWidth = 4;
+        for (let i = 1; i <= 5; i++) {
+          ctx.globalAlpha = (1 - i / 6) * 0.35;
+          ctx.beginPath();
+          ctx.moveTo(
+            spaceshipX.current -
+              (mouseTargetX.current - spaceshipX.current) * (i * 0.06),
+            spaceshipY.current -
+              (mouseTargetY.current - spaceshipY.current) * (i * 0.06)
+          );
+          ctx.lineTo(spaceshipX.current, spaceshipY.current);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
       // Draw radar
       drawRadar();
 
@@ -990,6 +1134,7 @@ export default function MarsGameScene({
       // Store last ship position for next frame
       lastShipX.current = spaceshipX.current;
 
+      ctx.restore();
       animationRef.current = requestAnimationFrame(animate);
     };
 
@@ -1000,7 +1145,9 @@ export default function MarsGameScene({
     const onMouseMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
       const targetX = e.clientX - rect.left;
-      const targetY = e.clientY - rect.top; // NEW: Track Y position
+      const targetY = e.clientY - rect.top;
+      mouseTargetX.current = targetX;
+      mouseTargetY.current = targetY;
 
       // Apply movement modifier (ice physics on Uranus)
       const mod = planetConfig.movementModifier;
@@ -1055,6 +1202,14 @@ export default function MarsGameScene({
       }
       if (e.code === "KeyP") {
         setIsPaused((p) => !p);
+      }
+      if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
+        e.preventDefault();
+        triggerDash();
+      }
+      if (e.code === "KeyE") {
+        e.preventDefault();
+        triggerPulse();
       }
     };
 
@@ -1126,6 +1281,17 @@ export default function MarsGameScene({
     setVictory(false);
     setIsPaused(false);
     setSkipTriggered(false);
+    destroyedRef.current = 0;
+    shieldChargesRef.current = 2;
+    dashCooldown.current = 0;
+    pulseCooldown.current = 0;
+    dashTime.current = 0;
+    invulnerabilityTime.current = 0;
+    screenShake.current = 0;
+    setDestroyedCount(0);
+    setShieldCharges(2);
+    setDashCooldownDisplay(0);
+    setPulseCooldownDisplay(0);
 
     // reinit simple starfield to avoid blank background
     const canvas = canvasRef.current;
@@ -1170,60 +1336,109 @@ export default function MarsGameScene({
 
       <canvas ref={canvasRef} className="absolute inset-0" />
 
-      {/* HUD */}
-      <div className="absolute top-4 left-4 text-white space-y-2 z-10">
-        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg">
-          <div className="text-2xl font-bold">
-            {t("game.score")}
-            {score}
+      {/* Premium combat HUD */}
+      <div className="absolute left-5 top-5 z-10 flex flex-col gap-2 text-white">
+        <div className="rounded-2xl border border-white/10 bg-black/35 px-4 py-3 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-2xl">
+          <div className="flex items-end gap-4">
+            <div>
+              <p className="text-[8px] font-semibold uppercase tracking-[0.22em] text-white/30">
+                Score
+              </p>
+              <p className="mt-1 text-2xl font-bold tracking-tight">{score.toLocaleString()}</p>
+            </div>
+            <div className="mb-0.5 h-7 w-px bg-white/10" />
+            <div>
+              <p className="text-[8px] font-semibold uppercase tracking-[0.22em] text-white/30">
+                Mission
+              </p>
+              <p className="mt-1 text-xs font-semibold text-white/70">
+                {destroyedCount}/{planetConfig.maxAsteroids} cleared
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold">{t("game.lives")}</span>
-            {Array.from({ length: lives }).map((_, i) => (
-              <div key={i} className="w-6 h-6 bg-red-500 rounded-full" />
-            ))}
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/7">
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{
+                width: (Math.min(100, (destroyedCount / planetConfig.maxAsteroids) * 100) + "%"),
+                background: "linear-gradient(90deg, " + planetConfig.particleColor + ", #67e8f9)",
+              }}
+            />
           </div>
-        </div>
-        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg">
-          {/* <div className="font-semibold">
-            {t("game.wave")}
-            {wave}
-          </div> */}
         </div>
 
-        {/* Combo Display */}
-        {comboDisplay.count > 0 && (
-          <div className="bg-gradient-to-r from-yellow-500/80 to-orange-500/80 backdrop-blur-md px-4 py-2 rounded-lg animate-pulse">
+        <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/30 px-3 py-2.5 backdrop-blur-2xl">
+          <span className="text-[8px] font-semibold uppercase tracking-[0.18em] text-white/30">
+            Hull
+          </span>
+          <div className="flex gap-1.5">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <span
+                key={i}
+                className={
+                  "h-2.5 w-7 rounded-full " +
+                  (i < Math.ceil(lives)
+                    ? "bg-rose-300 shadow-[0_0_10px_rgba(251,113,133,0.35)]"
+                    : "bg-white/8")
+                }
+              />
+            ))}
+          </div>
+          <span className="ml-auto text-[10px] font-mono text-white/55">{Math.ceil(lives)}/3</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-2xl border border-white/10 bg-black/30 px-3 py-2.5 backdrop-blur-2xl">
             <div className="flex items-center gap-2">
-              <Target className="w-5 h-5" />
+              <Shield className="h-3.5 w-3.5 text-cyan-200/75" />
+              <span className="text-[8px] font-semibold uppercase tracking-[0.16em] text-white/35">Dash</span>
+            </div>
+            <p className="mt-1 text-xs font-semibold text-white/75">
+              {dashCooldownDisplay > 0 ? dashCooldownDisplay.toFixed(1) + "s" : "READY"}
+            </p>
+            <p className="mt-1 text-[8px] text-cyan-100/35">{shieldCharges} charges</p>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-black/30 px-3 py-2.5 backdrop-blur-2xl">
+            <div className="flex items-center gap-2">
+              <Zap className="h-3.5 w-3.5 text-amber-200/75" />
+              <span className="text-[8px] font-semibold uppercase tracking-[0.16em] text-white/35">Pulse</span>
+            </div>
+            <p className="mt-1 text-xs font-semibold text-white/75">
+              {pulseCooldownDisplay > 0 ? pulseCooldownDisplay.toFixed(1) + "s" : "READY"}
+            </p>
+            <p className="mt-1 text-[8px] text-amber-100/35">AOE 230px</p>
+          </div>
+        </div>
+
+        {comboDisplay.count > 0 && (
+          <div className="rounded-2xl border border-amber-200/15 bg-amber-200/[0.07] px-4 py-3 backdrop-blur-2xl">
+            <div className="flex items-center gap-2">
+              <Crosshair className="h-4 w-4 text-amber-100/80" />
               <div>
-                <div className="text-sm font-semibold">
-                  {t("game.combo", { multiplier: comboDisplay.multiplier })}
-                </div>
-                <div className="text-xs">
-                  {t("game.hits", { count: comboDisplay.count })}
-                </div>
+                <p className="text-[8px] font-semibold uppercase tracking-[0.18em] text-amber-100/45">Combo</p>
+                <p className="mt-0.5 text-sm font-bold text-amber-50">
+                  x{comboDisplay.multiplier} · {comboDisplay.count} hits
+                </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Heat Warning (Mercury) */}
         {heatWarning > 0 && (
-          <div className="bg-red-500/80 backdrop-blur-md px-4 py-2 rounded-lg border-2 border-red-300 animate-pulse">
+          <div className="rounded-2xl border border-rose-300/20 bg-rose-300/[0.08] px-4 py-3 backdrop-blur-2xl">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5" />
-              <div>
-                <div className="text-xs font-bold">{t("game.heatDamage")}</div>
-                <div className="text-xs">{t("game.keepMoving")}</div>
+              <Gauge className="h-4 w-4 text-rose-200" />
+              <div className="flex-1">
+                <p className="text-[8px] font-semibold uppercase tracking-[0.18em] text-rose-100/55">{t("game.heatDamage")}</p>
+                <p className="mt-1 text-[10px] text-white/55">{t("game.keepMoving")}</p>
               </div>
+              <span className="text-[10px] font-mono text-rose-100/80">{Math.round(heatWarning)}%</span>
             </div>
-            <div className="mt-1 w-full bg-black/40 rounded-full h-2">
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/30">
               <div
-                className="bg-gradient-to-r from-yellow-400 to-red-600 h-2 rounded-full transition-all"
-                style={{ width: `${heatWarning}%` }}
+                className="h-full rounded-full bg-gradient-to-r from-amber-300 to-rose-400"
+                style={{ width: heatWarning + "%" }}
               />
             </div>
           </div>
@@ -1231,7 +1446,7 @@ export default function MarsGameScene({
       </div>
 
       {/* Planet Info */}
-      <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-xs p-4 rounded-lg text-white max-w-xs z-10">
+      <div className="absolute right-5 top-5 z-10 hidden max-w-xs rounded-2xl border border-white/10 bg-black/30 p-4 text-white shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-2xl lg:block">
         <h3
           className="text-xl font-bold mb-2"
           style={{ color: planetConfig.particleColor }}
@@ -1288,15 +1503,28 @@ export default function MarsGameScene({
         </div> */}
       </div>
 
-      {/* Controls Guide */}
-      <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-xs px-4 py-3 rounded-lg text-white text-sm z-10">
-        <div className="space-y-1">
+      {/* Combat controls */}
+      <div className="absolute bottom-5 left-1/2 z-10 hidden -translate-x-1/2 md:block">
+        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/35 px-4 py-2.5 text-white/60 shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur-2xl">
           <div className="flex items-center gap-2">
-            <Target className="w-4 h-4" />
-            <span>{t("game.controls.move")}</span>
+            <kbd className="rounded-md border border-white/12 bg-white/[0.05] px-2 py-1 text-[9px] font-mono text-white/70">LMB</kbd>
+            <span className="text-[9px] uppercase tracking-[0.12em]">Fire</span>
           </div>
-          <div>• {t("game.controls.shoot")}</div>
-          <div>• {t("game.controls.pause")}</div>
+          <span className="h-4 w-px bg-white/10" />
+          <div className="flex items-center gap-2">
+            <kbd className="rounded-md border border-cyan-200/15 bg-cyan-200/[0.06] px-2 py-1 text-[9px] font-mono text-cyan-100/75">SHIFT</kbd>
+            <span className="text-[9px] uppercase tracking-[0.12em]">Dash</span>
+          </div>
+          <span className="h-4 w-px bg-white/10" />
+          <div className="flex items-center gap-2">
+            <kbd className="rounded-md border border-amber-200/15 bg-amber-200/[0.06] px-2 py-1 text-[9px] font-mono text-amber-100/75">E</kbd>
+            <span className="text-[9px] uppercase tracking-[0.12em]">Pulse</span>
+          </div>
+          <span className="h-4 w-px bg-white/10" />
+          <div className="flex items-center gap-2">
+            <kbd className="rounded-md border border-white/12 bg-white/[0.05] px-2 py-1 text-[9px] font-mono text-white/70">P</kbd>
+            <span className="text-[9px] uppercase tracking-[0.12em]">Pause</span>
+          </div>
         </div>
       </div>
 
