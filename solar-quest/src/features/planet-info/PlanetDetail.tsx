@@ -930,7 +930,7 @@ export default function PlanetDetail() {
         </div>
       )}
 
-      {/* History Panel */
+      {/* History Panel */}
       <AnimatePresence mode="wait">
         {showHistory && (
           <motion.div
