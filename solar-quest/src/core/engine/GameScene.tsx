@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAudio } from "@/hooks/useAudio";
-import { X, Target, AlertTriangle, SkipForward } from "lucide-react";
+import { X, Target, AlertTriangle, SkipForward, Zap, Shield, Crosshair, Gauge } from "lucide-react";
 import {
   getPlanetConfig,
   type PlanetGameConfig,
@@ -34,11 +34,12 @@ import {
  * />
  */
 
-interface Props {
+interface GameSceneProps {
   planetId?: string;
   config?: PlanetGameConfig;
   onComplete?: () => void;
   onGameOver?: () => void;
+  onExit?: () => void;
 }
 interface Asteroid {
   x: number;
@@ -47,9 +48,10 @@ interface Asteroid {
   size: number;
   rotation: number;
   rotationSpeed: number;
-  vx?: number; // Horizontal velocity for gravity
-  vy?: number; // Vertical velocity
-  health?: number; // HP for multi-hit asteroids
+  vx?: number;
+  vy?: number;
+  health: number;
+  maxHealth: number;
 }
 interface Bullet {
   x: number;
@@ -99,6 +101,10 @@ export default function MarsGameScene({
   const [heatWarning, setHeatWarning] = useState(0); // 0-100
   const [effectWarning, setEffectWarning] = useState(false); // Warning before effect starts
   const [showSkipButton, setShowSkipButton] = useState(false);
+  const [destroyedCount, setDestroyedCount] = useState(0);
+  const [dashCooldownDisplay, setDashCooldownDisplay] = useState(0);
+  const [pulseCooldownDisplay, setPulseCooldownDisplay] = useState(0);
+  const [shieldCharges, setShieldCharges] = useState(2);
 
   // Get planet config
   const planetConfig = customConfig || getPlanetConfig(planetId);
@@ -138,7 +144,16 @@ export default function MarsGameScene({
   const shipVelocityX = useRef(0); // Ship velocity for ice physics
   const comboCount = useRef(0); // Combo counter
   const comboTimer = useRef(0); // Time remaining for combo
-  const lastFrameTime = useRef(Date.now()); // For delta time calculation
+  const lastFrameTime = useRef(Date.now());
+  const mouseTargetX = useRef(0);
+  const mouseTargetY = useRef(0);
+  const dashCooldown = useRef(0);
+  const pulseCooldown = useRef(0);
+  const dashTime = useRef(0);
+  const invulnerabilityTime = useRef(0);
+  const screenShake = useRef(0);
+  const destroyedRef = useRef(0);
+  const shieldChargesRef = useRef(2);
 
   // No need to load images since we're drawing with code
 
@@ -194,6 +209,8 @@ export default function MarsGameScene({
         size,
         rotation: Math.random() * Math.PI * 2,
         rotationSpeed: (Math.random() - 0.5) * 0.1,
+        health: planetConfig.asteroidHealth,
+        maxHealth: planetConfig.asteroidHealth,
       });
       asteroidsSpawned.current++;
     };
