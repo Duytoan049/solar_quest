@@ -154,6 +154,7 @@ export default function MarsGameScene({
   const screenShake = useRef(0);
   const destroyedRef = useRef(0);
   const shieldChargesRef = useRef(2);
+  const cooldownUiTimer = useRef(0);
 
   // No need to load images since we're drawing with code
 
@@ -791,6 +792,13 @@ export default function MarsGameScene({
       dashTime.current = Math.max(0, dashTime.current - frameDelta);
       invulnerabilityTime.current = Math.max(0, invulnerabilityTime.current - frameDelta);
 
+      cooldownUiTimer.current += frameDelta;
+      if (cooldownUiTimer.current >= 0.15) {
+        cooldownUiTimer.current = 0;
+        setDashCooldownDisplay(Number(dashCooldown.current.toFixed(1)));
+        setPulseCooldownDisplay(Number(pulseCooldown.current.toFixed(1)));
+      }
+
       if (screenShake.current > 0) {
         screenShake.current = Math.max(0, screenShake.current - 0.8);
       }
@@ -1328,60 +1336,109 @@ export default function MarsGameScene({
 
       <canvas ref={canvasRef} className="absolute inset-0" />
 
-      {/* HUD */}
-      <div className="absolute top-4 left-4 text-white space-y-2 z-10">
-        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg">
-          <div className="text-2xl font-bold">
-            {t("game.score")}
-            {score}
+      {/* Premium combat HUD */}
+      <div className="absolute left-5 top-5 z-10 flex flex-col gap-2 text-white">
+        <div className="rounded-2xl border border-white/10 bg-black/35 px-4 py-3 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-2xl">
+          <div className="flex items-end gap-4">
+            <div>
+              <p className="text-[8px] font-semibold uppercase tracking-[0.22em] text-white/30">
+                Score
+              </p>
+              <p className="mt-1 text-2xl font-bold tracking-tight">{score.toLocaleString()}</p>
+            </div>
+            <div className="mb-0.5 h-7 w-px bg-white/10" />
+            <div>
+              <p className="text-[8px] font-semibold uppercase tracking-[0.22em] text-white/30">
+                Mission
+              </p>
+              <p className="mt-1 text-xs font-semibold text-white/70">
+                {destroyedCount}/{planetConfig.maxAsteroids} cleared
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold">{t("game.lives")}</span>
-            {Array.from({ length: lives }).map((_, i) => (
-              <div key={i} className="w-6 h-6 bg-red-500 rounded-full" />
-            ))}
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/7">
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{
+                width: (Math.min(100, (destroyedCount / planetConfig.maxAsteroids) * 100) + "%"),
+                background: "linear-gradient(90deg, " + planetConfig.particleColor + ", #67e8f9)",
+              }}
+            />
           </div>
-        </div>
-        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg">
-          {/* <div className="font-semibold">
-            {t("game.wave")}
-            {wave}
-          </div> */}
         </div>
 
-        {/* Combo Display */}
-        {comboDisplay.count > 0 && (
-          <div className="bg-gradient-to-r from-yellow-500/80 to-orange-500/80 backdrop-blur-md px-4 py-2 rounded-lg animate-pulse">
+        <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/30 px-3 py-2.5 backdrop-blur-2xl">
+          <span className="text-[8px] font-semibold uppercase tracking-[0.18em] text-white/30">
+            Hull
+          </span>
+          <div className="flex gap-1.5">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <span
+                key={i}
+                className={
+                  "h-2.5 w-7 rounded-full " +
+                  (i < Math.ceil(lives)
+                    ? "bg-rose-300 shadow-[0_0_10px_rgba(251,113,133,0.35)]"
+                    : "bg-white/8")
+                }
+              />
+            ))}
+          </div>
+          <span className="ml-auto text-[10px] font-mono text-white/55">{Math.ceil(lives)}/3</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-2xl border border-white/10 bg-black/30 px-3 py-2.5 backdrop-blur-2xl">
             <div className="flex items-center gap-2">
-              <Target className="w-5 h-5" />
+              <Shield className="h-3.5 w-3.5 text-cyan-200/75" />
+              <span className="text-[8px] font-semibold uppercase tracking-[0.16em] text-white/35">Dash</span>
+            </div>
+            <p className="mt-1 text-xs font-semibold text-white/75">
+              {dashCooldownDisplay > 0 ? dashCooldownDisplay.toFixed(1) + "s" : "READY"}
+            </p>
+            <p className="mt-1 text-[8px] text-cyan-100/35">{shieldCharges} charges</p>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-black/30 px-3 py-2.5 backdrop-blur-2xl">
+            <div className="flex items-center gap-2">
+              <Zap className="h-3.5 w-3.5 text-amber-200/75" />
+              <span className="text-[8px] font-semibold uppercase tracking-[0.16em] text-white/35">Pulse</span>
+            </div>
+            <p className="mt-1 text-xs font-semibold text-white/75">
+              {pulseCooldownDisplay > 0 ? pulseCooldownDisplay.toFixed(1) + "s" : "READY"}
+            </p>
+            <p className="mt-1 text-[8px] text-amber-100/35">AOE 230px</p>
+          </div>
+        </div>
+
+        {comboDisplay.count > 0 && (
+          <div className="rounded-2xl border border-amber-200/15 bg-amber-200/[0.07] px-4 py-3 backdrop-blur-2xl">
+            <div className="flex items-center gap-2">
+              <Crosshair className="h-4 w-4 text-amber-100/80" />
               <div>
-                <div className="text-sm font-semibold">
-                  {t("game.combo", { multiplier: comboDisplay.multiplier })}
-                </div>
-                <div className="text-xs">
-                  {t("game.hits", { count: comboDisplay.count })}
-                </div>
+                <p className="text-[8px] font-semibold uppercase tracking-[0.18em] text-amber-100/45">Combo</p>
+                <p className="mt-0.5 text-sm font-bold text-amber-50">
+                  x{comboDisplay.multiplier} · {comboDisplay.count} hits
+                </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Heat Warning (Mercury) */}
         {heatWarning > 0 && (
-          <div className="bg-red-500/80 backdrop-blur-md px-4 py-2 rounded-lg border-2 border-red-300 animate-pulse">
+          <div className="rounded-2xl border border-rose-300/20 bg-rose-300/[0.08] px-4 py-3 backdrop-blur-2xl">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5" />
-              <div>
-                <div className="text-xs font-bold">{t("game.heatDamage")}</div>
-                <div className="text-xs">{t("game.keepMoving")}</div>
+              <Gauge className="h-4 w-4 text-rose-200" />
+              <div className="flex-1">
+                <p className="text-[8px] font-semibold uppercase tracking-[0.18em] text-rose-100/55">{t("game.heatDamage")}</p>
+                <p className="mt-1 text-[10px] text-white/55">{t("game.keepMoving")}</p>
               </div>
+              <span className="text-[10px] font-mono text-rose-100/80">{Math.round(heatWarning)}%</span>
             </div>
-            <div className="mt-1 w-full bg-black/40 rounded-full h-2">
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/30">
               <div
-                className="bg-gradient-to-r from-yellow-400 to-red-600 h-2 rounded-full transition-all"
-                style={{ width: `${heatWarning}%` }}
+                className="h-full rounded-full bg-gradient-to-r from-amber-300 to-rose-400"
+                style={{ width: heatWarning + "%" }}
               />
             </div>
           </div>
@@ -1389,7 +1446,7 @@ export default function MarsGameScene({
       </div>
 
       {/* Planet Info */}
-      <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-xs p-4 rounded-lg text-white max-w-xs z-10">
+      <div className="absolute right-5 top-5 z-10 hidden max-w-xs rounded-2xl border border-white/10 bg-black/30 p-4 text-white shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-2xl lg:block">
         <h3
           className="text-xl font-bold mb-2"
           style={{ color: planetConfig.particleColor }}
@@ -1446,15 +1503,28 @@ export default function MarsGameScene({
         </div> */}
       </div>
 
-      {/* Controls Guide */}
-      <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-xs px-4 py-3 rounded-lg text-white text-sm z-10">
-        <div className="space-y-1">
+      {/* Combat controls */}
+      <div className="absolute bottom-5 left-1/2 z-10 hidden -translate-x-1/2 md:block">
+        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/35 px-4 py-2.5 text-white/60 shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur-2xl">
           <div className="flex items-center gap-2">
-            <Target className="w-4 h-4" />
-            <span>{t("game.controls.move")}</span>
+            <kbd className="rounded-md border border-white/12 bg-white/[0.05] px-2 py-1 text-[9px] font-mono text-white/70">LMB</kbd>
+            <span className="text-[9px] uppercase tracking-[0.12em]">Fire</span>
           </div>
-          <div>• {t("game.controls.shoot")}</div>
-          <div>• {t("game.controls.pause")}</div>
+          <span className="h-4 w-px bg-white/10" />
+          <div className="flex items-center gap-2">
+            <kbd className="rounded-md border border-cyan-200/15 bg-cyan-200/[0.06] px-2 py-1 text-[9px] font-mono text-cyan-100/75">SHIFT</kbd>
+            <span className="text-[9px] uppercase tracking-[0.12em]">Dash</span>
+          </div>
+          <span className="h-4 w-px bg-white/10" />
+          <div className="flex items-center gap-2">
+            <kbd className="rounded-md border border-amber-200/15 bg-amber-200/[0.06] px-2 py-1 text-[9px] font-mono text-amber-100/75">E</kbd>
+            <span className="text-[9px] uppercase tracking-[0.12em]">Pulse</span>
+          </div>
+          <span className="h-4 w-px bg-white/10" />
+          <div className="flex items-center gap-2">
+            <kbd className="rounded-md border border-white/12 bg-white/[0.05] px-2 py-1 text-[9px] font-mono text-white/70">P</kbd>
+            <span className="text-[9px] uppercase tracking-[0.12em]">Pause</span>
+          </div>
         </div>
       </div>
 
